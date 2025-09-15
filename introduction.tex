@@ -44,11 +44,15 @@
 \newcommand{\cmark}{\textcolor{mygreen}{\ensuremath{\checkmark}}}
 \newcommand{\xmark}{\textcolor{red}{\ensuremath{\times}}}
 
-% ==== Title ====
-\title{Deep Generative Models: A Visual Overview (2025)}
-\subtitle{Taxonomy, Intuitions, Equations, and Trade-offs}
-\author{\\Your Name \\ University Course Lecture}
-\date{\today}
+% Title page details:   
+\title[Large Foundation models]{Large Foundation Models: Mathematics, Algorithms, and Applications
+}  
+\author{Pipi Hu}  
+\institute[BIMSA]{Beijing Institute of Mathematical Sciences and Applications}  
+\date{\today}  
+
+\pgfdeclareimage[width=2cm]{logo}{figs/logo.png}
+\logo{\pgfuseimage{logo}{\vspace{-6pt}}}
 
 \begin{document}
 
@@ -60,13 +64,15 @@
 % ---- Learning Objectives ----
 \begin{frame}{Learning Objectives}
 \small
-By the end of this lecture you will be able to:
+By the end of this course you will be able to:
 \begin{itemize}
   \item Explain what it means to learn a data distribution $p_\theta(\mathbf{x})$ or a conditional $p_\theta(\mathbf{x}\mid\mathbf{c})$.
-  \item Compare the five major families: Autoregressive, VAE, GAN, Normalizing Flows, Diffusion/Score.
+  \item Compare the five major families: Autoregressive, VAE, GAN, Normalizing Flows, Diffusion/Flow Matching.
   \item Relate their training objectives to a unifying divergence/likelihood view.
   \item Distinguish training vs. sampling costs and typical latency/quality trade-offs.
   \item Choose an appropriate model family for a task, and see how world models connect to these tools.
+  \item Understanding how the reinforcement learning works.
+  \item Construct your own Models.
 \end{itemize}
 \end{frame}
 
@@ -76,7 +82,7 @@ By the end of this lecture you will be able to:
 \end{frame}
 
 % ---- New Prologue slide inserted here ----
-\begin{frame}{Prologue: The Bitter Lesson (Sutton)}
+\begin{frame}{Preliminary: The Bitter Lesson (Sutton)}
 \small
 \textbf{Thesis.} Hand-crafted domain knowledge scales poorly; progress comes from \textit{general-purpose} methods that learn directly from data with lots of compute. Design \textbf{mathematical learning algorithms} so models \textit{acquire} the distribution, rather than hard-coding it.
 
@@ -86,7 +92,6 @@ By the end of this lecture you will be able to:
   \item Prefer scalable objectives: maximize $\log p_\theta(\mathbf{x})$ or minimize a divergence $D( p_{\text{data}} \Vert p_\theta )$; use variational bounds/score objectives.
   \item Use generic, data-driven representations (Transformers, CNNs, U-Nets, invertible nets) \textit{+} self-supervision.
   \item Scale data/compute; reduce bespoke heuristics and narrow domain rules (\xmark \; brittle, hard to scale).
-  \item Evaluate by out-of-distribution generalization and transfer, not by fitting handcrafted cases.
 \end{itemize}
 
 \vspace{0.35em}
@@ -110,7 +115,7 @@ By the end of this lecture you will be able to:
 % ================= Section ==================
 \section{What is Generative Modeling?}
 
-\begin{frame}{Definition \\ \small and Why It Matters}
+\begin{frame}{Definition and Why It Matters}
 Generative models learn a distribution $p(\mathbf{x})$ (or $p(\mathbf{x}\,|\,\mathbf{c})$) over complex data (images, text, audio, video, 3D, proteins), enabling:
 \begin{itemize}
   \item \textbf{Synthesis} (sample new $\mathbf{x}$), \textbf{imputation}, \textbf{editing}, \textbf{control}, \textbf{compression}.
@@ -137,7 +142,8 @@ Two big families of objectives:
 
 % ---- Unifying View ----
 \begin{frame}{A Unifying Objective View}
-\small
+\begin{table}
+\centering
 \begin{tabular}{@{}l l@{}}
 \toprule
 Family & Canonical objective (sketch) \\
@@ -149,7 +155,8 @@ Flows & $\log p_\theta(\mathbf{x})=\log p(\mathbf{z})+\log \lvert \det \partial 
 Diffusion/Score & Denoising/score matching; flow/consistency matching \\
 \bottomrule
 \end{tabular}
-\vspace{0.4em}
+\end{table}
+\vspace{2em}
 \textbf{Takeaway:} same destination (match $p_\theta$ to data), different parameterizations and training signals.
 \end{frame}
 
@@ -201,7 +208,7 @@ Diffusion/Score & Denoising/score matching; flow/consistency matching \\
 % ================= Section ==================
 \section{Autoregressive (AR) Models}
 
-\begin{frame}{Core Idea}
+\begin{frame}{Auto regressive modeling}
 \textbf{Factorization:}
 \begin{equation*}
   p(\mathbf{x}) = \prod_{i=1}^{D} p\big(x_i\mid x_{<i}\big), \quad \text{with an order over dimensions/tokens.}
@@ -246,7 +253,7 @@ Diffusion/Score & Denoising/score matching; flow/consistency matching \\
 % ================= Section ==================
 \section{Variational Autoencoders (VAE)}
 
-\begin{frame}{Idea and Objective}
+\begin{frame}{VAE: Idea and Objective}
 \centering
 \begin{adjustbox}{max size={\linewidth}{.50\textheight}}
   \begin{tikzpicture}[node distance=1.0cm]
@@ -277,7 +284,7 @@ Diffusion/Score & Denoising/score matching; flow/consistency matching \\
 % ================= Section ==================
 \section{GANs (Implicit Models)}
 
-\begin{frame}{Adversarial Training}
+\begin{frame}{GANs: Adversarial Training}
 \begin{equation*}
   \min_G \max_D \; \mathbb{E}_{\mathbf{x}\sim p_{\text{data}}}[\log D(\mathbf{x})] + \mathbb{E}_{\mathbf{z}\sim p(\mathbf{z})}[\log (1 - D(G(\mathbf{z})))]
 \end{equation*}
@@ -290,7 +297,7 @@ Diffusion/Score & Denoising/score matching; flow/consistency matching \\
 % ================= Section ==================
 \section{Normalizing Flows}
 
-\begin{frame}{Invertible Transformations}
+\begin{frame}{Normalizing Flows: Invertible Transformations}
 \centering
 \begin{adjustbox}{max size={\linewidth}{.50\textheight}}
   \begin{tikzpicture}[node distance=1.1cm]
@@ -318,7 +325,7 @@ Diffusion/Score & Denoising/score matching; flow/consistency matching \\
 % ================= Section ==================
 \section{Diffusion / Score-based Models}
 
-\begin{frame}{Forward and Reverse Processes}
+\begin{frame}{Diffusion models: Forward and Reverse Processes}
 \centering
 \begin{adjustbox}{max size={\linewidth}{.50\textheight}}
   \begin{tikzpicture}[node distance=0.9cm]
@@ -358,13 +365,36 @@ Diffusion/Score & Denoising/score matching; flow/consistency matching \\
     \mathcal{L}_\text{DSM}
       = \mathbb{E}_{t,\mathbf{x}_0}\,
         \mathbb{E}_{\mathbf{x}_t\sim q(\cdot\mid\mathbf{x}_0)}
-        \!\left[\lambda(t)\,\|s_\theta(\mathbf{x}_t,t)-\nabla_{\mathbf{x}_t}\log q(\mathbf{x}_t\mid\mathbf{x}_0)\|^2\right],
+        \!\left[\lambda(t)\,\|s_\theta(\mathbf{x}_t,t)-\nabla_{\mathbf{x}_t}\log q(\mathbf{x}_t\mid\mathbf{x}_0)\|^2\right].
   \]
-  with VP: $\nabla_{\mathbf{x}_t}\log q(\mathbf{x}_t\mid\mathbf{x}_0)=
-  -\dfrac{\mathbf{x}_t-\sqrt{\bar\alpha_t}\,\mathbf{x}_0}{1-\bar\alpha_t}$,
-  and $s_\theta \approx -\dfrac{1}{\sqrt{1-\bar\alpha_t}}\,\varepsilon_\theta$.
 \end{itemize}
 \end{frame}
+
+\begin{frame}{Flow Matching}
+  \small
+  Train a velocity field $\mathbf{v}_\theta(\mathbf{x},t)$ moving $p_0\to p_1$ by the ODE
+  \[
+    \frac{d\mathbf{x}}{dt}=\mathbf{v}_\theta(\mathbf{x},t),\quad
+    \mathbf{x}(0)\sim p_0,\ \mathbf{x}(1)\sim p_1\approx p_{\text{data}}.
+  \]
+  
+  \textbf{Loss (conditional flow matching)}
+  \[
+    \mathcal{L}_{\mathrm{CFM}}
+    = \mathbb{E}_{t\sim\mathcal{U}(0,1)}
+      \ \mathbb{E}_{\mathbf{x}_0\sim p_0,\ \mathbf{x}_1\sim p_1}
+      \ \mathbb{E}_{\mathbf{x}_t=(1-t)\mathbf{x}_0+t\mathbf{x}_1}
+      \Big[\ \|\mathbf{v}_\theta(\mathbf{x}_t,t)-(\mathbf{x}_1-\mathbf{x}_0)\|^2\ \Big].
+  \]
+  \textit{General path form} (with path density $\pi_t$ and target drift $\mathbf{u}_t$):
+  \[
+    \mathcal{L}
+    = \mathbb{E}_{t,\mathbf{x}_0,\mathbf{x}_1,\mathbf{x}_t\sim \pi_t(\cdot|\mathbf{x}_0,\mathbf{x}_1)}
+      \Big[\ \|\mathbf{v}_\theta(\mathbf{x}_t,t)-\mathbf{u}_t(\mathbf{x}_0,\mathbf{x}_1,t)\|^2\ \Big].
+  \]
+  
+  \textbf{Perks:} simple targets; few-step sampling; latent-friendly.
+  \end{frame}
 
 % ================= Section ==================
 \section{Modern Hybrids and Trends}
@@ -374,6 +404,7 @@ Diffusion/Score & Denoising/score matching; flow/consistency matching \\
   \item \textbf{Tokenizer + AR + Diffusion:} VQ-VAE/LDM token spaces with AR planning/control.
   \item \textbf{Flow Matching \/ Rectified Flow:} train a velocity field $\mathbf{v}_\theta(\mathbf{x},t)$ to move noise$\to$data with 1st-order ODE sampling.
   \item \textbf{Consistency Models:} distilled one-step or few-step samplers by self-consistency constraints.
+  \item \textbf{Mean Flow:} train an averaged velocity for one step generation.
   \item \textbf{Multimodal, Video, 3D/4D:} text-image-audio-video-geometry; world-model style conditional generation.
 \end{itemize}
 \vspace{0.3em}
@@ -384,20 +415,12 @@ Diffusion/Score & Denoising/score matching; flow/consistency matching \\
 \section{Evaluation: Metrics and Pitfalls}
 
 \begin{frame}{How We Measure}
-\begin{columns}[T]
-  \begin{column}{0.52\linewidth}
-    \begin{itemize}
-      \item \textbf{Likelihood / BPD}: exact (AR/flows) or bounds (VAE); diffusion often uses NLL surrogates.
-      \item \textbf{Sample Quality}: FID, KID, IS; CLIP-score for text-image alignment.
-      \item \textbf{Diversity/Coverage}: precision\&recall for distributions; recall of rare modes.
-      \item \textbf{Task Utility}: downstream performance, human eval.
-    \end{itemize}
-  \end{column}
-  \begin{column}{0.44\linewidth}
-    \centering
-    \placeholderfig
-  \end{column}
-\end{columns}
+\begin{itemize}
+  \item \textbf{Likelihood / BPD}: exact (AR/flows) or bounds (VAE); diffusion often uses NLL surrogates.
+  \item \textbf{Sample Quality}: FID, KID, IS; CLIP-score for text-image alignment.
+  \item \textbf{Diversity/Coverage}: precision\&recall for distributions; recall of rare modes.
+  \item \textbf{Task Utility}: downstream performance, human eval.
+\end{itemize}
 \end{frame}
 
 % ================= Section ==================
@@ -417,17 +440,22 @@ Diffusion/Score & Denoising/score matching; flow/consistency matching \\
 
 \begin{frame}{Practical Trade-offs}
 \small
-\begin{tabular}{@{}lcccccc@{}}
+\begin{table}
+\centering
+\begin{tabular}{@{}lccccc@{}}
 \toprule
-\textbf{Family} & \textbf{Likelihood} & \textbf{Quality} & \textbf{Speed (sample)} & \textbf{Control} & \textbf{Stability} & \textbf{Notes} \\
+\textbf{Family} & \textbf{Likelihood} & \textbf{Quality} & \textbf{Speed (sample)} & \textbf{Control} & \textbf{Stability}\\
 \midrule
-Autoregressive & \cmark & \cmark (text/code) & \xmark & \cmark & \cmark & slow sequential; great for discrete \\
-VAE & bound & mixed & \cmark & \cmark & \cmark & scalable; useful latents \\
-GAN & \xmark & \cmark & \cmark & mixed & mixed & sharp images; mode collapse risk \\
-Flows & \cmark & mixed & mixed & \cmark & \cmark & exact log-lik; invertible design \\
-Diffusion & surrogate & \cmark & mixed$\to$\cmark & \cmark & \cmark & top-tier visuals; few-step via distillation \\
+Autoregressive & \cmark & \cmark (text/code) & \xmark & \cmark & \cmark\\
+VAE & bound & mixed & \cmark & \cmark & \cmark \\
+GAN & \xmark & \cmark & \cmark & mixed & mixed \\
+NFlows & \cmark & mixed & mixed & \cmark & \cmark\\
+Diffusion & bound & \cmark & mixed$\to$\cmark & \cmark & \cmark\\
 \bottomrule
 \end{tabular}
+\end{table}
+\vspace{2em}
+\textbf{Takeaway:} Disrete, latent space, mode collapse, inverse design with exact log likelihood, high quality samples with few-steps.
 \end{frame}
 
 % ================= Section ==================
@@ -442,8 +470,13 @@ Diffusion & surrogate & \cmark & mixed$\to$\cmark & \cmark & \cmark & top-tier v
   \item \textbf{3D/Geometry}: NeRF/mesh diffusion, 3D asset pipelines.
   \item \textbf{Science}: molecules/proteins/materials; weather/climate surrogates.
 \end{itemize}
-\vspace{0.4em}
-\centering\placeholderfig
+\end{frame}
+
+\begin{frame}
+\begin{figure}
+\centering
+\includegraphics[width=0.5\textwidth]{figs/generative_ai.jpg}
+\end{figure}
 \end{frame}
 
 % ================= Section ==================
@@ -461,8 +494,18 @@ Diffusion & surrogate & \cmark & mixed$\to$\cmark & \cmark & \cmark & top-tier v
 \end{frame}
 
 \begin{frame}{World Models: A Compact Overview (2025)}
-\small
-\centering
+\vspace{0.5em}
+\begin{itemize}
+  \item \textbf{Goal:} learn $p(\mathbf{o}_{t+1}\mid\mathbf{o}_t,\mathbf{a}_t)$ or latent dynamics $f_\theta$; plan via MPC or policy over imagined trajectories.
+  \item \textbf{Two flavors:} (i) action-conditioned \emph{video/world simulators}; (ii) representation-first models (e.g., latent JEPA/Dreamer-style) for control/planning.
+  \item \textbf{Training signals:} next-frame/latent prediction, contrastive/self-supervision, auxiliary reward/value heads.
+  \item \textbf{Eval:} physical plausibility, action-consistency, controllability, and task success; long-horizon memory.
+  \item \textbf{Open issues:} causality/counterfactuals, persistent memory/state, sim-to-real, safety.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+  \centering
 \begin{adjustbox}{max size={\linewidth}{.50\textheight}}
   \begin{tikzpicture}[node distance=1.4cm]
     \tikzstyle{box}=[draw, rounded corners, minimum width=2.1cm, minimum height=0.9cm, align=center]
@@ -486,15 +529,9 @@ Diffusion & surrogate & \cmark & mixed$\to$\cmark & \cmark & \cmark & top-tier v
     \draw[-{Latex}, dashed] (dec.east) .. controls +(1.0,0.8) and +(1.0,-0.8) .. (ot.east);
   \end{tikzpicture}
 \end{adjustbox}
-
-\vspace{0.5em}
-\begin{itemize}
-  \item \textbf{Goal:} learn $p(\mathbf{o}_{t+1}\mid\mathbf{o}_t,\mathbf{a}_t)$ or latent dynamics $f_\theta$; plan via MPC or policy over imagined trajectories.
-  \item \textbf{Two flavors:} (i) action-conditioned \emph{video/world simulators}; (ii) representation-first models (e.g., latent JEPA/Dreamer-style) for control/planning.
-  \item \textbf{Training signals:} next-frame/latent prediction, contrastive/self-supervision, auxiliary reward/value heads.
-  \item \textbf{Eval:} physical plausibility, action-consistency, controllability, and task success; long-horizon memory.
-  \item \textbf{Open issues:} causality/counterfactuals, persistent memory/state, sim-to-real, safety.
-\end{itemize}
+\\
+\vspace{2em}
+\textbf{Takeaway:} World Models are systems that learn the dynamics of an environment to plan and control actions by imagining future outcomes, but still face key challenges in causality, memory, and real-world application. 
 \end{frame}
 
 % ================= Section ==================
@@ -521,61 +558,6 @@ Diffusion & surrogate & \cmark & mixed$\to$\cmark & \cmark & \cmark & top-tier v
   \item \textbf{Flows:} RealNVP, Glow; Neural ODEs; spline flows.
   \item \textbf{Diffusion/Score:} Sohl-Dickstein (2015), DDPM, DDIM, LDM; consistency/rectified/flow-matching; DPM-Solver.
 \end{itemize}
-\end{frame}
-
-% ================= Appendix ==================
-\appendix
-
-\begin{frame}{AR vs. Diffusion: Equations Side-by-Side}
-\small
-\begin{columns}[T]
-  \begin{column}{0.48\linewidth}
-    \textbf{Autoregressive}
-    \begin{align*}
-      p(\mathbf{x}) &= \prod_{i=1}^{D} p(x_i\mid x_{<i})\\
-      \mathcal{L}_{\text{NLL}} &= -\sum_{i=1}^{D} \log p_\theta(x_i\mid x_{<i}).
-    \end{align*}
-  \end{column}
-  \begin{column}{0.48\linewidth}
-    \textbf{Diffusion (noise-prediction)}
-    \begin{align*}
-      \mathcal{L} &= \mathbb{E}_{\mathbf{x},t,\varepsilon}\big[\,\lVert \varepsilon - \varepsilon_\theta(\mathbf{x}_t,t) \rVert^2\big],\\
-      &\text{with}\; \mathbf{x}_t = \sqrt{\bar\alpha_t}\,\mathbf{x}_0 + \sqrt{1-\bar\alpha_t}\,\varepsilon.
-    \end{align*}
-  \end{column}
-\end{columns}
-\end{frame}
-
-\begin{frame}{Flow Matching (for intuition)}
-\small
-Train a velocity field $\mathbf{v}_\theta(\mathbf{x},t)$ moving $p_0\to p_1$ by the ODE
-\[
-  \frac{d\mathbf{x}}{dt}=\mathbf{v}_\theta(\mathbf{x},t),\quad
-  \mathbf{x}(0)\sim p_0,\ \mathbf{x}(1)\sim p_1\approx p_{\text{data}}.
-\]
-
-\textbf{Loss (conditional flow matching)}
-\[
-  \mathcal{L}_{\mathrm{CFM}}
-  = \mathbb{E}_{t\sim\mathcal{U}(0,1)}
-    \ \mathbb{E}_{\mathbf{x}_0\sim p_0,\ \mathbf{x}_1\sim p_1}
-    \ \mathbb{E}_{\mathbf{x}_t=(1-t)\mathbf{x}_0+t\mathbf{x}_1}
-    \Big[\ \|\mathbf{v}_\theta(\mathbf{x}_t,t)-(\mathbf{x}_1-\mathbf{x}_0)\|^2\ \Big].
-\]
-\textit{General path form} (with path density $\pi_t$ and target drift $\mathbf{u}_t$):
-\[
-  \mathcal{L}
-  = \mathbb{E}_{t,\mathbf{x}_0,\mathbf{x}_1,\mathbf{x}_t\sim \pi_t(\cdot|\mathbf{x}_0,\mathbf{x}_1)}
-    \Big[\ \|\mathbf{v}_\theta(\mathbf{x}_t,t)-\mathbf{u}_t(\mathbf{x}_0,\mathbf{x}_1,t)\|^2\ \Big].
-\]
-
-\textbf{Perks:} simple targets; few-step sampling; latent-friendly.
-\end{frame}
-
-\begin{frame}{Placeholders for Your Course Figures}
-\centering
-\placeholderfig[0.6em]
-\placeholderfig
 \end{frame}
 
 \end{document}
