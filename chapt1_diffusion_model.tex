@@ -22,6 +22,21 @@
   {\usebeamertemplate{proof end}}
 \makeatother
 
+% Math shorthand and vector symbols
+\newcommand{\grad}{\nabla}
+\newcommand{\EE}{\mathbb{E}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\kbT}{k_B T}
+\newcommand{\vx}{\mathbf{x}}
+
+% Bold vector/time-indexed variables
+\newcommand{\vxz}{\mathbf{x}_0}
+\newcommand{\vxt}{\mathbf{x}_t}
+\newcommand{\alpt}{\alpha_t}
+\newcommand{\sigt}{\sigma_t}
+\newcommand{\veps}{\boldsymbol{\epsilon}}
+\newcommand{\vF}{\mathbf{F}}
+
 % Title page details:   
 \title[Understanding diffusion model]{Understanding diffusion model from a mathematical view}  
 \author{Pipi Hu}  
@@ -377,6 +392,55 @@ Hence, in the real modeling of designing the loss, we use the connection of thre
 and substitute each other form to the loss definition above, we can recover all of the losses given by different models.
 \end{frame}
 
+
+\section{Potential Score Matching loss}
+% ============================================================
+\begin{frame}{Key Identity: Jacobian Switch (chain rule between $\vx_0$ and $\vx_t$)}
+    \small
+    The Gaussian transition density is
+    \[
+    q(\vxt\mid \vxz) = \mathcal{N}\!\big(\vxt;\; \alpt\,\vxz,\, \sigt^2\mathbf{I}\big) \propto \exp\!\Big(-\tfrac{\|\vxt-\alpt\,\vxz\|^2}{2\sigt^2}\Big).
+    \]
+    A basic but crucial identity:
+    \[
+    \grad_{\vxt} q(\vxt\mid \vxz) = -\frac{1}{\alpt}\,\grad_{\vxz} q(\vxt\mid \vxz),\qquad (\alpt>0).
+    \]
+    \textbf{Proof sketch.} Differentiating the exponent w.r.t. \(\vxt\) and w.r.t. \(\vxz\) shows
+    \(
+    \grad_{\vxt}\!\|\vxt-\alpt\vxz\|^2 = 2(\vxt-\alpt\vxz),\;
+    \grad_{\vxz}\!\|\vxt-\alpt\vxz\|^2 = -2\alpt(\vxt-\alpt\vxz),
+    \)
+    thus the factor $-1/\alpt$.
+\end{frame}
+    
+    % ============================================================
+    \begin{frame}{Theorem 1: Score as Conditional Force Expectation}
+    \small
+    \textbf{Statement.} With \(p(\vxz)\propto e^{-E(\vxz)/\kbT}\) and \(\vxt = \alpt\,\vxz+\sigt\,\veps\),
+    \[
+    \boxed{\;\grad_{\vxt}\log p(\vxt) 
+    = \frac{1}{\alpt}\, \EE_{\vxz\mid \vxt}\Big[\frac{\vF(\vxz)}{\kbT}\Big]\;,}\qquad \vF(\vxz) = -\grad_{\vxz}E(\vxz).
+    \]
+    \textbf{Derivation.}
+    {\scriptsize
+    \begin{align*}
+    \grad_{\vxt}\log p(\vxt)
+    &= \frac{\grad_{\vxt}\int p(\vxz)\, q(\vxt\mid\vxz)\,\dd \vxz}{p(\vxt)}\\
+    &= \frac{1}{p(\vxt)}\int p(\vxz)\, \grad_{\vxt} q(\vxt\mid\vxz)\,\dd \vxz\\
+    &\overset{(\ast)}{=} \frac{1}{p(\vxt)}\int p(\vxz)\,\Big(-\frac{1}{\alpt}\Big)\grad_{\vxz} q(\vxt\mid\vxz)\,\dd \vxz\\
+    &= -\frac{1}{\alpt}\,\frac{1}{p(\vxt)}\int q(\vxt\mid\vxz)\, \grad_{\vxz} p(\vxz)\,\dd \vxz\\
+    &= -\frac{1}{\alpt}\int \underbrace{\frac{p(\vxz) q(\vxt\mid\vxz)}{p(\vxt)}}_{p(\vxz\mid\vxt)}\, \grad_{\vxz}\log p(\vxz)\,\dd \vxz\\
+    &= \frac{1}{\alpt}\, \EE_{\vxz\mid\vxt}\Big[\frac{-\grad_{\vxz}E(\vxz)}{\kbT}\Big] 
+    = \frac{1}{\alpt}\, \EE_{\vxz\mid\vxt}\Big[\frac{\vF(\vxz)}{\kbT}\Big].
+    \end{align*}}
+\end{frame}
+
+\begin{frame}{Experiment}
+    \begin{figure}
+        \includegraphics[width=0.9\textwidth]{figs/psm.png}
+    \end{figure}
+\end{frame}
+
 \section{Diffusion model: from theories to implementation}
 \begin{frame}{SMLD}
     Score Matching Langevin Dynamic (SMLD) (Song, 2019) adding noise in a following manner
@@ -449,7 +513,6 @@ The main procedure (Continued)
     \end{equation}
 \end{enumerate}
 \end{frame}
-
 
 \section{Continuous version of Diffusion Model}
 
