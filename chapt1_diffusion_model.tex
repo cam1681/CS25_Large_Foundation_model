@@ -177,7 +177,6 @@ Implicit Score Matching loss (Aapo, 2005) was developed to make a tractable scor
     \end{equation}
     where 
     \begin{equation}
-    \scriptsize
     \begin{aligned}
         &-  \mathbb{E}_p[s\cdot\frac{\partial \log p}{\partial x}] =-\int_x ps\cdot \nabla \log p dx
         = -\int_x ps\cdot \frac{\nabla p}{p}dx\\ 
@@ -209,7 +208,6 @@ And we can prove that $J_{DSM} = J_{ESM}+C$.
 \begin{proof}
 We expand the formula and check the items one by one.\\[-1.5em]
 \begin{equation}
-    \scriptsize
     \begin{aligned}
       J_{DSM} &\equiv \frac{1}{2}\mathbb{E}_{p(x,\Tilde{x})}\left[\|s(\Tilde{x};\theta)-\nabla_{\Tilde{x}}\log p(\Tilde{x}|x)\|^2\right]\\
       &=\frac{1}{2}\mathbb{E}_{p(\Tilde{x})}\left[\|s(\Tilde{x})\|^2\right]-\mathbb{E}_{p(x,\Tilde{x})}[s(\Tilde{x})\cdot\nabla_{\Tilde{x}}\log p(\Tilde{x}|x)]+\frac{1}{2}\mathbb{E}_{p(x,\Tilde{x})}[\|\nabla_{\Tilde{x}}\log p(\Tilde{x}|x)\|^2]  
@@ -217,7 +215,6 @@ We expand the formula and check the items one by one.\\[-1.5em]
 \end{equation}
 And we can prove that the cross term of $J_{ESM}$ and $J_{DSM}$ is equal.\\[-1em]
 \begin{equation}
-\scriptsize
 \begin{aligned}
 &\mathbb{E}_p(\Tilde{x})[s(\Tilde{x})\cdot\nabla_{\Tilde{x}}\log p(\Tilde{x})]
  = \int_{\Tilde{x}} p(\Tilde{x})s(\Tilde{x})\cdot\nabla_{\Tilde{x}}\log p(\Tilde{x})d\Tilde{x}\\
@@ -229,7 +226,6 @@ And we can prove that the cross term of $J_{ESM}$ and $J_{DSM}$ is equal.\\[-1em
 \end{equation}
 Finally we have \\[-1em]
 \begin{equation}
-\scriptsize
     J_{DSM} = J_{ESM} -\frac{1}{2}\mathbb{E}_p\left[\|\nabla_{\Tilde{x}} \log p(\Tilde{x})\|^2\right] + \frac{1}{2}\mathbb{E}_{p(x,\Tilde{x})}[\|\nabla_{\Tilde{x}}\log p(\Tilde{x}|x)\|^2].
 \end{equation}
 \end{proof}
@@ -244,12 +240,10 @@ We can prove that when Gaussian noised added by  $p(\Tilde{x}|x) = N(\alpha x, \
 \begin{proof}
   Given the Gaussian noise added, we have \\[-1em] 
   \begin{equation}
-  \scriptsize
 \nabla_{\Tilde{x}}\log p(\Tilde{x}|x) = \nabla_{\Tilde{x}}\log e^{-\frac{(\Tilde{x}-\alpha x)^2}{2\sigma^2}} = -\frac{\Tilde{x}-\alpha x}{\sigma^2}.
   \end{equation}  
 And we can show that the following formula goes to infinity\\[-1em]
 \begin{equation}
-\scriptsize
 \begin{aligned}
 &\mathbb{E}_{p(x,\Tilde{x})}[\|\nabla_{\Tilde{x}}\log p(\Tilde{x}|x)\|^2] 
 =\mathbb{E}_{p(x,\Tilde{x})}[\|\frac{\Tilde{x}-\alpha x}{\sigma^2}\|^2]\\
@@ -259,13 +253,12 @@ And we can show that the following formula goes to infinity\\[-1em]
 \end{equation}
 Finally, we know that\\[-1em]
 \begin{equation}
-\scriptsize
     J_{DSM} = J_{ESM}+C \to \infty \text{ as } C\to \infty \text{ when } \Tilde{x}\to x.
 \end{equation}
 \end{proof}  
 \end{frame}
 
-\section{Relations of different models: $x_0$, $\epsilon$ and score model.}
+\section{Relations of different models: x0, epsilon and score model}
 
 \begin{frame}{Revisit the adding noise from $x$ to $\Tilde{x}$}
 Gaussian transition kernel for adding noise from $x$ to $\Tilde{x}$
@@ -313,14 +306,14 @@ $\epsilon = \frac{\Tilde{x}-\alpha x}{\sigma}.$
 \begin{frame}{Another insight: from the definition of the score $S$}
     Recall that adding noise by
     $\Tilde{x} = \alpha x + \sigma \epsilon$,
-\begin{equation}\label{eq.cond}
+\begin{equation}\label{eq:cond}
     p(\Tilde{x}|x) = Ce^{-\frac{\|\Tilde{x}-\alpha x\|^2}{2\sigma^2}}.
 \end{equation}
 Hence
 \begin{equation}
     s(\Tilde{x}) = \nabla_{\Tilde{x}}\log p(\Tilde{x}) = \frac{\nabla_{\Tilde{x}}p(\Tilde{x})}{p(\Tilde{x})}=\frac{\int_x \nabla_{\Tilde{x}}p(\Tilde{x}|x) p(x)dx}{p(\Tilde{x})},
 \end{equation}
-From Eq. \eqref{eq.cond}, we have
+From Eq. \eqref{eq:cond}, we have
 \begin{equation}
 s(\Tilde{x}) = \frac{\int_x \nabla_{\Tilde{x}} \log p(\Tilde{x}|x)p(\Tilde{x}|x) p(x)dx}{p(\Tilde{x})} = \int_x \nabla_{\Tilde{x}} \log p(\Tilde{x}|x)p(x|\Tilde{x})dx, 
 \end{equation}
@@ -330,25 +323,55 @@ s(\Tilde{x}) = \mathbb{E}_x[\nabla_{\Tilde{x}} \log p(\Tilde{x}|x)| \Tilde{x}]=\
 \end{equation}
 \end{frame}
 
-\begin{frame}{Theoretical Support}
+\begin{frame}{Theoretical Support: Conditional Expectation}
 \begin{theorem}
 \label{thm:conditional_expect}
-    Let $X$ be an integrable random variable. Then for each $\sigma$-algebra $\mathcal{V}$ and $Y \in \mathcal{V}$, $Z = \mathbb{E}(X| \mathcal{V})$ solves the least square problem %\cite{evans2012introduction}
-    $$\|Z - X\| = \min_{Y\in \mathcal{V}} \| Y - X\|\,,$$
-    where $\| Y\| = \left( \int Y^2 dP \right)^{\frac{1}{2}}$.
+    Let $X$ be an integrable random variable. Then for each $\sigma$-algebra $\mathcal{V}$ and $Z \in \mathcal{V}$, $Z^* = \mathbb{E}(X| \mathcal{V})$ solves the least square problem %\cite{evans2012introduction}
+    $$\text{argmin}_{Z\in \mathcal{V}} \| Z - X\|\,,$$
+    where $\| Z\| = \left( \int Z^2 dP \right)^{\frac{1}{2}}$.
 \end{theorem}
 
-\begin{lemma}
-If $Y$ is $\mathcal{V}$-measurable, and $f$ is a measurable function in the sense that its domain and codomain are appropriately aligned with the $\sigma$-algebras, then $f(Y)$ will also be $\mathcal{V}$-measurable %\cite{evans2018measure}.
-\end{lemma}
-
-By Theorem \ref{thm:conditional_expect}, the score matching loss can be written as 
-\begin{equation}
-    \begin{aligned}
-        Loss_{score} = \mathbb{E}_{t} \mathbb{E}_{x_t\sim p(x_t | x_0)}\mathbb{E}_{x_0} \| S_{\theta}(x_t, t) - \nabla_{\Tilde{x}} \log p(\Tilde{x}|x)\|^2\,.
-    \end{aligned}
-\end{equation}
+\begin{figure}
+    \includegraphics[width=0.4\textwidth]{figs/conditional_expectation.png}
+\end{figure}
 \end{frame}
+
+\begin{frame}{Setting}
+    Let $(\Omega,\mathcal F,\mathbb P)$ be a probability space and $L^2:=L^2(\Omega,\mathcal F,\mathbb P)$ with
+    $\langle U,V\rangle=\mathbb E[UV]$.  
+    Fix a sub-$\sigma$-field $\mathcal G\subset\mathcal F$ and denote the closed subspace
+    \[
+    \mathcal V:=L^2(\mathcal G)=\{Z\in L^2: Z \text{ is }\mathcal G\text{-measurable}\}.
+    \]
+    \textbf{Claim.} For $X\in L^2$,
+    \[
+    Z^*:=\mathbb E[X\mid\mathcal G]\in\mathcal V
+    \quad\text{and}\quad
+    Z^*=\arg\min_{Z\in\mathcal V}\ \mathbb E[(Z-X)^2].
+    \]
+    \end{frame}
+
+    \begin{frame}{Proof of the claim}
+    For any $Z\in\mathcal V$,
+    \[
+    \langle X-Z^*, Z\rangle
+    =\mathbb E\!\left[(X-Z^*)Z\right]
+    =\mathbb E\!\left(\mathbb E[(X-Z^*)Z\mid\mathcal G]\right)
+    =\mathbb E\!\left(Z\,\mathbb E[X-Z^*\mid\mathcal G]\right)=0.
+    \]
+    Hence $X-Z^*\perp\mathcal V$.
+    \vspace{1em}
+ 
+    Let any $Z\in\mathcal V$ be written as $Z=Z^*+W$ with $W\in\mathcal V$. Then
+    \[
+    \|X-Z\|_2^2=\|X-(Z^*+W)\|_2^2
+    =\|X-Z^*\|_2^2+\|W\|_2^2
+    \ge \|X-Z^*\|_2^2,
+    \]
+    because $\langle X-Z^*,W\rangle=0$.  
+    Equality $\Leftrightarrow W=0 \Leftrightarrow Z=Z^*$, proving uniqueness and the minimizer claim.
+\end{frame}
+
 
 \begin{frame}{Revisit several models}
 \begin{enumerate}
@@ -589,11 +612,11 @@ Further, let $\Delta t\to 0$, we finally obtain
 
 \begin{frame}{VE \& VP}
 Summarizing the form of continuous DDPM and SMLD, we summarize the adding noise process as
-\begin{equation}\label{eq.forward}
+\begin{equation}\label{eq:forward}
     dx = f(x, t)dt + g(t) dB_t,
 \end{equation}
 where the corresponding distribution $p(x, t)$ satisfying the following Fokker-Planck equation
-\begin{equation}\label{eq.fp}
+\begin{equation}\label{eq:fp}
     \frac{\partial p(x,t)}{\partial t} + \nabla\cdot\left(f(x,t) p(x,t)\right) -\frac{1}{2}g^2(t) \triangle p(x,t)=0.
 \end{equation}
 
@@ -645,7 +668,7 @@ The proof of the Lemma can be found in a stochastic differential equation textbo
 
 \begin{lemma}
     For VE, the transition kernel is given by the following formula
-\begin{equation}\label{eq.tranve}
+\begin{equation}\label{eq:tranve}
     P(x(t)|x(0)) = N(x(t); x(0), \sigma^2(t)-\sigma^2(0)).
 \end{equation}
 For VE, 
@@ -656,7 +679,7 @@ For VE,
 
 \begin{lemma}
     For VP, the transition kernel is given the following formula
-\begin{equation}\label{eq.tranvp}
+\begin{equation}\label{eq:tranvp}
     p(x(t)|x(0)) = N\left(x(t); x(0)e^{-\frac{1}{2}\int_0^t \Tilde{\beta}(s)ds},1-e^{-\int_0^t \Tilde{\beta}(s)ds}\right).
 \end{equation}
 For VP, 
@@ -752,7 +775,7 @@ The training for VE follows the following process (VP is in a similar way)
     \begin{equation}
         x_t = \Tilde{\alpha}_t x + \Tilde{\sigma}_t\epsilon, 
     \end{equation}
-    where the mean value $\Tilde{\alpha}_t x= x(0)$  and standard deviation $\Tilde{\sigma}_t = \sqrt{\sigma^2(t)-\sigma^2(0)}\approx \sigma(t)$ in VE referring to \eqref{eq.tranve}. VP is similar with the mean and standard deviation from its transition kernel \eqref{eq.tranvp};
+    where the mean value $\Tilde{\alpha}_t x= x(0)$  and standard deviation $\Tilde{\sigma}_t = \sqrt{\sigma^2(t)-\sigma^2(0)}\approx \sigma(t)$ in VE referring to \eqref{eq:tranve}. VP is similar with the mean and standard deviation from its transition kernel \eqref{eq:tranvp};
     \item Compute the Loss
     by summation the following norm over $x$, $t$ and $\epsilon$ 
     \begin{equation}  
@@ -764,7 +787,7 @@ The training for VE follows the following process (VP is in a similar way)
 
 \begin{frame}{Inference: Reverse denoising process}
 The reverse denoising process is given by 
-\begin{equation}\label{eq.reverse}
+\begin{equation}\label{eq:reverse}
     dx = (f(x,t)-g^2\nabla_x \log p(x,t))dt + g(t)dB_t,
 \end{equation}
 or 
@@ -772,7 +795,7 @@ or
     dx = (f(x,t)-\frac{1}{2}g^2\nabla_x \log p(x,t))dt,
 \end{equation}
 or 
-\begin{equation}\label{eq.reverse2}
+\begin{equation}\label{eq:reverse2}
     dx = (f(x,t)-\frac{3}{2}g^2\nabla_x \log p(x,t))dt + \sqrt{2}g(t)dB_t,
 \end{equation}
 \begin{equation}
@@ -785,11 +808,11 @@ Due to obeying the same Fokker-Planck equation for $p(x, t)$
 \end{frame}
 
 \begin{frame}{Inference: Reverse denoising process (proof)}
-In this slide, we only prove the first reverse sampling form \eqref{eq.reverse} and other cases can be done in a similar approach. 
+In this slide, we only prove the first reverse sampling form \eqref{eq:reverse} and other cases can be done in a similar approach. 
 
 \scriptsize
 \begin{proof}
-    The Fokker-Planck equation of the forward process \eqref{eq.forward} is given by \eqref{eq.fp} as
+    The Fokker-Planck equation of the forward process \eqref{eq:forward} is given by \eqref{eq:fp} as
     \begin{equation}
         \frac{\partial p}{\partial t} + \nabla \cdot (f(x,t)p)-\frac{1}{2}g^2\triangle p = 0.
     \end{equation}
@@ -880,7 +903,7 @@ where $\pi^*$ is the stable distribution of $\pi(x, t)$.
 \begin{frame}{Questions}
 If you are interested in the questions, please feel free to write an email to me {\color{red}(\href{mailto:pisquare@microsoft.com}{pisquare@microsoft.com})} with your comments. 
 \begin{enumerate}[(1.)]
-    \item Please prove that the forms \eqref{eq.reverse}-\eqref{eq.reverse2} are equivalent with same marginal distribution $p(x,t)$ given the same initial condition;
+    \item Please prove that the forms \eqref{eq:reverse}-\eqref{eq:reverse2} are equivalent with same marginal distribution $p(x,t)$ given the same initial condition;
     \item Please prove that the score function $s(x,t)$ satisfying the following formula
     \begin{equation}
         \frac{\partial s}{\partial t} = \nabla (-\nabla\cdot f - \langle f, s\rangle + \frac{1}{2}g^2\|s\|^2 + \frac{1}{2}g^2\langle \nabla, s \rangle);
