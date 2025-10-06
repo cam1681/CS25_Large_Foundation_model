@@ -1,0 +1,527 @@
+\documentclass[aspectratio=169]{beamer}
+
+% ==== Theme & basic look ====
+\usetheme{Madrid}
+\usecolortheme{seahorse}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+
+
+% Packages for mathematics  
+\usepackage{amsmath}  
+\usepackage{amsfonts}  
+\usepackage{amssymb}  
+\usepackage{CJKutf8}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+% Support for \Tilde macro used throughout
+\providecommand{\Tilde}[1]{\tilde{#1}}
+\providecommand{\proofname}{Proof}
+\newenvironment<>{proofs}[1][\proofname]{%
+    \par
+    \def\insertproofname{#1.}%
+    \usebeamertemplate{proof begin}#2}
+  {\usebeamertemplate{proof end}}
+\makeatother
+
+% Math shorthand and vector symbols
+\newcommand{\grad}{\nabla}
+\newcommand{\EE}{\mathbb{E}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\kbT}{k_B T}
+\newcommand{\vx}{\mathbf{x}}
+\newcommand{\eps}{\epsilon}
+\newcommand{\z}{\mathbf{z}}
+\newcommand{\vinst}{\mathbf{v}}
+\newcommand{\uavg}{\overline{\mathbf{u}}}
+\newcommand{\dv}[2]{\frac{d#1}{d#2}}
+\newcommand{\td}{\frac{d}{dt}}
+\newcommand{\x}{\mathbf{x}}
+\newcommand{\coloneqq}{\mathrel{\vcenter{\baselineskip0.5ex\lineskiplimit0pt\hbox{\scriptsize.}\hbox{\scriptsize.}}}=}
+\newcommand{\sg}{\mathrm{sg}}
+\newcommand{\JVP}{\mathrm{JVP}}
+
+% Bold vector/time-indexed variables
+\newcommand{\vxz}{\mathbf{x}_0}
+\newcommand{\vxt}{\mathbf{x}_t}
+\newcommand{\alpt}{\alpha_t}
+\newcommand{\sigt}{\sigma_t}
+\newcommand{\veps}{\boldsymbol{\epsilon}}
+\newcommand{\vF}{\mathbf{F}}
+
+% Title page details:   
+\title[Understanding Flow Matching]{Understanding Flow Matching from a mathematical view}  
+\author{Pipi Hu}  
+\institute[BIMSA]{Beijing Institute of Mathematical Sciences and Applications}  
+\date{\today}  
+
+\pgfdeclareimage[width=2cm]{logo}{figs/logo.png}
+\logo{\pgfuseimage{logo}}
+
+% Outline slide (moved to later; avoid frame before \begin{document})
+
+\setbeamertemplate{navigation symbols}{}
+\AtBeginSection[]  
+{  
+    \begin{frame}<beamer>{Outline}         
+        \tableofcontents[currentsection]  
+    \end{frame}  
+}  
+  
+\AtBeginSubsection[]  
+{  
+    \begin{frame}<beamer>{Outline}         
+        \tableofcontents[currentsection,currentsubsection]  
+    \end{frame}  
+}  
+
+\begin{document}  
+  
+% Title slide  
+\begin{frame}  
+  \titlepage  
+\end{frame}  
+
+\begin{frame}{Feynman's words}
+    \centering
+        What I cannot create, I do not understand.
+    \end{frame}
+    
+\begin{frame}{Mathematical motivation for Flow Matching}
+\textbf{The fundamental challenge}: Learn a velocity field \(\mathbf{v}(\vx,t)\) that transforms a simple base distribution \(p_1(\vx)\) into the data distribution \(p_0(\vx)\) through the continuity equation:
+\begin{equation}
+    \partial_t p(\vx,t) + \grad\cdot\big(p(\vx,t)\,\mathbf{v}(\vx,t)\big) = 0.
+\end{equation}
+
+\textbf{Key advantages over score-based methods}:
+\begin{itemize}
+    \item \textbf{No score estimation}: Avoids computing \(\grad_{\vx}\log p(\vx,t)\) during training
+    \item \textbf{Analytic supervision}: Provides closed-form velocity targets via conditional paths
+    \item \textbf{Deterministic sampling}: Enables ODE integration with large solver steps
+    \item \textbf{Mathematical elegance}: Direct connection to optimal transport theory
+\end{itemize}
+\end{frame}
+  
+% Presentation slides  
+
+\section{Continuity equation and probability flow}
+
+\begin{frame}{The continuity equation: mathematical foundation}
+\textbf{Theorem}: Let \(\mathbf{v}(\vx,t)\) be a smooth velocity field. Then the density \(p(\vx,t)\) transported by the ODE \(\dot{\vx} = \mathbf{v}(\vx,t)\) satisfies the continuity equation:
+\begin{equation}
+    \partial_t p(\vx,t) + \grad\cdot\big(p(\vx,t)\,\mathbf{v}(\vx,t)\big) = 0.
+\end{equation}
+
+\textbf{Proof sketch}: For any test function \(\phi(\vx)\), we have:
+\begin{align}
+    \frac{d}{dt}\int \phi(\vx) p(\vx,t) d\vx &= \int \phi(\vx) \partial_t p(\vx,t) d\vx \\
+    &= \int \phi(\vx) \mathbf{v}(\vx,t) \cdot \grad p(\vx,t) d\vx \\
+    &= -\int \grad\phi(\vx) \cdot \mathbf{v}(\vx,t) p(\vx,t) d\vx
+\end{align}
+The last equality follows from integration by parts and the chain rule.
+\end{frame}
+
+\begin{frame}{Derivation: target velocity for Gaussian path}
+Given \(\vxt=\boldsymbol{\mu}_t(\vxz)+\sigt\veps\) with \(\veps\sim\mathcal{N}(0,\mathbf{I})\),
+\begin{equation}
+    \frac{\dd}{\dd t}\,\vxt = \dot{\boldsymbol{\mu}}_t(\vxz) + \dot{\sigt}\,\veps.
+\end{equation}
+Condition on \(\vxt=\vx\) and \(\vxz\). Since \(\veps=(\vx-\boldsymbol{\mu}_t(\vxz))/\sigt\),
+\begin{align}
+    \mathbf{u}_t(\vx\mid\vxz)
+    &= \EE\big[\tfrac{\dd}{\dd t}\,\vxt\mid \vxt=\vx,\,\vxz\big]\\
+    &= \dot{\boldsymbol{\mu}}_t(\vxz) + \dot{\sigt}\, \EE[\veps\mid\vxt=\vx,\,\vxz]\\
+    &= \dot{\boldsymbol{\mu}}_t(\vxz) + \dot{\sigt}\,\frac{\vx-\boldsymbol{\mu}_t(\vxz)}{\sigt}\\
+    &= \dot{\boldsymbol{\mu}}_t(\vxz) + \frac{\dot{\sigt}}{\sigt}\Big(\vx-\boldsymbol{\mu}_t(\vxz)\Big).
+\end{align}
+\end{frame}
+
+\begin{frame}{Conditional probability paths: mathematical framework}
+\textbf{Definition}: Given a data distribution \(p_{\text{data}}(\vxz)\) and base distribution \(p_{\text{base}}(\vx)\), we define conditional paths \(q_t(\vx\mid\vxz)\) such that:
+\begin{equation}
+    p_t(\vx) = \int p_{\text{data}}(\vxz)\; q_t(\vx\mid\vxz)\, \dd\vxz, \quad t\in[0,1],
+\end{equation}
+with boundary conditions \(p_0=p_{\text{data}}\) and \(p_1=p_{\text{base}}\).
+
+\textbf{Key insight}: The conditional velocity field
+\begin{equation}
+    \mathbf{u}_t(\vx\mid\vxz) := \EE\big[\tfrac{\dd}{\dd t}\, \vxt \;\big|\; \vxt=\vx,\,\vxz\big]
+\end{equation}
+provides \emph{analytic supervision} for learning the marginal velocity field \(\mathbf{v}(\vx,t)\).
+
+\textbf{Mathematical advantage}: No need to estimate \(\grad_{\vx}\log p(\vx,t)\) during training!
+\end{frame}
+
+\section{Gaussian conditional paths and targets}
+
+\begin{frame}{Gaussian conditional paths: mathematical derivation}
+\textbf{Assumption}: Gaussian conditional paths
+\begin{equation}
+    q_t(\vx\mid\vxz) = \mathcal{N}\big(\vx;\; \boldsymbol{\mu}_t(\vxz),\, \sigma_t^2\mathbf{I}\big),\quad \vxt = \boldsymbol{\mu}_t(\vxz) + \sigt\veps.
+\end{equation}
+
+\textbf{Mathematical derivation}: Taking the time derivative of the path:
+\begin{equation}
+    \frac{\dd}{\dd t}\,\vxt = \dot{\boldsymbol{\mu}}_t(\vxz) + \dot{\sigt}\,\veps,\quad \veps=\frac{\vxt-\boldsymbol{\mu}_t(\vxz)}{\sigt}.
+\end{equation}
+
+\textbf{Conditional expectation}: Since \(\veps\) is independent of \(\vxt\) given \(\vxz\), we have:
+\begin{align}
+    \mathbf{u}_t(\vx\mid\vxz) &= \EE\big[\tfrac{\dd}{\dd t}\,\vxt \;\big|\; \vxt=\vx,\,\vxz\big] \\
+    &= \dot{\boldsymbol{\mu}}_t(\vxz) + \dot{\sigt}\,\EE[\veps\mid\vxt=\vx,\,\vxz] \\
+    &= \dot{\boldsymbol{\mu}}_t(\vxz) + \dot{\sigt}\,\frac{\vx-\boldsymbol{\mu}_t(\vxz)}{\sigt}
+\end{align}
+
+\textbf{Final result}:
+\begin{equation}
+    \boxed{\;\mathbf{u}_t(\vx\mid\vxz) = \dot{\boldsymbol{\mu}}_t(\vxz) + \frac{\dot{\sigt}}{\sigt}\Big(\vx-\boldsymbol{\mu}_t(\vxz)\Big).\;}
+\end{equation}
+\end{frame}
+
+\begin{frame}{Mathematical analysis of path choices}
+\textbf{1. Linear bridge} (optimal transport):
+\begin{itemize}
+    \item \(\boldsymbol{\mu}_t(\vxz)=(1-t)\,\vxz\), \(\sigt=t\,\sigma_{\max}\)
+    \item \textbf{Mathematical property}: Minimizes Wasserstein-2 distance
+    \item \textbf{Velocity}: \(\mathbf{u}_t(\vx\mid\vxz) = \frac{\sigma_{\max}}{t}(\vx-\vxz)\)
+\end{itemize}
+
+\textbf{2. VP-like} (DDPM-inspired):
+\begin{itemize}
+    \item \(\boldsymbol{\mu}_t(\vxz)=\alpha(t)\,\vxz\), \(\sigt=\sqrt{1-\alpha^2(t)}\)
+    \item \textbf{Mathematical property}: Preserves energy structure
+    \item \textbf{Velocity}: \(\mathbf{u}_t(\vx\mid\vxz) = \dot{\alpha}(t)\vxz + \frac{\dot{\sigt}}{\sigt}(\vx-\alpha(t)\vxz)\)
+\end{itemize}
+
+\textbf{3. VE-like} (SMLD-inspired):
+\begin{itemize}
+    \item \(\boldsymbol{\mu}_t(\vxz)=\vxz\), \(\sigt=\sigma(t)\) increasing
+    \item \textbf{Mathematical property}: Preserves data structure
+    \item \textbf{Velocity}: \(\mathbf{u}_t(\vx\mid\vxz) = \frac{\dot{\sigma}(t)}{\sigma(t)}(\vx-\vxz)\)
+\end{itemize}
+
+\textbf{Key insight}: All choices provide \emph{closed-form} \(\mathbf{u}_t\) via the boxed formula!
+\end{frame}
+
+\begin{frame}{Derivation: VE/VP target forms}
+\small
+\textbf{VE-like.} \(\boldsymbol{\mu}_t(\vxz)=\vxz\), \(\sigt=\sigma(t)\). Then
+\begin{equation}
+    \mathbf{u}_t = 0 + \frac{\dot\sigt}{\sigt}\,(\vx-\vxz).
+\end{equation}
+\textbf{VP-like.} \(\boldsymbol{\mu}_t(\vxz)=\alpha(t)\,\vxz\), \(\sigt=\sqrt{1-\alpha^2(t)}\). Using
+\(\mathbf{u}_t=\dot{\boldsymbol{\mu}}_t + (\dot\sigt/\sigt)(\vx-\boldsymbol{\mu}_t)\), we get
+\begin{align}
+    \mathbf{u}_t(\vx\mid\vxz)
+    &= \dot\alpha\,\vxz + \frac{\dot\sigt}{\sigt}\,\vx - \frac{\dot\sigt}{\sigt}\,\alpha\,\vxz\\
+    &= \frac{\dot\sigt}{\sigt}\,\vx + \Big(\dot\alpha - \alpha\,\frac{\dot\sigt}{\sigt}\Big)\,\vxz.
+\end{align}
+No explicit form for \(\dot\sigt/\sigt\) is required to train; schedules determine it numerically.
+\end{frame}
+
+\section{Training and inference}
+
+\begin{frame}{Flow Matching: mathematical training objective}
+\textbf{Theoretical foundation}: Given conditional paths \(q_t(\vx\mid\vxz)\), the optimal velocity field satisfies:
+\begin{equation}
+    \mathbf{v}^*(\vx,t) = \EE_{\vxz\mid\vxt=\vx}\big[\mathbf{u}_t(\vx\mid\vxz)\big]
+\end{equation}
+
+\textbf{Training procedure}:
+\begin{enumerate}
+    \item Sample \(t\sim\mathcal{U}[0,1]\), \(\vxz\sim p_{\text{data}}\), \(\vxt\sim q_t(\cdot\mid\vxz)\)
+    \item Compute analytic target \(\mathbf{u}_t(\vxt\mid\vxz)\) from chosen path
+    \item Minimize regression loss
+\end{enumerate}
+
+\textbf{Mathematical objective}:
+\begin{equation}
+    J_{\text{FM}} = \EE\big[\,\|\, \mathbf{v}_\theta(\vxt,t) - \mathbf{u}_t(\vxt\mid\vxz)\,\|^2\,\big].
+\end{equation}
+
+\textbf{Key mathematical advantage}: No score estimation needed; all targets are analytic!
+\end{frame}
+
+\begin{frame}{Mathematical optimality of Flow Matching}
+\textbf{Theorem}: The population minimizer of the Flow Matching objective
+\begin{equation}
+    J_{\text{FM}}(\theta)=\EE\big[\|\mathbf{v}_\theta(\vxt,t)-\mathbf{u}_t(\vxt\mid\vxz)\|^2\big]
+\end{equation}
+is the posterior-averaged velocity field:
+\begin{equation}
+    \mathbf{v}^*(\vx,t)=\EE\big[\,\mathbf{u}_t(\vxt\mid\vxz)\,\big|\,\vxt=\vx,\,t\big].
+\end{equation}
+
+\textbf{Mathematical proof}:
+\begin{proofs}
+Let \(Y=\mathbf{u}_t(\vxt\mid\vxz)\), \(X=(\vxt,t)\). For any predictor \(g(X)\),
+\begin{align}
+\EE[\|Y-g(X)\|^2]&=\EE[\|Y-\EE[Y\mid X]\|^2]+\EE[\|g(X)-\EE[Y\mid X]\|^2] \\
+&\quad + 2\EE[(Y-\EE[Y\mid X])\cdot(g(X)-\EE[Y\mid X])]
+\end{align}
+The cross term vanishes by the tower property, and the second term is minimized when \(g(X)=\EE[Y\mid X]\).
+\end{proofs}
+
+\textbf{Key insight}: Flow Matching learns the \emph{optimal} velocity field that respects the continuity equation!
+\end{frame}
+
+\begin{frame}{Mathematical foundation of inference}
+\textbf{Theoretical basis}: The learned velocity field \(\mathbf{v}_\theta(\vx,t)\) defines a deterministic ODE:
+\begin{equation}
+    \frac{\dd}{\dd t}\,\vx = \mathbf{v}_\theta(\vx,t), \quad t\in[0,1]
+\end{equation}
+
+\textbf{Mathematical properties}:
+\begin{itemize}
+    \item \textbf{Existence}: Under Lipschitz conditions, solutions exist and are unique
+    \item \textbf{Consistency}: The ODE preserves the continuity equation
+    \item \textbf{Stability}: Deterministic integration avoids accumulation of stochastic errors
+\end{itemize}
+
+\textbf{Generation process}:
+\begin{enumerate}
+    \item Initialize \(\vx(1)\sim p_1\) (e.g., \(\mathcal{N}(0,\mathbf{I})\))
+    \item Integrate ODE backwards: \(\frac{\dd}{\dd t}\,\vx = \mathbf{v}_\theta(\vx,t)\), \(t:1\to 0\)
+    \item Use standard ODE solvers (Euler, RK4, Dormand-Prince, etc.)
+\end{enumerate}
+
+\textbf{Mathematical advantages}:
+\begin{itemize}
+    \item Deterministic sampling (reproducible)
+    \item Fast with large solver steps
+    \item No stochastic correctors needed
+\end{itemize}
+\end{frame}
+
+\section{Relation to diffusion and score models}
+
+\begin{frame}{Mathematical connection to diffusion models}
+\textbf{Theoretical link}: For a forward SDE \(\dd\vx = f(\vx,t)\,\dd t + g(t)\,\dd B_t\), the probability flow ODE is:
+\begin{equation}
+    \frac{\dd}{\dd t}\,\vx = f(\vx,t) - \tfrac{1}{2}g^2(t)\,\grad_{\vx}\log p(\vx,t).
+\end{equation}
+
+\textbf{Key mathematical insight}: When Flow Matching uses Gaussian paths that match the SDE's marginal distributions \(p_t\), the learned velocity field \(\mathbf{v}_\theta\) approximates the probability flow drift:
+\begin{equation}
+    \mathbf{v}_\theta(\vx,t) \approx f(\vx,t) - \tfrac{1}{2}g^2(t)\,\grad_{\vx}\log p(\vx,t)
+\end{equation}
+
+\textbf{Crucial advantage}: Flow Matching achieves this approximation \emph{without} ever computing the score \(\grad_{\vx}\log p(\vx,t)\) during training!
+\end{frame}
+
+\begin{frame}{Mathematical derivation: probability flow ODE}
+\textbf{Setup}: Forward SDE \(\dd\vx=f(\vx,t)\,\dd t + g(t)\,\dd B_t\) with density \(p(\vx,t)\) solving the Fokker-Planck equation:
+\begin{equation}
+    \partial_t p = -\grad\cdot(f p) + \tfrac{1}{2}g^2\,\triangle p.
+\end{equation}
+
+\textbf{Key insight}: A deterministic ODE \(\dot{\vx}=\mathbf{v}(\vx,t)\) transports densities via the continuity equation:
+\begin{equation}
+    \partial_t p + \grad\cdot(p\,\mathbf{v}) = 0.
+\end{equation}
+
+\textbf{Mathematical derivation}: Equating the two equations:
+\begin{align}
+    -\grad\cdot(p\,\mathbf{v}) &= -\grad\cdot(f p) + \tfrac{1}{2}g^2\,\triangle p\\
+    \Rightarrow\; \mathbf{v} &= f - \tfrac{1}{2}g^2\,\frac{\grad p}{p} 
+    \;=\; f - \tfrac{1}{2}g^2\,\grad\log p.
+\end{align}
+
+\textbf{Result}: The probability flow ODE drift is \(\mathbf{v} = f - \tfrac{1}{2}g^2\,\grad\log p\).
+\end{frame}
+
+\begin{frame}{Specializing VE/VP-style paths}
+\small
+\begin{itemize}
+    \item VE-style: \(\boldsymbol{\mu}_t(\vxz)=\vxz\). Target becomes \(\mathbf{u}_t=\tfrac{\dot\sigt}{\sigt}(\vx-\vxz)\).
+    \item VP-style: \(\boldsymbol{\mu}_t=\alpha(t)\vxz\), \(\sigt=\sqrt{1-\alpha^2(t)}\). Target is \(\mathbf{u}_t=\dot\alpha\,\vxz + \tfrac{\dot\sigt}{\sigt}(\vx-\alpha\vxz)\).
+\end{itemize}
+Averaging over \(\vxz\) under the path recovers the probability flow drift forms used by diffusion models.
+\end{frame}
+
+\section{Practical recipe}
+
+\begin{frame}{Complete training recipe}
+\textbf{Step-by-step procedure}:
+\begin{enumerate}
+    \item \textbf{Sample data}: \(\vxz\sim p_{\text{data}}\), \(t\sim\mathcal{U}[0,1]\), \(\veps\sim \mathcal{N}(0,\mathbf{I})\)
+    \item \textbf{Forward pass}: \(\vxt = \boldsymbol{\mu}_t(\vxz) + \sigt\veps\)
+    \item \textbf{Compute target}: \(\mathbf{u}_t(\vxt\mid\vxz) = \dot{\boldsymbol{\mu}}_t(\vxz) + (\dot\sigt/\sigt)(\vxt-\boldsymbol{\mu}_t(\vxz))\)
+    \item \textbf{Regression loss}: \(\|\mathbf{v}_\theta(\vxt,t)-\mathbf{u}_t(\vxt\mid\vxz)\|^2\)
+\end{enumerate}
+
+\textbf{Implementation notes}:
+\begin{itemize}
+    \item Use standard optimizers (Adam, AdamW)
+    \item Typical learning rates: \(10^{-4}\) to \(10^{-3}\)
+    \item Training time similar to diffusion models
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Complete inference recipe}
+\textbf{Generation procedure}:
+\begin{enumerate}
+    \item \textbf{Initialize}: \(\vx(1)\sim p_1\) (e.g., \(\mathcal{N}(0,\mathbf{I})\))
+    \item \textbf{ODE integration}: \(\dot{\vx}=\mathbf{v}_\theta(\vx,t)\) from \(t=1\) to \(t=0\)
+    \item \textbf{Optional}: Add predictor-corrector steps for higher quality
+\end{enumerate}
+
+\textbf{Solver recommendations}:
+\begin{itemize}
+    \item \textbf{Fast}: Euler method (1-10 steps)
+    \item \textbf{Accurate}: RK4, Dormand-Prince (10-50 steps)
+    \item \textbf{Adaptive}: Use error control for automatic step sizing
+\end{itemize}
+\end{frame}
+
+\section{MeanFlow: Average Velocity Field}
+\begin{frame}{Motivation}
+    \begin{itemize}
+    \item Goal: map a simple prior (e.g., $\eps\sim \mathcal{N}(0,I)$) to the data distribution $p_{\text{data}}$.
+    \item Diffusion / Flow Matching usually require \emph{multi-step} ODE/SDE integration during sampling.
+    \item Desire: \textbf{single-step (1-NFE)} generation while retaining high fidelity and stability.
+    \item Key idea in MeanFlow: learn a \emph{ground-truth average velocity field} that summarizes an entire time interval.
+    \end{itemize}
+    \end{frame}
+
+\begin{frame}{Rectified / Flow Matching setup}
+Given schedules $a_t, b_t$ and time $t\in[0,1]$:
+\begin{align}
+\z_t &= a_t\,\x + b_t\,\eps, \\
+\vinst_t &\equiv \dv{\z_t}{t} = a'_t\,\x + b'_t\,\eps. \label{eq:cond-vel}
+\end{align}
+\vspace{0.5em}
+\textbf{Marginal velocity} (ground-truth field for FM):
+\begin{equation}
+\vinst(\z_t, t) \;=\; \EE_{p_t(\vinst_t\mid \z_t)}\big[\vinst_t\big].
+\end{equation}
+\textbf{Training (conditional FM):}
+\begin{equation}
+\mathcal{L}_{\mathrm{CFM}} = \EE_{t,\x,\eps}\,\big\| v_\theta(\z_t,t) - \vinst_t\big\|_2^2, \quad \text{with } \z_t = a_t\x+b_t\eps.
+\end{equation}
+\end{frame}
+
+
+\begin{frame}{Sampling in Flow Matching}
+The probability-flow ODE:
+\begin{equation}
+\dv{\z_t}{t} = \vinst(\z_t,t), \qquad \text{(start from }\z_1=\eps\text{)}.
+\end{equation}
+With a discrete solver (Euler): $\;\z_{t_{i+1}}\approx \z_{t_i} + (t_{i+1}-t_i)\,\vinst(\z_{t_i},t_i)$.
+\begin{block}{Issue}
+Coarse discretization along \emph{curved} trajectories leads to significant numerical error $\Rightarrow$ many steps are needed.
+\end{block}
+\end{frame}
+
+
+\begin{frame}{Definition: Average Velocity}
+For any pair $r<t$ and point $\z_t$ along the flow path:
+\begin{equation}\label{eq:u-def}
+\uavg(\z_t, r, t) \;\coloneqq\; \frac{1}{t-r} \int_{r}^{t} \vinst(\z_\tau,\tau)\, \dd\tau.
+\end{equation}
+\begin{itemize}
+\item $\uavg$ is an \textbf{underlying field} induced by $\vinst$ (no networks yet).
+\item As $r\to t$, \; $\uavg(\z_t,r,t) \to \vinst(\z_t,t)$.
+\item Composition over intervals holds: one big step equals two smaller consecutive steps (additivity of integrals).
+\end{itemize}
+\end{frame}
+
+\begin{frame}{MeanFlow Identity (core relation)}
+Starting from Eq.~\eqref{eq:u-def}:
+\begin{equation}
+(t-r)\,\uavg(\z_t,r,t) \,=\, \int_r^t \vinst(\z_\tau,\tau)\,\dd\tau.
+\end{equation}
+Differentiate w.r.t. $t$ (treating $r$ as constant) and use the fundamental theorem of calculus:
+\begin{equation}\label{eq:meanflow-identity}
+\boxed{\;\uavg(\z_t,r,t) \,=\, \vinst(\z_t,t) \, - \, (t-r)\,\td\,\uavg(\z_t,r,t)\;}
+\end{equation}
+where the total derivative expands to
+\begin{equation}\label{eq:total-deriv}
+\td\,\uavg(\z_t,r,t) \;=\; \underbrace{\vinst(\z_t,t)}_{\dv{\z_t}{t}}\!\cdot \partial_{\z}\uavg(\z_t,r,t) \; +\; \partial_t\uavg(\z_t,r,t).
+\end{equation}
+\vspace{0.3em}
+\textit{Interpretation:} Eq.~\eqref{eq:meanflow-identity} links instantaneous and average velocities \emph{without} introducing networks.
+\end{frame}
+
+
+\begin{frame}{Trainable objective}
+Parameterize a network $\uavg_\theta(\z, r, t)$. Use the MeanFlow identity to form a target (replace $\vinst$ by sample-conditional $\vinst_t$):
+\begin{align}
+\text{Target:}\quad \uavg_{\text{tgt}} \;&=\; \vinst_t \; -\; (t-r)\,\big(\underbrace{\vinst_t \cdot \partial_{\z}\uavg_\theta}_{\text{JVP}} + \partial_t\uavg_\theta\big). \\
+\mathcal{L}(\theta) \;&=\; \EE\,\big\|\,\uavg_\theta(\z_t, r, t) - \sg(\uavg_{\text{tgt}})\,\big\|_2^2.
+\end{align}
+\begin{itemize}
+\item $\sg(\cdot)$: stop-gradient; avoids higher-order differentiation.
+\item JVP (Jacobian-vector product) computed efficiently via autodiff.
+\item If $r=t$, the correction term vanishes $\Rightarrow$ reduces to standard Flow Matching.
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}{Pseudocode (training)}
+\textbf{MeanFlow training algorithm}:
+\begin{enumerate}
+\item Sample $t,r\sim \text{LogitNormal}$; set $t\leftarrow\max(r,t)$, $r\leftarrow\min(r,t)$
+\item Sample $\x\sim p_{\text{data}}$, $\eps\sim\mathcal{N}(0,I)$; set $\z_t=(1-t)\x + t\eps$, $\vinst_t=\eps-\x$
+\item Compute $\big(\uavg_\theta,\; \td\uavg_\theta\big)=\JVP\big(\uavg_\theta(\cdot,r,t), \; (\vinst_t,0,1)\big)$
+\item Set $\uavg_{\text{tgt}}\leftarrow \vinst_t - (t-r)\,\td\uavg_\theta$
+\item Minimize $\;\|\uavg_\theta(\z_t,r,t)-\sg(\uavg_{\text{tgt}})\|_2^2$ (optionally with adaptive weights)
+\end{enumerate}
+\end{frame}
+
+
+\begin{frame}{Sampling (1 step or few steps)}
+Replace the time integral by the learned average velocity:
+\begin{equation}
+\z_r \;=\; \z_t - (t-r)\,\uavg_\theta(\z_t,r,t).
+\end{equation}
+\textbf{1-NFE sampling}: take $(r,t)=(0,1)$, $\z_1=\eps$,
+\begin{equation}
+\boxed{\;\x \equiv \z_0 = \eps - \uavg_\theta(\eps,0,1)\;}\;.
+\end{equation}
+\begin{itemize}
+\item Few-step variants are immediate by chaining intervals.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{CFG inside the field (still 1-NFE)}
+Define a CFG velocity field
+\begin{equation}
+\vinst_{\text{cfg}}(\z_t,t\mid c) \;=\; \omega\,\vinst(\z_t,t\mid c) + (1-\omega)\,\vinst(\z_t,t).
+\end{equation}
+\textbf{Key insight}: CFG can be applied directly to the average velocity field:
+\begin{equation}
+\uavg_{\text{cfg}}(\z_t,r,t\mid c) \;=\; \omega\,\uavg(\z_t,r,t\mid c) + (1-\omega)\,\uavg(\z_t,r,t).
+\end{equation}
+This maintains the 1-NFE property while enabling conditional generation.
+\end{frame}
+
+\section{References}
+
+\begin{frame}{Key references and resources}
+\textbf{Core papers}:
+\begin{itemize}
+    \item Lipman et al., \textit{Flow Matching: A unifying perspective of score-based training and generative modeling} (Guide and Code, 2024)
+    \item Song et al., \textit{Score-based generative modeling through stochastic differential equations} (2021)
+    \item Ho et al., \textit{Denoising Diffusion Probabilistic Models} (2020)
+\end{itemize}
+
+\textbf{Implementation resources}:
+\begin{itemize}
+    \item Flow Matching Guide and Code (GitHub)
+    \item Open source libraries: diffusers, torchdyn
+    \item Tutorial notebooks and examples
+\end{itemize}
+\end{frame}
+
+% Thank you slide  
+\begin{frame}{Welcome inputs}  
+  \centering  
+  Any comments?
+  \\[2em]
+  Welcome your inputs!  
+\end{frame}  
+  
+\end{document}  
+
+
