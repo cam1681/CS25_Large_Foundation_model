@@ -1,0 +1,609 @@
+\documentclass[aspectratio=169]{beamer}
+
+% ==== Theme & basic look ====
+\usetheme{Madrid}
+\usecolortheme{seahorse}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+
+
+% Packages for mathematics  
+\usepackage{amsmath}  
+\usepackage{amsfonts}  
+\usepackage{amssymb}  
+\usepackage{CJKutf8}
+% Support for \Tilde macro used throughout
+\providecommand{\Tilde}[1]{\tilde{#1}}
+\providecommand{\proofname}{Proof}
+\newenvironment<>{proofs}[1][\proofname]{%
+    \par
+    \def\insertproofname{#1.}%
+    \usebeamertemplate{proof begin}#2}
+  {\usebeamertemplate{proof end}}
+\makeatother
+
+% Math shorthand and vector symbols
+\newcommand{\grad}{\nabla}
+\newcommand{\EE}{\mathbb{E}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\kbT}{k_B T}
+\newcommand{\vx}{\mathbf{x}}
+\newcommand{\vz}{\mathbf{z}}
+\newcommand{\KL}{\text{KL}}
+\newcommand{\ELBO}{\text{ELBO}}
+\DeclareMathOperator{\sg}{sg}
+
+% Bold vector/time-indexed variables
+\newcommand{\vxz}{\mathbf{x}}
+\newcommand{\vzt}{\mathbf{z}}
+\newcommand{\vtheta}{\boldsymbol{\theta}}
+\newcommand{\vphi}{\boldsymbol{\phi}}
+\newcommand{\veps}{\boldsymbol{\epsilon}}
+
+% Title page details:   
+\title[Understanding VAE]{Understanding Variational Autoencoders and their Variants}  
+\author{Pipi Hu}  
+\institute[BIMSA]{Beijing Institute of Mathematical Sciences and Applications}  
+\date{\today}  
+
+\pgfdeclareimage[width=2cm]{logo}{figs/logo.png}
+\logo{\pgfuseimage{logo}}
+
+% Outline slide (moved to later; avoid frame before \begin{document})
+
+\setbeamertemplate{navigation symbols}{}
+\AtBeginSection[]  
+{  
+    \begin{frame}<beamer>{Outline}         
+        \tableofcontents[currentsection]  
+    \end{frame}  
+}  
+  
+\AtBeginSubsection[]  
+{  
+    \begin{frame}<beamer>{Outline}         
+        \tableofcontents[currentsection,currentsubsection]  
+    \end{frame}  
+}  
+
+\begin{document}  
+  
+% Title slide  
+\begin{frame}  
+  \titlepage  
+\end{frame}  
+
+\begin{frame}{Feynman's words}
+\centering
+    What I cannot create, I do not understand.
+\end{frame}
+  
+% Presentation slides  
+
+\section{Introduction: The Problem of Generative Modeling}
+
+\begin{frame}{The Challenge of Generative Modeling}
+Given a dataset $\mathcal{D} = \{x^{(i)}\}_{i=1}^N$ sampled from an unknown distribution $p^*(x)$, how can we:
+\begin{itemize}
+    \item Learn a model $p_\theta(x)$ that approximates $p^*(x)$?
+    \item Generate new samples from the learned distribution?
+    \item Perform inference: $p_\theta(z|x)$ for latent variables $z$?
+\end{itemize}
+
+\textcolor{red}{Key challenges:}
+\begin{enumerate}
+    \item High-dimensional data spaces
+    \item Intractable likelihood computation
+    \item Latent variable inference
+    \item Scalable training procedures
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{Traditional Approaches and Their Limitations}
+\begin{itemize}
+    \item \textbf{Maximum Likelihood Estimation (MLE):}
+    \begin{equation}
+        \theta^* = \arg\max_\theta \sum_{i=1}^N \log p_\theta(x^{(i)})
+    \end{equation}
+    \item \textbf{Problem:} Direct likelihood computation often intractable
+    \item \textbf{Latent Variable Models:}
+    \begin{equation}
+        p_\theta(x) = \int p_\theta(x|z) p_\theta(z) dz
+    \end{equation}
+    \item \textbf{Problem:} Integration over latent space $z$ is typically intractable
+\end{itemize}
+
+\textcolor{red}{Solution:} Variational inference to approximate intractable posteriors
+\end{frame}
+
+\section{Variational Inference: The Foundation}
+
+\begin{frame}{Variational Inference Framework}
+Given a latent variable model $p_\theta(x,z) = p_\theta(x|z)p_\theta(z)$, we want to:
+\begin{itemize}
+    \item Approximate the intractable posterior $p_\theta(z|x)$
+    \item Maximize the marginal likelihood $p_\theta(x)$
+\end{itemize}
+
+\textbf{Key idea:} Introduce a variational distribution $q_\phi(z|x)$ to approximate $p_\theta(z|x)$
+
+\begin{equation}
+\KL(q_\phi(z|x) \| p_\theta(z|x)) = \EE_{q_\phi(z|x)}[\log q_\phi(z|x)] - \EE_{q_\phi(z|x)}[\log p_\theta(z|x)]
+\end{equation}
+\end{frame}
+
+\begin{frame}{Evidence Lower Bound (ELBO)}
+The KL divergence can be decomposed as:
+\begin{equation}
+\KL(q_\phi(z|x) \| p_\theta(z|x)) = \log p_\theta(x) - \ELBO(x; \theta, \phi)
+\end{equation}
+
+where the \textcolor{red}{Evidence Lower Bound} is:
+\begin{equation}
+\ELBO(x; \theta, \phi) = \EE_{q_\phi(z|x)}[\log p_\theta(x|z)] - \KL(q_\phi(z|x) \| p_\theta(z))
+\end{equation}
+
+\textbf{Key insight:} Since $\KL \geq 0$, we have:
+\begin{equation}
+\log p_\theta(x) \geq \ELBO(x; \theta, \phi)
+\end{equation}
+
+Maximizing ELBO $\Leftrightarrow$ Minimizing KL divergence $\Leftrightarrow$ Approximating posterior
+\end{frame}
+
+\begin{frame}{ELBO Interpretation}
+The ELBO can be rewritten as:
+\begin{equation}
+\ELBO(x; \theta, \phi) = \EE_{q_\phi(z|x)}[\log p_\theta(x|z)] - \KL(q_\phi(z|x) \| p_\theta(z))
+\end{equation}
+
+\textbf{Two components:}
+\begin{enumerate}
+    \item \textcolor{blue}{Reconstruction term:} $\EE_{q_\phi(z|x)}[\log p_\theta(x|z)]$
+    \begin{itemize}
+        \item Encourages $q_\phi(z|x)$ to encode information about $x$
+        \item Maximizes likelihood of reconstructing $x$ from $z$
+    \end{itemize}
+    \item \textcolor{red}{Regularization term:} $-\KL(q_\phi(z|x) \| p_\theta(z))$
+    \begin{itemize}
+        \item Encourages $q_\phi(z|x)$ to be close to prior $p_\theta(z)$
+        \item Prevents overfitting to training data
+    \end{itemize}
+\end{enumerate}
+\end{frame}
+
+\section{Variational Autoencoders: Theory}
+
+\begin{frame}{VAE Architecture}
+\begin{center}
+\textbf{Encoder-Decoder Architecture}
+\end{center}
+
+\begin{itemize}
+    \item \textbf{Encoder (Recognition model):} $q_\phi(z|x)$
+    \begin{itemize}
+        \item Maps data $x$ to latent representation $z$
+        \item Typically: $q_\phi(z|x) = \mathcal{N}(z; \mu_\phi(x), \sigma_\phi^2(x)I)$
+    \end{itemize}
+    \item \textbf{Decoder (Generative model):} $p_\theta(x|z)$
+    \begin{itemize}
+        \item Reconstructs data $x$ from latent $z$
+        \item Typically: $p_\theta(x|z) = \mathcal{N}(x; \mu_\theta(z), \sigma_\theta^2 I)$ or Bernoulli
+    \end{itemize}
+    \item \textbf{Prior:} $p_\theta(z) = \mathcal{N}(z; 0, I)$
+\end{itemize}
+\end{frame}
+
+\begin{frame}{The Reparameterization Trick}
+\textbf{Problem:} How to backpropagate through stochastic sampling $z \sim q_\phi(z|x)$?
+
+\textbf{Solution:} Reparameterization trick
+\begin{equation}
+z = \mu_\phi(x) + \sigma_\phi(x) \odot \epsilon, \quad \epsilon \sim \mathcal{N}(0, I)
+\end{equation}
+
+\textbf{Benefits:}
+\begin{itemize}
+    \item Gradient flows through deterministic path: $x \to \mu_\phi(x), \sigma_\phi(x) \to z$
+    \item Stochasticity moved to $\epsilon$ (independent of parameters)
+    \item Enables end-to-end training with backpropagation
+\end{itemize}
+
+\textbf{Alternative approaches:}
+\begin{itemize}
+    \item Score function estimator (higher variance)
+    \item Control variates
+\end{itemize}
+\end{frame}
+
+\begin{frame}{VAE Training Objective}
+For a dataset $\mathcal{D} = \{x^{(i)}\}_{i=1}^N$, the VAE loss is:
+\begin{equation}
+\mathcal{L}(\theta, \phi) = \sum_{i=1}^N \ELBO(x^{(i)}; \theta, \phi)
+\end{equation}
+
+Expanding the ELBO:
+\begin{equation}
+\mathcal{L}(\theta, \phi) = \sum_{i=1}^N \left[ \EE_{q_\phi(z|x^{(i)})}[\log p_\theta(x^{(i)}|z)] - \KL(q_\phi(z|x^{(i)}) \| p_\theta(z)) \right]
+\end{equation}
+
+\textbf{Training procedure:}
+\begin{enumerate}
+    \item Sample $x^{(i)} \sim \mathcal{D}$
+    \item Sample $\epsilon \sim \mathcal{N}(0, I)$
+    \item Compute $z^{(i)} = \mu_\phi(x^{(i)}) + \sigma_\phi(x^{(i)}) \odot \epsilon$
+    \item Compute reconstruction loss: $\log p_\theta(x^{(i)}|z^{(i)})$
+    \item Compute KL divergence: $\KL(q_\phi(z|x^{(i)}) \| p_\theta(z))$
+    \item Backpropagate gradients
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{Analytical KL Divergence}
+For Gaussian distributions, the KL divergence has a closed form:
+\begin{equation}
+\KL(\mathcal{N}(\mu, \sigma^2) \| \mathcal{N}(0, I)) = \frac{1}{2} \sum_{j=1}^J (\mu_j^2 + \sigma_j^2 - \log \sigma_j^2 - 1)
+\end{equation}
+
+where $J$ is the dimension of the latent space.
+
+\textbf{Interpretation:}
+\begin{itemize}
+    \item $\mu_j^2$: Penalizes large mean values
+    \item $\sigma_j^2 - \log \sigma_j^2 - 1$: Encourages $\sigma_j \approx 1$
+    \item Total effect: Regularizes latent space to be close to standard Gaussian
+\end{itemize}
+
+\textbf{Benefits:}
+\begin{itemize}
+    \item No sampling required for KL term
+    \item Stable gradients
+    \item Interpretable regularization
+\end{itemize}
+\end{frame}
+
+\section{VAE Variants and Extensions}
+
+\begin{frame}{$\beta$-VAE: Controlling the Regularization}
+\textbf{Motivation:} Balance between reconstruction and regularization
+
+\textbf{$\beta$-VAE objective:}
+\begin{equation}
+\mathcal{L}(\theta, \phi) = \EE_{q_\phi(z|x)}[\log p_\theta(x|z)] - \beta \KL(q_\phi(z|x) \| p_\theta(z))
+\end{equation}
+
+\textbf{Effect of $\beta$:}
+\begin{itemize}
+    \item $\beta > 1$: Stronger regularization $\Rightarrow$ Better disentanglement
+    \item $\beta < 1$: Weaker regularization $\Rightarrow$ Better reconstruction
+    \item $\beta = 1$: Standard VAE
+\end{itemize}
+
+\textbf{Disentanglement:} $\beta$-VAE encourages learning of independent latent factors
+\end{frame}
+
+\begin{frame}{VQ-VAE: Vector Quantized VAE}
+\textbf{Key idea:} Use discrete latent representations instead of continuous
+
+\textbf{Architecture:}
+\begin{itemize}
+    \item Encoder: $z_e = E(x)$ (continuous)
+    \item Quantization: $z_q = \text{Quantize}(z_e)$ (discrete)
+    \item Decoder: $\hat{x} = D(z_q)$
+\end{itemize}
+
+\textbf{Quantization process:}
+\begin{equation}
+z_q = \arg\min_{k} \|z_e - e_k\|^2
+\end{equation}
+where $\{e_k\}_{k=1}^K$ are learnable codebook vectors.
+
+\textbf{Benefits:}
+\begin{itemize}
+    \item Discrete representations (useful for language, etc.)
+    \item Better compression
+    \item Enables autoregressive modeling in latent space
+\end{itemize}
+\end{frame}
+
+\begin{frame}{VQ-VAE Training}
+\textbf{Challenge:} Quantization is non-differentiable
+
+\textbf{Solution:} Straight-through estimator
+\begin{equation}
+\frac{\partial \mathcal{L}}{\partial z_e} = \frac{\partial \mathcal{L}}{\partial z_q}
+\end{equation}
+
+\textbf{Training objective:}
+\begin{equation}
+\mathcal{L} = \log p(x|z_q) + \|\sg(z_e) - e_k\|^2 + \beta\|z_e - \sg(e_k)\|^2
+\end{equation}
+
+where $\sg(\cdot)$ is stop-gradient operator.
+
+\textbf{Components:}
+\begin{itemize}
+    \item Reconstruction loss: $\log p(x|z_q)$
+    \item Codebook loss: $\|\sg(z_e) - e_k\|^2$ (updates codebook)
+    \item Commitment loss: $\beta\|z_e - \sg(e_k)\|^2$ (encourages encoder to commit)
+\end{itemize}
+\end{frame}
+
+\begin{frame}{WAE: Wasserstein Autoencoder}
+\textbf{Motivation:} Replace KL divergence with Wasserstein distance
+
+\textbf{WAE objective:}
+\begin{equation}
+\mathcal{L} = \EE_{p(x)} \EE_{q_\phi(z|x)} [c(x, D(z))] + \lambda \mathcal{D}(q_\phi(z), p(z))
+\end{equation}
+
+where:
+\begin{itemize}
+    \item $c(x, D(z))$: Reconstruction cost
+    \item $\mathcal{D}(q_\phi(z), p(z))$: Distance between aggregated posterior and prior
+    \item $\lambda$: Regularization weight
+\end{itemize}
+
+\textbf{Benefits:}
+\begin{itemize}
+    \item More flexible than KL divergence
+    \item Better mode coverage
+    \item Can use different distance metrics
+\end{itemize}
+\end{frame}
+
+\begin{frame}{VAE-GAN: Combining VAE and GAN}
+\textbf{Idea:} Use GAN discriminator to improve VAE reconstruction quality
+
+\textbf{Architecture:}
+\begin{itemize}
+    \item VAE encoder-decoder: $x \to z \to \hat{x}$
+    \item GAN discriminator: Distinguishes real vs reconstructed samples
+    \item Generator: VAE decoder
+\end{itemize}
+
+\textbf{Training objective:}
+\begin{equation}
+\mathcal{L} = \mathcal{L}_{\text{VAE}} + \lambda \mathcal{L}_{\text{GAN}}
+\end{equation}
+
+where:
+\begin{itemize}
+    \item $\mathcal{L}_{\text{VAE}}$: Standard VAE loss
+    \item $\mathcal{L}_{\text{GAN}}$: Adversarial loss for discriminator
+\end{itemize}
+
+\textbf{Benefits:}
+\begin{itemize}
+    \item Better sample quality than VAE alone
+    \item Maintains inference capabilities
+\end{itemize}
+\end{frame}
+
+\section{Advanced Topics}
+
+\begin{frame}{Hierarchical VAE}
+\textbf{Motivation:} Learn hierarchical latent representations
+
+\textbf{Architecture:}
+\begin{equation}
+p_\theta(x, z_1, \ldots, z_L) = p_\theta(x|z_1) \prod_{l=1}^{L-1} p_\theta(z_l|z_{l+1}) p_\theta(z_L)
+\end{equation}
+
+\textbf{Inference:}
+\begin{equation}
+q_\phi(z_{1:L}|x) = \prod_{l=1}^L q_\phi(z_l|z_{<l}, x)
+\end{equation}
+
+\textbf{Benefits:}
+\begin{itemize}
+    \item Multi-scale representations
+    \item Better modeling of complex data
+    \item Hierarchical generation process
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Conditional VAE (C-VAE)}
+\textbf{Extension:} Incorporate conditioning information
+
+\textbf{Model:}
+\begin{equation}
+p_\theta(x, z|c) = p_\theta(x|z, c) p_\theta(z)
+\end{equation}
+
+\textbf{Inference:}
+\begin{equation}
+q_\phi(z|x, c) = \mathcal{N}(z; \mu_\phi(x, c), \sigma_\phi^2(x, c))
+\end{equation}
+
+\textbf{Applications:}
+\begin{itemize}
+    \item Conditional generation
+    \item Controlled synthesis
+    \item Multi-modal learning
+\end{itemize}
+
+\textbf{Training:}
+\begin{equation}
+\mathcal{L} = \EE_{q_\phi(z|x,c)}[\log p_\theta(x|z,c)] - \KL(q_\phi(z|x,c) \| p_\theta(z))
+\end{equation}
+\end{frame}
+
+\begin{frame}{Importance Weighted Autoencoder (IWAE)}
+\textbf{Motivation:} Better approximation of log-likelihood
+
+\textbf{IWAE objective:}
+\begin{equation}
+\mathcal{L}_K = \EE_{z_1, \ldots, z_K \sim q_\phi(z|x)} \left[ \log \frac{1}{K} \sum_{k=1}^K \frac{p_\theta(x, z_k)}{q_\phi(z_k|x)} \right]
+\end{equation}
+
+\textbf{Key properties:}
+\begin{itemize}
+    \item $\mathcal{L}_K \geq \mathcal{L}_{K-1}$ (monotonic improvement)
+    \item $\lim_{K \to \infty} \mathcal{L}_K = \log p_\theta(x)$ (exact likelihood)
+    \item $K=1$ recovers standard VAE
+\end{itemize}
+
+\textbf{Trade-offs:}
+\begin{itemize}
+    \item Better approximation with larger $K$
+    \item Higher computational cost
+    \item More complex gradients
+\end{itemize}
+\end{frame}
+
+\section{Implementation and Practical Considerations}
+
+\begin{frame}{VAE Implementation Details}
+\textbf{Network architectures:}
+\begin{itemize}
+    \item \textbf{Encoder:} $x \to \mu_\phi(x), \log \sigma_\phi^2(x)$
+    \item \textbf{Decoder:} $z \to \mu_\theta(z)$ (for Gaussian) or logits (for Bernoulli)
+    \item \textbf{Activation:} ReLU, ELU, or Swish
+    \item \textbf{Normalization:} BatchNorm or LayerNorm
+\end{itemize}
+
+\textbf{Training tricks:}
+\begin{itemize}
+    \item \textbf{KL annealing:} Gradually increase KL weight
+    \item \textbf{Free bits:} Prevent posterior collapse
+    \item \textbf{Warm-up:} Start with reconstruction only
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Common Issues and Solutions}
+\textbf{Posterior collapse:}
+\begin{itemize}
+    \item \textbf{Symptom:} $q_\phi(z|x) \approx p_\theta(z)$ (no information in latent)
+    \item \textbf{Causes:} Strong decoder, weak encoder
+    \item \textbf{Solutions:} KL annealing, free bits, stronger encoder
+\end{itemize}
+
+\textbf{Blurry reconstructions:}
+\begin{itemize}
+    \item \textbf{Cause:} Gaussian decoder assumption
+    \item \textbf{Solutions:} VAE-GAN, better decoder architectures
+\end{itemize}
+
+\textbf{Mode collapse:}
+\begin{itemize}
+    \item \textbf{Symptom:} Limited diversity in generated samples
+    \item \textbf{Solutions:} Better regularization, architectural improvements
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Evaluation Metrics}
+\textbf{Reconstruction quality:}
+\begin{itemize}
+    \item MSE, SSIM, FID (Fréchet Inception Distance)
+    \item Perceptual losses
+\end{itemize}
+
+\textbf{Generation quality:}
+\begin{itemize}
+    \item FID, IS (Inception Score)
+    \item Human evaluation
+\end{itemize}
+
+\textbf{Representation quality:}
+\begin{itemize}
+    \item Disentanglement metrics ($\beta$-VAE metric, MIG)
+    \item Downstream task performance
+    \item Interpolation smoothness
+\end{itemize}
+\end{frame}
+
+\section{Recent Advances and Future Directions}
+
+\begin{frame}{Recent Advances}
+\textbf{Transformer-based VAEs:}
+\begin{itemize}
+    \item VQ-VAE-2: Hierarchical discrete representations
+    \item DALL-E: Text-to-image generation
+    \item VQGAN: High-quality image generation
+\end{itemize}
+
+\textbf{Improved training:}
+\begin{itemize}
+    \item NVAE: Normalizing flow decoder
+    \item VDVAE: Very deep VAE
+    \item VDM: Diffusion-based decoder
+\end{itemize}
+
+\textbf{Applications:}
+\begin{itemize}
+    \item Text generation (GPT-style models)
+    \item Image synthesis and editing
+    \item Audio generation
+    \item Scientific modeling
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Open Questions and Future Directions}
+\textbf{Theoretical understanding:}
+\begin{itemize}
+    \item Why do VAEs work despite approximation errors?
+    \item Optimal choice of prior distributions
+    \item Connection to other generative models
+\end{itemize}
+
+\textbf{Technical challenges:}
+\begin{itemize}
+    \item Better posterior approximations
+    \item Scalable training for large models
+    \item Integration with other architectures
+\end{itemize}
+
+\textbf{Applications:}
+\begin{itemize}
+    \item Multi-modal learning
+    \item Scientific discovery
+    \item Efficient compression
+    \item Robust representations
+\end{itemize}
+\end{frame}
+
+\section{Conclusion}
+
+\begin{frame}{Summary}
+\textbf{Key contributions of VAE:}
+\begin{itemize}
+    \item Scalable variational inference for latent variable models
+    \item End-to-end training with reparameterization trick
+    \item Foundation for many generative models
+\end{itemize}
+
+\textbf{VAE variants address:}
+\begin{itemize}
+    \item Disentanglement ($\beta$-VAE)
+    \item Discrete representations (VQ-VAE)
+    \item Sample quality (VAE-GAN, WAE)
+    \item Hierarchical modeling (HVAE)
+\end{itemize}
+
+\textbf{Impact:}
+\begin{itemize}
+    \item Influenced modern generative models
+    \item Enabled practical latent variable modeling
+    \item Foundation for many applications
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Questions}
+If you are interested in the questions, please feel free to write an email to me {\color{red}(\href{mailto:pisquare@microsoft.com}{pisquare@microsoft.com})} with your comments. 
+\begin{enumerate}[(1.)]
+    \item How does the choice of prior $p_\theta(z)$ affect VAE performance? What are the trade-offs between different priors?
+    \item Can you derive the gradient of the ELBO with respect to the encoder parameters $\phi$? How does the reparameterization trick make this tractable?
+    \item What are the theoretical guarantees of VAE? Under what conditions does the ELBO provide a good approximation to the true log-likelihood?
+    \item How would you extend VAE to handle sequential data (like in language modeling)? What are the key challenges?
+\end{enumerate}
+\end{frame}
+
+% Thank you slide  
+\begin{frame}{Welcome inputs}  
+  \centering  
+  Any comments?
+  \\[2em]
+  Welcome your inputs!  
+\end{frame}  
+  
+\end{document}
