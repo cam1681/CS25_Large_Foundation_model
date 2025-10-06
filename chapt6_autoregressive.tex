@@ -12,6 +12,8 @@
 \usepackage{amsfonts}  
 \usepackage{amssymb}  
 \usepackage{CJKutf8}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
 % Support for \Tilde macro used throughout
 \providecommand{\Tilde}[1]{\tilde{#1}}
 \providecommand{\proofname}{Proof}
@@ -28,6 +30,9 @@
 \newcommand{\dd}{\mathrm{d}}
 \newcommand{\kbT}{k_B T}
 \newcommand{\vx}{\mathbf{x}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\attn}{\text{Attention}}
+\newcommand{\softmax}{\text{softmax}}
 
 % Bold vector/time-indexed variables for autoregressive models
 \newcommand{\vxt}{\mathbf{x}_t}
@@ -180,6 +185,7 @@ This allows:
 
 \section{Architectures for Autoregressive Models}
 
+\subsection{RNNs}
 \begin{frame}{Recurrent Neural Networks (RNNs)}
 The simplest autoregressive architecture:
 \begin{equation}
@@ -206,6 +212,7 @@ where $h_t$ is the hidden state and $f, g$ are neural networks.
 \end{itemize}
 \end{frame}
 
+\subsection{LSTMs}
 \begin{frame}{Long Short-Term Memory (LSTM)}
 LSTM addresses RNN limitations with gating mechanisms:
 \begin{align}
@@ -225,26 +232,44 @@ LSTM addresses RNN limitations with gating mechanisms:
 \end{itemize}
 \end{frame}
 
-\begin{frame}{Transformer: Attention-based autoregressive models}
-Transformers use self-attention instead of recurrence:
-\begin{equation}
-    \text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V
-\end{equation}
-
-For autoregressive generation, we use \textbf{masked attention}:
-\begin{equation}
-    A_{ij} = \begin{cases}
-        \frac{\exp(q_i^T k_j / \sqrt{d_k})}{\sum_{l=1}^i \exp(q_i^T k_l / \sqrt{d_k})} & \text{if } j \leq i \\
-        0 & \text{if } j > i
-    \end{cases}
-\end{equation}
-
-\textbf{Advantages}:
+\subsection{Transformers}
+\begin{frame}{From RNN/CNN limits to attention}
 \begin{itemize}
-    \item \textcolor{red}{Parallel training}: All positions computed simultaneously
-    \item \textcolor{red}{Long-range dependencies}: Direct attention connections
-    \item \textcolor{red}{Scalability}: Efficient with modern hardware
+\item RNNs: sequential dependencies $\Rightarrow$ low parallelism; vanishing gradients for long-range context.
+\item CNNs: fixed receptive fields; long-range dependencies need many layers/dilations.
+\item \textbf{Transformer}: \emph{self-attention} provides content-based, global interactions with full parallelism.
+\item Complexity per layer: RNN $\mathcal{O}(n)$ but sequential; self-attention $\mathcal{O}(n^2)$ but fully parallel and expressive.
 \end{itemize}
+\end{frame}
+
+\begin{frame}{Scaled Dot-Product Attention: Key formula}
+Inputs: queries $Q\in\R^{n\times d_k}$, keys $K\in\R^{n\times d_k}$, values $V\in\R^{n\times d_v}$.
+\begin{align}
+\attn(Q,K,V) &= \softmax\!\left(\frac{QK^\top}{\sqrt{d_k}} + M\right) V, \label{eq:attn}
+\end{align}
+where $M$ is an optional mask (e.g., $M_{ij}=-\infty$ for $j>i$ in autoregressive decoding).
+\begin{itemize}
+\item Scaling by $\sqrt{d_k}$ keeps gradients in a reasonable range.
+\item \textbf{Interpretation}: each token re-weights all values using similarity to keys.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Multi-Head Attention (MHA)}
+\begin{align}
+\mathrm{MHA}(X) &= \mathrm{Concat}(H_1,\dots,H_h) \, W^O,\\
+H_i &= \attn(X W_i^Q,\, X W_i^K,\, X W_i^V),\quad i=1,\dots,h.
+\end{align}
+\begin{itemize}
+\item Heads attend to different subspaces/patterns.
+\item Residual + LayerNorm around MHA and FFN blocks stabilize training.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Transformer macro-architecture}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.75\textwidth]{figs/transformer.pdf}
+\end{figure}
 \end{frame}
 
 \section{Sampling and Generation Strategies}
@@ -311,117 +336,6 @@ where $\tau > 0$ controls randomness:
 Then sample from the truncated distribution.
 \end{frame}
 
-\section{Theoretical Analysis: Expressiveness and Limitations}
-
-\begin{frame}{Universal approximation for autoregressive models}
-\begin{theorem}
-For any probability distribution $p(\vxoneT)$ over discrete sequences, there exists an autoregressive model that can approximate it arbitrarily well.
-\end{theorem}
-
-\begin{proof}
-The autoregressive factorization is exact:
-\begin{equation}
-    p(\vxoneT) = \prod_{t=1}^T p(x_t | \vxtmoneone)
-\end{equation}
-
-If we can approximate each conditional $p(x_t | \vxtmoneone)$ arbitrarily well, then the joint distribution is approximated arbitrarily well. Since neural networks are universal function approximators, the result follows.
-\end{proof}
-\end{frame}
-
-\begin{frame}{The curse of dimensionality in autoregressive models}
-Consider a sequence of length $T$ with vocabulary size $V$. The number of possible sequences is $V^T$.
-
-\textbf{Exponential growth}:
-\begin{itemize}
-    \item $T = 10, V = 1000$: $10^{30}$ sequences
-    \item $T = 100, V = 50000$: $50000^{100}$ sequences
-\end{itemize}
-
-\textbf{Implications}:
-\begin{enumerate}
-    \item \textcolor{red}{Data sparsity}: Most sequences never seen in training
-    \item \textcolor{red}{Generalization challenge}: Hard to generalize to unseen patterns
-    \item \textcolor{red}{Computational limits}: Cannot store or compute exact probabilities
-\end{enumerate}
-
-\textbf{Why autoregressive models work}:
-\begin{itemize}
-    \item \textcolor{red}{Structure}: Real sequences have structure and patterns
-    \item \textcolor{red}{Conditional independence}: Each step depends only on history
-    \item \textcolor{red}{Neural approximation}: Networks can learn complex patterns
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Information-theoretic perspective}
-The entropy of an autoregressive model is:
-\begin{equation}
-    H(p_{\vtheta}) = \EE_{\vxoneT \sim p_{\vtheta}} \left[ -\sum_{t=1}^T \log p(x_t | \vxtmoneone; \vtheta) \right]
-\end{equation}
-
-\textbf{Key insights}:
-\begin{itemize}
-    \item \textcolor{red}{Conditional entropy}: $H(X_t | X_{t-1:1}) \leq H(X_t)$
-    \item \textcolor{red}{Chain rule}: $H(X_{1:T}) = \sum_{t=1}^T H(X_t | X_{t-1:1})$
-    \item \textcolor{red}{Compression}: Autoregressive models compress information
-\end{itemize}
-
-\textbf{Compression ratio}:
-\begin{equation}
-    \text{Compression} = \frac{H(X_{1:T})}{T \log V} = \frac{\sum_{t=1}^T H(X_t | X_{t-1:1})}{T \log V}
-\end{equation}
-
-Lower compression ratio means better modeling of dependencies.
-\end{frame}
-
-\section{Advanced Topics: Variational Autoregressive Models}
-
-\begin{frame}{Variational Autoencoders for sequences}
-Standard autoregressive models are deterministic. We can add stochasticity:
-
-\begin{equation}
-    p(\vxoneT) = \int p(\vxoneT | \vz) p(\vz) d\vz
-\end{equation}
-
-where $\vz$ is a latent variable and:
-\begin{equation}
-    p(\vxoneT | \vz) = \prod_{t=1}^T p(x_t | \vxtmoneone, \vz; \vtheta)
-\end{equation}
-
-\textbf{Training objective} (ELBO):
-\begin{equation}
-    \mathcal{L} = \EE_{q(\vz | \vxoneT)} \left[ \log p(\vxoneT | \vz) \right] - D_{KL}(q(\vz | \vxoneT) \| p(\vz))
-\end{equation}
-
-\textbf{Benefits}:
-\begin{itemize}
-    \item \textcolor{red}{Controllable generation}: Vary $\vz$ for different styles
-    \item \textcolor{red}{Better modeling}: Can capture multiple modes
-    \item \textcolor{red}{Interpretability}: Latent space has semantic meaning
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Conditional autoregressive models}
-Instead of unconditional generation, we can condition on additional information:
-
-\begin{equation}
-    p(\vxoneT | \vc) = \prod_{t=1}^T p(x_t | \vxtmoneone, \vc; \vtheta)
-\end{equation}
-
-where $\vc$ is conditioning information (e.g., class label, prompt, style).
-
-\textbf{Applications}:
-\begin{itemize}
-    \item \textcolor{red}{Controlled generation}: Style transfer, conditional completion
-    \item \textcolor{red}{Multi-modal learning}: Text-to-image, image-to-text
-    \item \textcolor{red}{Few-shot learning}: Adapt to new domains quickly
-\end{itemize}
-
-\textbf{Training}:
-\begin{equation}
-    \mathcal{L} = \EE_{(\vxoneT, \vc) \sim \mathcal{D}} \left[ -\sum_{t=1}^T \log p(x_t | \vxtmoneone, \vc; \vtheta) \right]
-\end{equation}
-\end{frame}
-
 \section{Evaluation and Challenges}
 
 \begin{frame}{Evaluation metrics for autoregressive models}
@@ -446,54 +360,25 @@ where $\vc$ is conditioning information (e.g., class label, prompt, style).
 \end{itemize}
 \end{frame}
 
-\begin{frame}{Common challenges and limitations}
-\textbf{Training challenges}:
-\begin{enumerate}
-    \item \textcolor{red}{Exposure bias}: Training uses ground truth, inference uses model predictions
-    \item \textcolor{red}{Teacher forcing mismatch}: Different distributions during training and inference
-    \item \textcolor{red}{Long sequences}: Gradient vanishing/exploding
-\end{enumerate}
+\begin{frame}{Information-theoretic perspective}
+The entropy of an autoregressive model is:
+\begin{equation}
+    H(p_{\vtheta}) = \EE_{\vxoneT \sim p_{\vtheta}} \left[ -\sum_{t=1}^T \log p(x_t | \vxtmoneone; \vtheta) \right]
+\end{equation}
 
-\textbf{Generation challenges}:
-\begin{enumerate}
-    \item \textcolor{red}{Repetition}: Models may repeat phrases or sentences
-    \item \textcolor{red}{Coherence}: Long-range dependencies hard to maintain
-    \item \textcolor{red}{Diversity vs. Quality}: Trade-off between exploration and exploitation
-\end{enumerate}
-
-\textbf{Computational challenges}:
-\begin{enumerate}
-    \item \textcolor{red}{Sequential generation}: Cannot parallelize inference
-    \item \textcolor{red}{Memory requirements}: Need to store full history
-    \item \textcolor{red}{Scalability}: Training large models is expensive
-\end{enumerate}
-\end{frame}
-
-\section{Recent Advances and Future Directions}
-
-\begin{frame}{Non-autoregressive models}
-\textbf{Motivation}: Autoregressive models are slow due to sequential generation.
-
-\textbf{Non-autoregressive approaches}:
+\textbf{Key insights}:
 \begin{itemize}
-    \item \textcolor{red}{Parallel decoding}: Generate all tokens simultaneously
-    \item \textcolor{red}{Iterative refinement}: Multiple passes to improve quality
-    \item \textcolor{red}{Latent variable models}: Use latent representations
+    \item \textcolor{red}{Conditional entropy}: $H(X_t | X_{t-1:1}) \leq H(X_t)$
+    \item \textcolor{red}{Chain rule}: $H(X_{1:T}) = \sum_{t=1}^T H(X_t | X_{t-1:1})$
+    \item \textcolor{red}{Compression}: Autoregressive models compress information
 \end{itemize}
 
-\textbf{Challenges}:
-\begin{itemize}
-    \item \textcolor{red}{Quality degradation}: Parallel generation often lower quality
-    \item \textcolor{red}{Training complexity}: Harder to train effectively
-    \item \textcolor{red}{Evaluation}: Different metrics needed
-\end{itemize}
+\textbf{Compression ratio}:
+\begin{equation}
+    \text{Compression} = \frac{H(X_{1:T})}{T \log V} = \frac{\sum_{t=1}^T H(X_t | X_{t-1:1})}{T \log V}
+\end{equation}
 
-\textbf{Examples}:
-\begin{itemize}
-    \item \textcolor{red}{NAT (Gu et al., 2017)}: Non-autoregressive neural machine translation
-    \item \textcolor{red}{GLAT (Qian et al., 2021)}: Glancing transformer for NAT
-    \item \textcolor{red}{CMLM (Ghazvininejad et al., 2019)}: Conditional masked language model
-\end{itemize}
+Lower compression ratio means better modeling of dependencies.
 \end{frame}
 
 \begin{frame}{Large language models and scaling laws}
@@ -517,6 +402,29 @@ where $N$ is model size, $D$ is dataset size, and $L$ is loss.
     \item \textcolor{red}{Data requirements}: Need massive datasets
     \item \textcolor{red}{Architecture choices}: Transformer scales well
 \end{itemize}
+\end{frame}
+
+\begin{frame}{Common challenges and limitations}
+\textbf{Training challenges}:
+\begin{enumerate}
+    \item \textcolor{red}{Exposure bias}: Training uses ground truth, inference uses model predictions
+    \item \textcolor{red}{Teacher forcing mismatch}: Different distributions during training and inference
+    \item \textcolor{red}{Long sequences}: Gradient vanishing/exploding
+\end{enumerate}
+
+\textbf{Generation challenges}:
+\begin{enumerate}
+    \item \textcolor{red}{Repetition}: Models may repeat phrases or sentences
+    \item \textcolor{red}{Coherence}: Long-range dependencies hard to maintain
+    \item \textcolor{red}{Diversity vs. Quality}: Trade-off between exploration and exploitation
+\end{enumerate}
+
+\textbf{Computational challenges}:
+\begin{enumerate}
+    \item \textcolor{red}{Sequential generation}: Cannot parallelize inference
+    \item \textcolor{red}{Memory requirements}: Need to store full history
+    \item \textcolor{red}{Scalability}: Training large models is expensive
+\end{enumerate}
 \end{frame}
 
 \section{Open Questions and Research Directions}
