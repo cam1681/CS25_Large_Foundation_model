@@ -38,6 +38,7 @@ By the end of this course, you will be able to:
 All lecture slides are available in the [`lectures/`](lectures/) directory:
 
 - **📚 Source Files**: LaTeX source files in [`lectures/source/`](lectures/source/)
+- **🖼️ Figures**: All course figures in [`lectures/figures/`](lectures/figures/)
 - **📄 Compiled PDFs**: Ready-to-use PDF slides in [`lectures/source/compiled_pdfs/`](lectures/source/compiled_pdfs/)
 - **🎯 Individual Lectures**: Each lecture has its own slide deck
 - **📝 Introduction**: [`lecture0_introduction.pdf`](lectures/source/compiled_pdfs/lecture0_introduction.pdf) - Course overview and objectives
@@ -48,7 +49,7 @@ Comprehensive course materials are available in the [`book/`](book/) directory:
 
 - **📚 Main Book**: [`book.pdf`](book/compiled_pdfs/book.pdf) - course textbook under construction
 - **📄 Individual Chapters**: Source files in [`book/chapters/`](book/chapters/)
-- **🖼️ Figures**: All course figures in [`book/figures/`](book/figures/)
+
 
 ### 📋 Course Content
 
