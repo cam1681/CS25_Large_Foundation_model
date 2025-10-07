@@ -83,7 +83,7 @@ The course covers 13 comprehensive lectures on Large Foundation Models:
 
 ### 👨‍🏫 Instructor
 
-**Pipi Hu**  
+**[Pipi Hu](https://bimsa.net/people/pipihu/)**  
 *Beijing Institute of Mathematical Sciences and Applications*
 
 ---
@@ -243,7 +243,7 @@ This course material is provided for educational purposes. Please respect the in
 For questions about the course content or materials:
 
 - **🌐 Course Website**: [BIMSA Course Page](https://bimsa.net/activity/LarFouModMatAlgandApp/)
-- **📧 Instructor**: Pipi Hu
+- **📧 Instructor**: [Pipi Hu](https://bimsa.net/people/pipihu/)
 - **🏫 Institution**: Beijing Institute of Mathematical Sciences and Applications
 
 ---
