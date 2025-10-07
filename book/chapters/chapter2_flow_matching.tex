@@ -1,0 +1,205 @@
+\chapter{Flow Matching: A Unifying Perspective on Generative Modeling}
+
+\section{Introduction}
+
+Flow matching represents a powerful and mathematically elegant approach to generative modeling that unifies various perspectives on learning to transform simple distributions into complex data distributions. Unlike score-based methods that require estimating gradients of log-probability densities, flow matching provides direct supervision through analytically derived velocity fields.
+
+The fundamental idea behind flow matching is to learn a velocity field $\mathbf{v}(\mathbf{x},t)$ that transports a simple base distribution $p_1(\mathbf{x})$ to the data distribution $p_0(\mathbf{x})$ through the continuity equation:
+\begin{equation}
+    \partial_t p(\mathbf{x},t) + \nabla \cdot (p(\mathbf{x},t) \mathbf{v}(\mathbf{x},t)) = 0.
+\end{equation}
+
+This chapter provides a comprehensive mathematical treatment of flow matching, starting from the theoretical foundations and progressing through practical implementations and recent advances.
+
+\section{Mathematical Foundations}
+
+\subsection{The Continuity Equation}
+
+The continuity equation is the fundamental mathematical principle underlying flow matching. Given a velocity field $\mathbf{v}(\mathbf{x},t)$, the probability density $p(\mathbf{x},t)$ transported by the ordinary differential equation $\dot{\mathbf{x}} = \mathbf{v}(\mathbf{x},t)$ satisfies:
+
+\begin{equation}
+    \partial_t p(\mathbf{x},t) + \nabla \cdot (p(\mathbf{x},t) \mathbf{v}(\mathbf{x},t)) = 0.
+\end{equation}
+
+This equation ensures conservation of probability mass during the flow transformation.
+
+\subsection{Conditional Probability Paths}
+
+Given a data distribution $p_{\text{data}}(\mathbf{x}_0)$ and base distribution $p_{\text{base}}(\mathbf{x})$, we define conditional paths $q_t(\mathbf{x}|\mathbf{x}_0)$ such that:
+\begin{equation}
+    p_t(\mathbf{x}) = \int p_{\text{data}}(\mathbf{x}_0) q_t(\mathbf{x}|\mathbf{x}_0) d\mathbf{x}_0, \quad t \in [0,1],
+\end{equation}
+with boundary conditions $p_0 = p_{\text{data}}$ and $p_1 = p_{\text{base}}$.
+
+The conditional velocity field is defined as:
+\begin{equation}
+    \mathbf{u}_t(\mathbf{x}|\mathbf{x}_0) := \mathbb{E}\left[\frac{d}{dt} \mathbf{x}_t \bigg| \mathbf{x}_t = \mathbf{x}, \mathbf{x}_0\right],
+\end{equation}
+which provides analytic supervision for learning the marginal velocity field $\mathbf{v}(\mathbf{x},t)$.
+
+\section{Gaussian Conditional Paths}
+
+\subsection{Mathematical Derivation}
+
+For Gaussian conditional paths of the form:
+\begin{equation}
+    q_t(\mathbf{x}|\mathbf{x}_0) = \mathcal{N}(\mathbf{x}; \boldsymbol{\mu}_t(\mathbf{x}_0), \sigma_t^2\mathbf{I}),
+\end{equation}
+where $\mathbf{x}_t = \boldsymbol{\mu}_t(\mathbf{x}_0) + \sigma_t \boldsymbol{\epsilon}$ with $\boldsymbol{\epsilon} \sim \mathcal{N}(0,\mathbf{I})$.
+
+Taking the time derivative:
+\begin{equation}
+    \frac{d}{dt} \mathbf{x}_t = \dot{\boldsymbol{\mu}}_t(\mathbf{x}_0) + \dot{\sigma}_t \boldsymbol{\epsilon},
+\end{equation}
+where $\boldsymbol{\epsilon} = \frac{\mathbf{x}_t - \boldsymbol{\mu}_t(\mathbf{x}_0)}{\sigma_t}$.
+
+The conditional expectation gives us the target velocity:
+\begin{equation}
+    \mathbf{u}_t(\mathbf{x}|\mathbf{x}_0) = \dot{\boldsymbol{\mu}}_t(\mathbf{x}_0) + \frac{\dot{\sigma}_t}{\sigma_t}(\mathbf{x} - \boldsymbol{\mu}_t(\mathbf{x}_0)).
+\end{equation}
+
+\subsection{Path Choices}
+
+Different choices of $\boldsymbol{\mu}_t(\mathbf{x}_0)$ and $\sigma_t$ lead to different flow matching formulations:
+
+\textbf{1. Linear bridge (optimal transport):}
+\begin{itemize}
+    \item $\boldsymbol{\mu}_t(\mathbf{x}_0) = (1-t)\mathbf{x}_0$, $\sigma_t = t\sigma_{\max}$
+    \item Minimizes Wasserstein-2 distance
+    \item Velocity: $\mathbf{u}_t(\mathbf{x}|\mathbf{x}_0) = \frac{\sigma_{\max}}{t}(\mathbf{x} - \mathbf{x}_0)$
+\end{itemize}
+
+\textbf{2. VP-like (DDPM-inspired):}
+\begin{itemize}
+    \item $\boldsymbol{\mu}_t(\mathbf{x}_0) = \alpha(t)\mathbf{x}_0$, $\sigma_t = \sqrt{1-\alpha^2(t)}$
+    \item Preserves energy structure
+    \item Velocity: $\mathbf{u}_t(\mathbf{x}|\mathbf{x}_0) = \dot{\alpha}(t)\mathbf{x}_0 + \frac{\dot{\sigma}_t}{\sigma_t}(\mathbf{x} - \alpha(t)\mathbf{x}_0)$
+\end{itemize}
+
+\textbf{3. VE-like (SMLD-inspired):}
+\begin{itemize}
+    \item $\boldsymbol{\mu}_t(\mathbf{x}_0) = \mathbf{x}_0$, $\sigma_t = \sigma(t)$ increasing
+    \item Preserves data structure
+    \item Velocity: $\mathbf{u}_t(\mathbf{x}|\mathbf{x}_0) = \frac{\dot{\sigma}(t)}{\sigma(t)}(\mathbf{x} - \mathbf{x}_0)$
+\end{itemize}
+
+\section{Training and Inference}
+
+\subsection{Flow Matching Objective}
+
+The flow matching training objective is:
+\begin{equation}
+    J_{\text{FM}} = \mathbb{E}\left[\|\mathbf{v}_\theta(\mathbf{x}_t, t) - \mathbf{u}_t(\mathbf{x}_t|\mathbf{x}_0)\|^2\right],
+\end{equation}
+where the expectation is over $t \sim \mathcal{U}[0,1]$, $\mathbf{x}_0 \sim p_{\text{data}}$, and $\mathbf{x}_t \sim q_t(\cdot|\mathbf{x}_0)$.
+
+\subsection{Mathematical Optimality}
+
+The population minimizer of the flow matching objective is the posterior-averaged velocity field:
+\begin{equation}
+    \mathbf{v}^*(\mathbf{x},t) = \mathbb{E}\left[\mathbf{u}_t(\mathbf{x}_t|\mathbf{x}_0) \bigg| \mathbf{x}_t = \mathbf{x}, t\right].
+\end{equation}
+
+This result shows that flow matching learns the optimal velocity field that respects the continuity equation.
+
+\subsection{Inference}
+
+The learned velocity field $\mathbf{v}_\theta(\mathbf{x},t)$ defines a deterministic ODE:
+\begin{equation}
+    \frac{d}{dt} \mathbf{x} = \mathbf{v}_\theta(\mathbf{x},t), \quad t \in [0,1]
+\end{equation}
+
+The generation process involves:
+\begin{enumerate}
+    \item Initialize $\mathbf{x}(1) \sim p_1$ (e.g., $\mathcal{N}(0,\mathbf{I})$)
+    \item Integrate ODE backwards: $\frac{d}{dt} \mathbf{x} = \mathbf{v}_\theta(\mathbf{x},t)$, $t: 1 \to 0$
+    \item Use standard ODE solvers (Euler, RK4, Dormand-Prince, etc.)
+\end{enumerate}
+
+\section{Connection to Diffusion Models}
+
+\subsection{Probability Flow ODE}
+
+For a forward SDE $d\mathbf{x} = f(\mathbf{x},t)dt + g(t)dB_t$, the probability flow ODE is:
+\begin{equation}
+    \frac{d}{dt} \mathbf{x} = f(\mathbf{x},t) - \frac{1}{2}g^2(t)\nabla_{\mathbf{x}} \log p(\mathbf{x},t).
+\end{equation}
+
+When flow matching uses Gaussian paths that match the SDE's marginal distributions $p_t$, the learned velocity field $\mathbf{v}_\theta$ approximates the probability flow drift:
+\begin{equation}
+    \mathbf{v}_\theta(\mathbf{x},t) \approx f(\mathbf{x},t) - \frac{1}{2}g^2(t)\nabla_{\mathbf{x}} \log p(\mathbf{x},t)
+\end{equation}
+
+This connection allows flow matching to achieve the same approximation as diffusion models without ever computing the score function during training.
+
+\section{MeanFlow: Average Velocity Field}
+
+\subsection{Motivation}
+
+MeanFlow addresses the challenge of single-step generation while maintaining high fidelity. The key idea is to learn a ground-truth average velocity field that summarizes an entire time interval.
+
+\subsection{Definition}
+
+For any pair $r < t$ and point $\mathbf{z}_t$ along the flow path:
+\begin{equation}
+    \overline{\mathbf{u}}(\mathbf{z}_t, r, t) := \frac{1}{t-r} \int_r^t \mathbf{v}(\mathbf{z}_\tau, \tau) d\tau.
+\end{equation}
+
+\subsection{MeanFlow Identity}
+
+The core relationship is:
+\begin{equation}
+    \overline{\mathbf{u}}(\mathbf{z}_t, r, t) = \mathbf{v}(\mathbf{z}_t, t) - (t-r)\frac{d}{dt}\overline{\mathbf{u}}(\mathbf{z}_t, r, t),
+\end{equation}
+where the total derivative expands to:
+\begin{equation}
+    \frac{d}{dt}\overline{\mathbf{u}}(\mathbf{z}_t, r, t) = \mathbf{v}(\mathbf{z}_t, t) \cdot \nabla_{\mathbf{z}}\overline{\mathbf{u}}(\mathbf{z}_t, r, t) + \frac{\partial}{\partial t}\overline{\mathbf{u}}(\mathbf{z}_t, r, t).
+\end{equation}
+
+\subsection{Training and Sampling}
+
+The training objective uses the MeanFlow identity to form targets:
+\begin{equation}
+    \mathcal{L}(\theta) = \mathbb{E}\left[\|\overline{\mathbf{u}}_\theta(\mathbf{z}_t, r, t) - \text{sg}(\overline{\mathbf{u}}_{\text{tgt}})\|_2^2\right],
+\end{equation}
+where $\text{sg}(\cdot)$ is the stop-gradient operator.
+
+For 1-NFE sampling:
+\begin{equation}
+    \mathbf{x} = \mathbf{z}_0 = \boldsymbol{\epsilon} - \overline{\mathbf{u}}_\theta(\boldsymbol{\epsilon}, 0, 1)
+\end{equation}
+
+\section{Recent Advances and Applications}
+
+\subsection{Practical Considerations}
+
+Flow matching has several advantages over traditional score-based methods:
+\begin{itemize}
+    \item No score estimation required during training
+    \item Analytic supervision through conditional paths
+    \item Deterministic sampling with ODE integration
+    \item Direct connection to optimal transport theory
+\end{itemize}
+
+\subsection{Applications}
+
+Flow matching has been successfully applied to:
+\begin{itemize}
+    \item High-resolution image generation
+    \item Audio synthesis
+    \item Molecular generation
+    \item Scientific computing applications
+\end{itemize}
+
+\section{Conclusion}
+
+Flow matching provides a mathematically elegant and practically effective approach to generative modeling. The key insights include:
+
+\begin{itemize}
+    \item The continuity equation provides the theoretical foundation
+    \item Conditional paths enable analytic supervision
+    \item The connection to diffusion models reveals the underlying unity
+    \item MeanFlow enables efficient single-step generation
+\end{itemize}
+
+The mathematical rigor and practical effectiveness of flow matching make it a valuable tool in the arsenal of generative modeling techniques, with ongoing research exploring its applications to increasingly complex domains.

@@ -1,0 +1,617 @@
+\chapter{Diffusion Models: From Mathematical Foundations to Practical Implementation}
+
+\section{Introduction}
+
+Diffusion models have emerged as one of the most powerful and versatile approaches to generative modeling in recent years. These models, inspired by non-equilibrium thermodynamics and statistical physics, have demonstrated remarkable success in generating high-quality images, audio, and other complex data types. The fundamental idea behind diffusion models is elegant yet profound: instead of directly modeling complex data distributions, we gradually transform simple noise into the target data through a carefully designed diffusion process that can be learned and reversed.
+
+The mathematical foundations of diffusion models rest on several key concepts from probability theory, stochastic differential equations, and statistical physics. The score function, which represents the gradient of the log-probability density, plays a central role in these models. By learning to estimate this score function, we can generate samples from complex distributions using techniques like Langevin dynamics and other sampling methods.
+
+This chapter provides a comprehensive mathematical treatment of diffusion models, starting from the fundamental principles of sampling from probability distributions and progressing through the theoretical foundations to practical implementations. We will explore the connections between different formulations, including score matching, denoising diffusion probabilistic models (DDPM), and continuous-time formulations. The chapter concludes with an examination of recent advances that have made diffusion models more efficient and practical.
+
+\section{Preliminary: Generating Samples from Probability Distributions}
+
+\subsection{The Challenge of Sampling}
+
+Given a probability distribution $p(x)$, the fundamental question in generative modeling is how to sample from this distribution. For simple distributions like uniform or Gaussian distributions, sampling is straightforward using standard random number generators. For mixture Gaussian distributions, we can first determine which component to sample from and then sample from that specific Gaussian component.
+
+However, for general probability distributions, especially those that are only known up to a normalization constant, sampling becomes significantly more challenging. This is where sophisticated sampling methods become essential. The most commonly used approaches include Langevin Markov Chain Monte Carlo (Langevin MCMC) sampling and Stein Variational Gradient Descent (SVGD), among others.
+
+\subsection{The Role of the Score Function}
+
+A typical process for generating new samples from a modeled data distribution involves several key steps. First, we need to find or approximate the probability function $p(x)$ by modeling $p(x;\theta)$ with parameters $\theta$. Second, we often work with unnormalized distributions of the form $p(x;\theta) = \frac{1}{C(\theta)}e^{-E(x;\theta)}$ where $C(\theta) \equiv \int_x e^{-E(x;\theta)}dx$ is the normalization constant. Finally, we generate samples using appropriate sampling methods.
+
+The Langevin Markov Chain Monte Carlo sampling method provides a particularly elegant solution to this problem. The discrete-time Langevin dynamics can be written as:
+\begin{equation}
+x_t = x_{t-1} + \frac{\Delta t}{2}\nabla_x\log p(x_{t-1};\theta) + \sqrt{\Delta t}\epsilon, \quad \epsilon\sim N(0, 1).
+\end{equation}
+
+The crucial insight here is that the gradient term $\nabla_x\log p(x_{t-1};\theta) = -\nabla_x E(x;\theta)$ is independent of the normalization constant $C(\theta)$. This makes the method particularly attractive for sampling from unnormalized distributions.
+
+We define the score function as:
+\begin{equation}
+S(x;\theta) \equiv \nabla \log p(x;\theta).
+\end{equation}
+
+The score function represents the direction of steepest increase in the log-probability density and plays a central role in many generative modeling approaches.
+
+\subsection{Continuous-Time Formulation}
+
+In the continuous-time limit as $\Delta t \to 0$, the Langevin MCMC process becomes:
+\begin{equation}
+dx = \frac{1}{2}\nabla_x\log p(x) dt + dB_t,
+\end{equation}
+where $dB_t$ is a Brownian motion. Given a distribution of the form $p(x) = \frac{1}{C}e^{-E}$, we have:
+\begin{equation}
+dx = -\frac{1}{2}\nabla_x E dt + dB_t.
+\end{equation}
+
+This continuous formulation reveals the connection to Langevin dynamics in molecular dynamics simulations. The full Langevin dynamics equation is:
+\begin{equation}
+\ddot{x} = -\nabla_x E - \gamma \dot{x} + dB_t,
+\end{equation}
+where $\gamma$ is a friction coefficient. When the friction term $\gamma \dot{x}$ dominates the acceleration term $\ddot{x}$, we obtain the overdamped Langevin equation:
+\begin{equation}
+dx = -\frac{1}{\gamma}\nabla_x E + \frac{1}{\gamma}dB_t.
+\end{equation}
+
+This overdamped limit is exactly what we use in the context of diffusion models and score-based generative modeling.
+
+\section{Matching Score for Training}
+
+\subsection{The Challenge of Score Matching}
+
+The key insight in score-based generative modeling is to learn the score function using neural networks. The explicit score matching (ESM) loss is defined as:
+\begin{equation}
+J_{ESM} = \frac{1}{2} \mathbb{E}_p\left[\|s(x;\theta) - \frac{\partial \log p(x)}{\partial x}\|^2\right],
+\end{equation}
+where $s(x;\theta)$ is our neural network approximation of the true score function.
+
+However, this formulation is not tractable in practice because we cannot directly compute $\frac{\partial \log p(x)}{\partial x}$ from data. This is where the theoretical developments in score matching become crucial.
+
+\subsection{Implicit Score Matching}
+
+Implicit Score Matching (ISM) was developed to make score matching tractable. The ISM loss is defined as:
+\begin{equation}
+J_{ISM} \equiv \mathbb{E}_p\left[\frac{1}{2}\|s(x;\theta)\|^2 + \nabla\cdot s(x;\theta)\right] = J_{ESM} - C,
+\end{equation}
+where $C$ is a constant independent of the parameters $\theta$.
+
+The key insight in the proof of this equivalence involves expanding the ESM loss:
+\begin{equation}
+J_{ESM} = \frac{1}{2} \mathbb{E}_p\left[\|s(x;\theta) - \frac{\partial \log p(x)}{\partial x}\|^2\right]
+\end{equation}
+\begin{equation}
+= \frac{1}{2} \mathbb{E}_p\left[\|s\|^2\right] - \mathbb{E}_p\left[s \cdot \frac{\partial \log p}{\partial x}\right] + \frac{1}{2}\mathbb{E}_p\left[\left\|\frac{\partial \log p}{\partial x}\right\|^2\right].
+\end{equation}
+
+The crucial step is to simplify the cross term using integration by parts:
+\begin{equation}
+- \mathbb{E}_p\left[s \cdot \frac{\partial \log p}{\partial x}\right] = -\int_x ps \cdot \nabla \log p \, dx
+\end{equation}
+\begin{equation}
+= -\int_x ps \cdot \frac{\nabla p}{p} dx = -\int_x s \cdot \nabla p \, dx
+\end{equation}
+\begin{equation}
+= -\int \nabla \cdot (ps) dx + \int p \nabla \cdot s \, dx = \mathbb{E}_p[\nabla \cdot s].
+\end{equation}
+
+Therefore, we have $J_{ISM} = J_{ESM} - C$ where $C \equiv \frac{1}{2}\mathbb{E}_p\left[\left\|\frac{\partial \log p}{\partial x}\right\|^2\right]$ is a constant independent of $\theta$. This makes ISM tractable since we don't need to compute the true score function.
+
+\subsection{Denoising Score Matching}
+
+However, the ISM loss is not very stable to optimize for two main reasons. First, the expectation is performed over the entire distribution, which can be computationally expensive. Second, the loss can become negative and decrease to a large negative value like $-10^5$, making optimization challenging.
+
+Denoising Score Matching (DSM) was developed to address these problems. The DSM loss is defined as:
+\begin{equation}
+J_{DSM} = \frac{1}{2}\mathbb{E}_{p(x,\tilde{x})}\left[\|s(\tilde{x};\theta) - \nabla_{\tilde{x}}\log p(\tilde{x}|x)\|^2\right].
+\end{equation}
+
+We can prove that $J_{DSM} = J_{ESM} + C$, where $C$ is a constant. The key insight is to show that the cross terms of $J_{ESM}$ and $J_{DSM}$ are equal:
+\begin{equation}
+\mathbb{E}_{p(\tilde{x})}[s(\tilde{x}) \cdot \nabla_{\tilde{x}}\log p(\tilde{x})] = \mathbb{E}_{p(\tilde{x},x)}\left[s(\tilde{x}) \cdot \nabla_{\tilde{x}} \log p(\tilde{x}|x)\right].
+\end{equation}
+
+This equivalence is established by expanding the left side and using the relationship between the marginal and conditional distributions.
+
+However, a problem arises when $\tilde{x} \to x$. We can prove that when Gaussian noise is added by $p(\tilde{x}|x) = N(\alpha x, \sigma^2)$, the DSM loss diverges to infinity as $\tilde{x} \to x$. This is because:
+\begin{equation}
+\nabla_{\tilde{x}}\log p(\tilde{x}|x) = -\frac{\tilde{x}-\alpha x}{\sigma^2},
+\end{equation}
+and the expectation $\mathbb{E}_{p(x,\tilde{x})}[\|\nabla_{\tilde{x}}\log p(\tilde{x}|x)\|^2]$ goes to infinity as $\sigma \to 0$.
+
+\section{Relations Between Different Models}
+
+\subsection{Gaussian Noise Addition}
+
+Let us revisit the process of adding noise from $x$ to $\tilde{x}$. The Gaussian transition kernel for adding noise is:
+\begin{equation}
+\tilde{x} = \alpha x + \sigma \epsilon,
+\end{equation}
+which is equivalent to the Gaussian transition kernel:
+\begin{equation}
+p(\tilde{x}|x) = N(\tilde{x}; \alpha x, \sigma^2),
+\end{equation}
+where $\epsilon \sim N(0,1)$ and:
+\begin{equation}
+N(\tilde{x};\alpha x, \sigma^2) = C e^{-\frac{\|\tilde{x}-\alpha x\|^2}{2\sigma^2}}.
+\end{equation}
+
+We also have:
+\begin{equation}
+\epsilon = \frac{\tilde{x}-\alpha x}{\sigma}.
+\end{equation}
+
+The question naturally arises: how can we recover $x$ given $\tilde{x}$?
+
+\subsection{Tweedie's Formula}
+
+Tweedie's Formula from Bayesian statistics provides a crucial connection. Given random variables $x, y$ where $y \sim N(x, \sigma^2 I)$, i.e., $p(y|x) = N(x, \sigma^2)$, the expectation of $x$ can be given by:
+\begin{equation}
+\mathbb{E}[x|y] = y + \sigma^2 \nabla \log p(y).
+\end{equation}
+
+Letting $x \leftarrow \alpha x$ and $y \leftarrow \tilde{x}$, we have:
+\begin{equation}
+s \equiv \nabla_{\tilde{x}} \log p(\tilde{x}) = -\frac{\tilde{x}-\alpha \mathbb{E}[x|\tilde{x}]}{\sigma^2} = -\frac{1}{\sigma}\mathbb{E}\left[\frac{\tilde{x}-\alpha x}{\sigma}|\tilde{x}\right] = -\frac{\mathbb{E}[\epsilon|\tilde{x}]}{\sigma},
+\end{equation}
+where we have used the fact that $\epsilon = \frac{\tilde{x}-\alpha x}{\sigma}$.
+
+\subsection{Alternative Derivation from Score Definition}
+
+We can also derive this relationship directly from the definition of the score function. Given the noise addition process $\tilde{x} = \alpha x + \sigma \epsilon$ and the conditional distribution:
+\begin{equation}
+p(\tilde{x}|x) = Ce^{-\frac{\|\tilde{x}-\alpha x\|^2}{2\sigma^2}},
+\end{equation}
+we have:
+\begin{equation}
+s(\tilde{x}) = \nabla_{\tilde{x}}\log p(\tilde{x}) = \frac{\nabla_{\tilde{x}}p(\tilde{x})}{p(\tilde{x})} = \frac{\int_x \nabla_{\tilde{x}}p(\tilde{x}|x) p(x)dx}{p(\tilde{x})}.
+\end{equation}
+
+From the conditional distribution, we have:
+\begin{equation}
+s(\tilde{x}) = \int_x \nabla_{\tilde{x}} \log p(\tilde{x}|x)p(x|\tilde{x})dx = \mathbb{E}_x[\nabla_{\tilde{x}} \log p(\tilde{x}|x)| \tilde{x}] = \mathbb{E}_x\left[-\frac{\tilde{x}-\alpha x}{\sigma^2}| \tilde{x}\right] = -\frac{\tilde{x}-\alpha \mathbb{E}[x|\tilde{x}]}{\sigma^2}.
+\end{equation}
+
+\subsection{Theoretical Foundation: Conditional Expectation}
+
+The theoretical foundation for these relationships lies in the theory of conditional expectation. Let $X$ be an integrable random variable. Then for each $\sigma$-algebra $\mathcal{V}$ and $Z \in \mathcal{V}$, $Z^* = \mathbb{E}(X| \mathcal{V})$ solves the least square problem:
+\begin{equation}
+\text{argmin}_{Z\in \mathcal{V}} \| Z - X\|,
+\end{equation}
+where $\| Z\| = \left( \int Z^2 dP \right)^{\frac{1}{2}}$.
+
+This result establishes that the conditional expectation is the optimal predictor in the mean-square sense, which provides the theoretical justification for the relationships we have derived.
+
+\subsection{Three Equivalent Model Formulations}
+
+Based on the above analysis, we can identify three equivalent ways to model the denoising process:
+
+\textbf{Score model:} The loss function is:
+\begin{equation}
+\text{Loss}_{score} = \|s_\theta(\tilde{x}) - \frac{\epsilon}{\sigma}\|^2.
+\end{equation}
+
+\textbf{X prediction model (denoising model, $x_0$ model):} The loss function is:
+\begin{equation}
+\text{Loss}_{x_0} = \|x_\theta (\tilde{x}) - x\|^2,
+\end{equation}
+with the relationship:
+\begin{equation}
+s(\tilde{x}) = -\frac{\tilde{x}-\alpha x_{\theta^*} (\tilde{x})}{\sigma^2}
+\end{equation}
+where $x_\theta(\tilde{x}) \to x_{\theta^*}(\tilde{x}) \equiv \mathbb{E}[x|\tilde{x}]$.
+
+\textbf{$\epsilon$ prediction model:} The loss function is:
+\begin{equation}
+\text{Loss}_{\epsilon} = \|\epsilon_\theta(\tilde{x}) - \epsilon\|^2,
+\end{equation}
+with the relationship:
+\begin{equation}
+s(\tilde{x}) = -\frac{\epsilon_{\theta^*}(\tilde{x})}{\sigma},
+\end{equation}
+where $\epsilon_\theta(\tilde{x}) \to \epsilon_{\theta^*}(\tilde{x}) \equiv \mathbb{E}[\epsilon|\tilde{x}]$.
+
+In the optimal case ($\theta^*$), these three formulations are consistent:
+\begin{equation}
+s_{\theta^{*}}(\tilde{x}) = -\frac{\tilde{x}-\alpha x_{\theta^*} (\tilde{x})}{\sigma^2} = -\frac{\epsilon_{\theta^*}(\tilde{x})}{\sigma}.
+\end{equation}
+
+In practice, we use the connection between these three models without necessarily reaching the optimal parameters:
+\begin{equation}
+s_\theta(\tilde{x}) = -\frac{\tilde{x}-\alpha x_{\theta} (\tilde{x})}{\sigma^2} = -\frac{\epsilon_{\theta}(\tilde{x})}{\sigma},
+\end{equation}
+and by substituting each form into the loss definitions, we can recover all the losses given by different models.
+
+\section{Potential Score Matching Loss}
+
+\subsection{Key Identity: Jacobian Switch}
+
+The Gaussian transition density is:
+\begin{equation}
+q(\mathbf{x}_t \mid \mathbf{x}_0) = \mathcal{N}(\mathbf{x}_t; \alpha_t \mathbf{x}_0, \sigma_t^2\mathbf{I}) \propto \exp\left(-\frac{\|\mathbf{x}_t-\alpha_t \mathbf{x}_0\|^2}{2\sigma_t^2}\right).
+\end{equation}
+
+A basic but crucial identity is:
+\begin{equation}
+\nabla_{\mathbf{x}_t} q(\mathbf{x}_t \mid \mathbf{x}_0) = -\frac{1}{\alpha_t} \nabla_{\mathbf{x}_0} q(\mathbf{x}_t \mid \mathbf{x}_0), \quad (\alpha_t > 0).
+\end{equation}
+
+The proof of this identity follows from differentiating the exponent with respect to $\mathbf{x}_t$ and $\mathbf{x}_0$:
+\begin{equation}
+\nabla_{\mathbf{x}_t}\|\mathbf{x}_t-\alpha_t\mathbf{x}_0\|^2 = 2(\mathbf{x}_t-\alpha_t\mathbf{x}_0), \quad \nabla_{\mathbf{x}_0}\|\mathbf{x}_t-\alpha_t\mathbf{x}_0\|^2 = -2\alpha_t(\mathbf{x}_t-\alpha_t\mathbf{x}_0),
+\end{equation}
+thus giving the factor $-1/\alpha_t$.
+
+\subsection{Score as Conditional Force Expectation}
+
+With $p(\mathbf{x}_0) \propto e^{-E(\mathbf{x}_0)/k_B T}$ and $\mathbf{x}_t = \alpha_t \mathbf{x}_0 + \sigma_t \boldsymbol{\epsilon}$, we have:
+\begin{equation}
+\nabla_{\mathbf{x}_t}\log p(\mathbf{x}_t) = \frac{1}{\alpha_t} \mathbb{E}_{\mathbf{x}_0 \mid \mathbf{x}_t}\left[\frac{\mathbf{F}(\mathbf{x}_0)}{k_B T}\right],
+\end{equation}
+where $\mathbf{F}(\mathbf{x}_0) = -\nabla_{\mathbf{x}_0}E(\mathbf{x}_0)$.
+
+The derivation follows from:
+\begin{align}
+\nabla_{\mathbf{x}_t}\log p(\mathbf{x}_t) &= \frac{\nabla_{\mathbf{x}_t}\int p(\mathbf{x}_0) q(\mathbf{x}_t \mid \mathbf{x}_0) d \mathbf{x}_0}{p(\mathbf{x}_t)}\\
+&= \frac{1}{p(\mathbf{x}_t)}\int p(\mathbf{x}_0) \nabla_{\mathbf{x}_t} q(\mathbf{x}_t \mid \mathbf{x}_0) d \mathbf{x}_0
+\end{align}
+
+Using the Jacobian switch identity:
+\begin{align}
+&= \frac{1}{p(\mathbf{x}_t)}\int p(\mathbf{x}_0)\left(-\frac{1}{\alpha_t}\right)\nabla_{\mathbf{x}_0} q(\mathbf{x}_t \mid \mathbf{x}_0) d \mathbf{x}_0\\
+&= -\frac{1}{\alpha_t} \frac{1}{p(\mathbf{x}_t)}\int q(\mathbf{x}_t \mid \mathbf{x}_0) \nabla_{\mathbf{x}_0} p(\mathbf{x}_0) d \mathbf{x}_0
+\end{align}
+
+Finally:
+\begin{align}
+&= -\frac{1}{\alpha_t}\int \frac{p(\mathbf{x}_0) q(\mathbf{x}_t \mid \mathbf{x}_0)}{p(\mathbf{x}_t)} \nabla_{\mathbf{x}_0}\log p(\mathbf{x}_0) d \mathbf{x}_0\\
+&= \frac{1}{\alpha_t} \mathbb{E}_{\mathbf{x}_0 \mid \mathbf{x}_t}\left[\frac{-\nabla_{\mathbf{x}_0}E(\mathbf{x}_0)}{k_B T}\right] = \frac{1}{\alpha_t} \mathbb{E}_{\mathbf{x}_0 \mid \mathbf{x}_t}\left[\frac{\mathbf{F}(\mathbf{x}_0)}{k_B T}\right]
+\end{align}
+
+This result shows that the score function can be interpreted as a conditional expectation of the force field, providing a physical interpretation of the diffusion process.
+
+\section{From Theory to Practice: Implementation Approaches}
+
+Now that we have established the theoretical foundations of score matching and diffusion processes, let us explore how these concepts are implemented in practice through several key approaches: Score Matching Langevin Dynamics (SMLD), Denoising Diffusion Probabilistic Models (DDPM), and continuous formulations.
+
+\subsection{Score Matching Langevin Dynamics (SMLD)}
+
+SMLD adds noise in the following manner:
+\begin{equation}
+p(\tilde{x}_i| x) = N(\tilde{x}_i; x, \sigma_i^2) \equiv Ce^{-\frac{\|\tilde{x}_i-x\|^2}{2\sigma_i^2}},
+\end{equation}
+where a geometric sequence $\sigma_1 > \sigma_2 > \cdots > \sigma_T \approx 0$ is used to add noise with different levels.
+
+In terms of random variables:
+\begin{equation}
+\tilde{x}_i = x + \sigma_i \epsilon
+\end{equation}
+for different $\sigma_i$ to get different noised random variables $\tilde{x}_i$.
+
+The training objective $J_{DSM}$ is:
+\begin{equation}
+J_{DSM} = \frac{1}{2}\mathbb{E}_{\sigma_i}\mathbb{E}_{p(x)}\mathbb{E}_{p(\tilde{x}_i|x)}\left[\|s_\theta(\tilde{x}_i,\sigma_i) + \frac{\tilde{x}_i-x}{\sigma_i^2}\|^2\right].
+\end{equation}
+
+For sampling, annealed Langevin MCMC is used:
+\begin{equation}
+x_t = x_{t-1} + \frac{\Delta t}{2}S_\theta(x_{t-1}) + \sqrt{\Delta t}\epsilon, \quad \epsilon \sim N(0,1).
+\end{equation}
+
+\subsection{Denoising Diffusion Probabilistic Models (DDPM)}
+
+DDPM was derived from the Evidence Lower Bound (ELBO), not directly from score matching. The main procedure involves:
+
+\textbf{Adding noise:}
+\begin{equation}
+x_t = \sqrt{1-\beta_t}x_{t-1} + \sqrt{\beta_t}\epsilon;
+\end{equation}
+
+\textbf{Transition kernel:}
+\begin{equation}
+p(x_t|x_0) = N(x_t;\alpha_t x_0, \sigma_t^2),
+\end{equation}
+where $\alpha_t = \prod_{i=1}^{t} \sqrt{1-\beta_i}$ and $\sigma_t^2 = 1-\alpha_t^2$.
+
+\textbf{Training Loss:}
+\begin{equation}
+\mathbb{E}_{t \sim U[0,1]}\mathbb{E}_{p(x)}\mathbb{E}_{p(x_t|x)}\left[\|\epsilon_\theta(x_t,t) - \epsilon\|^2\right],
+\end{equation}
+where we use the approximation $x_0 = \frac{x_t-\sigma_t\epsilon}{\alpha_t}$.
+
+\textbf{Sampling:}
+\begin{equation}
+x_{t-1} = \frac{1}{\sqrt{1-\beta_t}}(x_t + \beta_t s_\theta(x_t, t)) + \sqrt{\beta_t}\epsilon_t, \quad t = T, T-1, \ldots, 1.
+\end{equation}
+
+\section{Continuous Formulations}
+
+\subsection{Continuous Version of SMLD}
+
+Recall that $x_t = x_0 + \sigma_t\epsilon$. We can prove that:
+\begin{equation}
+x_t = x_{t-1} + \sqrt{\sigma_t^2-\sigma_{t-1}^2}\epsilon.
+\end{equation}
+
+The proof follows by recurrence:
+\begin{align}
+x_t &= x_{t-1} + \sqrt{\sigma_t^2-\sigma_{t-1}^2}\epsilon\\
+&= x_{t-2} + \sqrt{\sigma_{t-1}^2-\sigma_{t-2}^2}\epsilon + \sqrt{\sigma_t^2-\sigma_{t-1}^2}\epsilon\\
+&= x_{t-2} + \sqrt{\sigma_t^2-\sigma_{t-2}^2}\epsilon\\
+&= \ldots = x_0 + \sigma_t\epsilon, \quad \text{where } \sigma_0 \approx 0.
+\end{align}
+
+From this, we have:
+\begin{equation}
+\Delta x_t = \sqrt{\frac{\sigma_t^2-\sigma_{t-1}^2}{\Delta t}}\sqrt{\Delta t}\epsilon = \sqrt{\frac{\sigma_t^2-\sigma_{t-1}^2}{\Delta t}}\Delta B_t.
+\end{equation}
+
+Taking the limit as $\Delta t \to 0$:
+\begin{equation}
+dx = \sqrt{\frac{d\sigma_t^2}{dt}}dB_t.
+\end{equation}
+
+\subsection{Continuous Version of DDPM}
+
+Recall that $x_t = \sqrt{1-\beta_t}x_{t-1} + \sqrt{\beta_t}\epsilon$. Similarly:
+\begin{equation}
+x_t \approx (1-\frac{1}{2}\beta_t)x_{t-1} + \sqrt{\beta_t}\epsilon,
+\end{equation}
+hence:
+\begin{align}
+\Delta x_t &= -\frac{1}{2}\tilde{\beta_t} x_{t-1}\Delta t + \sqrt{\tilde{\beta_t}}\sqrt{\Delta t}\epsilon, \quad \text{where } \tilde{\beta_t} = \frac{\beta_i}{\Delta t}\\
+&= -\frac{1}{2}\tilde{\beta_t} x_{t-1}\Delta t + \sqrt{\tilde{\beta_t}}\Delta B_t.
+\end{align}
+
+Taking the limit as $\Delta t \to 0$:
+\begin{equation}
+dx = -\frac{1}{2}\tilde{\beta_t} x dt + \sqrt{\tilde{\beta_t}}dB_t.
+\end{equation}
+
+\subsection{Variable Elimination (VE) and Variable Preservation (VP)}
+
+Summarizing the forms of continuous DDPM and SMLD, we can write the adding noise process as:
+\begin{equation}
+dx = f(x, t)dt + g(t) dB_t,
+\end{equation}
+where the corresponding distribution $p(x, t)$ satisfies the Fokker-Planck equation:
+\begin{equation}
+\frac{\partial p(x,t)}{\partial t} + \nabla \cdot (f(x,t) p(x,t)) - \frac{1}{2}g^2(t) \triangle p(x,t) = 0.
+\end{equation}
+
+The training DSM objective is:
+\begin{equation}
+J_{DSM} = \mathbb{E}_{t \sim U[0,1]}\mathbb{E}_{p(x_0)}\mathbb{E}_{p(x_t|x_0)}\left[\|s_\theta(x_t,t) - \nabla_{x_t}\log p(x_t|x_0)\|^2\right].
+\end{equation}
+
+\subsection{Transition Kernels for VE and VP}
+
+For VE, the transition kernel is:
+\begin{equation}
+P(x(t)|x(0)) = N(x(t); x(0), \sigma^2(t)-\sigma^2(0)),
+\end{equation}
+where $\tilde{\alpha}_t \equiv 1$ and $\tilde{\sigma}^2_t \equiv \sigma^2(t)-\sigma^2(0) \approx \sigma^2(t)$.
+
+For VP, the transition kernel is:
+\begin{equation}
+p(x(t)|x(0)) = N\left(x(t); x(0)e^{-\frac{1}{2}\int_0^t \tilde{\beta}(s)ds}, 1-e^{-\int_0^t \tilde{\beta}(s)ds}\right),
+\end{equation}
+where $\tilde{\alpha}_t \equiv e^{-\frac{1}{2}\int_0^t \tilde{\beta}(s)ds}$ and $\tilde{\sigma}^2_t \equiv 1-e^{-\int_0^t \tilde{\beta}(s)ds}$.
+
+\section{Training and Inference}
+
+\subsection{Training Recipe}
+
+The training for VE follows this process (VP is similar):
+
+1. Randomly choose one data point $x \sim p_{data}$;
+2. Randomly sample $t \sim U[0, 1]$;
+3. Randomly sample white noise $\epsilon \sim N(0, 1)$;
+4. Add noise: $x_t = \tilde{\alpha}_t x + \tilde{\sigma}_t\epsilon$, where the mean value $\tilde{\alpha}_t x = x(0)$ and standard deviation $\tilde{\sigma}_t = \sqrt{\sigma^2(t)-\sigma^2(0)} \approx \sigma(t)$ in VE;
+5. Compute the loss by summing the following norm over $x$, $t$ and $\epsilon$:
+\begin{equation}
+\|s_\theta(x_t, t) - \epsilon/\tilde{\sigma}_t\|.
+\end{equation}
+
+\subsection{Inference: Reverse Denoising Process}
+
+The reverse denoising process is given by:
+\begin{equation}
+dx = (f(x,t) - g^2\nabla_x \log p(x,t))dt + g(t)dB_t,
+\end{equation}
+or:
+\begin{equation}
+dx = (f(x,t) - \frac{1}{2}g^2\nabla_x \log p(x,t))dt,
+\end{equation}
+or:
+\begin{equation}
+dx = (f(x,t) - \frac{3}{2}g^2\nabla_x \log p(x,t))dt + \sqrt{2}g(t)dB_t.
+\end{equation}
+
+All these forms are equivalent and obey the same Fokker-Planck equation for $p(x, t)$.
+
+\subsection{Inference Recipe}
+
+The inference for VE follows this process (VP is similar):
+
+1. Randomly generate noise at time $t=1$ as $x(1) \sim N(0, \sigma^2_{max})$;
+2. Integrate the reverse sampling equation:
+\begin{equation}
+dx = \left(f(x,t) - g^2(t) s_\theta(x,t)\right)dt + g(t)dB_t
+\end{equation}
+or:
+\begin{equation}
+dx = (f - \frac{1}{2}g^2 s_\theta)dt
+\end{equation}
+over the time span $[0, 1]$ to get $x(0)$;
+3. Corrector process: at each internal value $x(t)$, we can relax the value $x(t)$ by a corrector, which takes the Langevin MCMC process.
+
+\subsection{The Corrector: Langevin MCMC}
+
+The Langevin diffusion process is:
+\begin{equation}
+x_i = x_{i-1} + \frac{\Delta t}{2}\nabla_x\log p(x_{i-1}) + \sqrt{\Delta t}\epsilon, \quad \epsilon \sim N(0, 1).
+\end{equation}
+
+We can prove that the distribution $\pi(x)$ of the obtained data points $\{x_i\}_{i=1}^N$ converges to $p(x)$. The continuous form is:
+\begin{equation}
+dx = \frac{1}{2}\nabla\log p(x) dt + dB_t.
+\end{equation}
+
+The corresponding Fokker-Planck equation is:
+\begin{equation}
+\frac{\partial\pi(x,t)}{\partial t} + \nabla \cdot \left(\frac{1}{2}\nabla\log p(x) \pi(x,t)\right) - \frac{1}{2}\triangle \pi(x,t) = 0.
+\end{equation}
+
+With sufficient time evolution, the distribution converges to a stable distribution where:
+\begin{equation}
+\frac{\partial \pi(x,t)}{\partial t} = 0, \quad t \to \infty.
+\end{equation}
+
+Hence:
+\begin{equation}
+\nabla \cdot (\pi\nabla\log p - \nabla\pi) = 0, \quad \forall x.
+\end{equation}
+
+Therefore:
+\begin{equation}
+\nabla\log p = \nabla\log \pi
+\end{equation}
+given that $\pi > 0$ almost everywhere. Hence:
+\begin{equation}
+\pi^*(x) = p(x)
+\end{equation}
+where $\pi^*$ is the stable distribution of $\pi(x, t)$.
+
+\section{Recent Advances and Practical Considerations}
+
+\subsection{DDPM: Denoising Diffusion Probabilistic Models}
+
+DDPM represents a foundational approach to diffusion models. The goal is to learn a generative model $p_\theta(x_0)$ by reversing a noisy diffusion process. The model introduces latents $x_{1:T}$ with the same dimensionality as data $x_0$.
+
+The reverse (sampling) chain is:
+\begin{equation}
+p_\theta(x_{0:T}) = p(x_T)\prod_{t=1}^{T} p_\theta(x_{t-1} \mid x_t), \quad p(x_T) = \mathcal{N}(0,I),
+\end{equation}
+\begin{equation}
+p_\theta(x_{t-1} \mid x_t) = \mathcal{N}(\mu_\theta(x_t,t), \Sigma_\theta(x_t,t)).
+\end{equation}
+
+The forward (fixed) diffusion is:
+\begin{equation}
+q(x_{1:T} \mid x_0) = \prod_{t=1}^{T} q(x_t \mid x_{t-1}), \quad q(x_t \mid x_{t-1}) = \mathcal{N}(\sqrt{1-\beta_t} x_{t-1}, \beta_t I).
+\end{equation}
+
+With $\alpha_t := 1-\beta_t$ and $\bar{\alpha}_t := \prod_{s=1}^t \alpha_s$:
+\begin{equation}
+q(x_t \mid x_0) = \mathcal{N}(\sqrt{\bar{\alpha}_t} x_0, (1-\bar{\alpha}_t)I).
+\end{equation}
+
+The training objective optimizes the negative log-likelihood via a reduced-variance ELBO:
+\begin{align}
+\mathbb{E}[-\log p_\theta(x_0)] &\leq \underbrace{\mathbb{E}[\text{KL}(q(x_T|x_0) \| p(x_T))]}_{L_T} \nonumber \\
+&\quad + \sum_{t=2}^{T} \underbrace{\mathbb{E}[\text{KL}(q(x_{t-1}|x_t,x_0) \| p_\theta(x_{t-1}|x_t))]}_{L_{t-1}} \nonumber \\
+&\quad - \underbrace{\mathbb{E}[\log p_\theta(x_0|x_1)]}_{L_0}.
+\end{align}
+
+The $\epsilon$-prediction parameterization writes the forward noising as:
+\begin{equation}
+x_t = \sqrt{\bar{\alpha}_t} x_0 + \sqrt{1-\bar{\alpha}_t} \varepsilon, \quad \varepsilon \sim \mathcal{N}(0,I).
+\end{equation}
+
+The reverse mean is parameterized via a network $\varepsilon_\theta(x_t,t)$:
+\begin{equation}
+\mu_\theta(x_t,t) = \frac{1}{\sqrt{\alpha_t}} \left(x_t - \frac{1-\alpha_t}{\sqrt{1-\bar{\alpha}_t}} \varepsilon_\theta(x_t,t)\right).
+\end{equation}
+
+The simplified objective is:
+\begin{equation}
+\mathcal{L}_{\text{simple}}(\theta) = \mathbb{E}_{t \sim \mathcal{U}[1,T], x_0, \varepsilon} \|\varepsilon - \varepsilon_\theta(\sqrt{\bar{\alpha}_t} x_0 + \sqrt{1-\bar{\alpha}_t} \varepsilon, t)\|_2^2.
+\end{equation}
+
+\subsection{EDM: Elucidating the Design Space}
+
+EDM separates design choices (sampling, schedules, preconditioning, training) to simplify and speed up diffusion models. The key outcomes include faster sampling (tens of NFEs) with strong FID and modular choices for ODE view, schedule $\sigma(t)$, scaling $s(t)$, time steps $\{t_i\}$, preconditioning, and loss weighting.
+
+The probability flow ODE with schedule $\sigma(t)$ and scaling $s(t)$ is:
+\begin{equation}
+\frac{d\mathbf{x}}{dt} = \left(\frac{\dot{\sigma}}{\sigma} + \frac{\dot{s}}{s}\right)\mathbf{x} - \frac{\dot{\sigma} s}{\sigma} \nabla_{\mathbf{x}}\log p\left(\frac{\mathbf{x}}{s};\sigma\right).
+\end{equation}
+
+Using denoising score matching:
+\begin{equation}
+\nabla_{\mathbf{x}}\log p(\mathbf{x};\sigma) = \frac{D(\mathbf{x};\sigma) - \mathbf{x}}{\sigma^2},
+\end{equation}
+so the ODE is solved numerically by evaluating a denoiser $D_\theta(\mathbf{x};\sigma)$.
+
+\subsection{DPM-Solver: Fast ODE Solver}
+
+DPM-Solver exploits the semi-linear structure of the diffusion ODE to deliver high-quality samples in 10-20 NFE. The key idea is to compute the linear part analytically and only approximate a special, exponentially weighted integral of the network.
+
+The forward SDE (VP-type example) is:
+\begin{equation}
+d\mathbf{x}_t = f(t)\mathbf{x}_t dt + g(t) d\mathbf{w}_t,
+\end{equation}
+where $f(t) = \frac{d}{dt}\log \alpha_t$ and $g^2(t) = \frac{d}{dt}\sigma_t^2 - 2\frac{d}{dt}\log \alpha_t \cdot \sigma_t^2$.
+
+The probability flow ODE with learned noise predictor $\varepsilon_\theta(\mathbf{x},t)$ is:
+\begin{equation}
+\frac{d\mathbf{x}_t}{dt} = f(t)\mathbf{x}_t + \frac{g^2(t)}{2\sigma_t} \varepsilon_\theta(\mathbf{x}_t,t), \quad \mathbf{x}_T \sim \mathcal{N}(0,\tilde{\sigma}^2\mathbf{I}).
+\end{equation}
+
+The exact solution via variation of constants is:
+\begin{equation}
+\mathbf{x}_t = e^{\int_t^s f(\tau) d\tau} \mathbf{x}_s + \int_t^s e^{\int_t^\tau f(r) dr} \frac{g^2(\tau)}{2\sigma_\tau} \varepsilon_\theta(\mathbf{x}_\tau,\tau) d\tau.
+\end{equation}
+
+Introducing half-logSNR $\lambda_t := \log(\alpha_t/\sigma_t)$ and using change of variables:
+\begin{equation}
+\mathbf{x}_t = \frac{\alpha_t}{\alpha_s} \mathbf{x}_s - \alpha_t \int_{\lambda_s}^{\lambda_t} e^{-\lambda} \hat{\varepsilon}_\theta(\hat{\mathbf{x}}_\lambda,\lambda) d\lambda.
+\end{equation}
+
+\subsection{Consistency Models}
+
+Consistency models enable fast 1-step generation while keeping diffusion model perks (quality, zero-shot editing, compute/quality trade-off). The idea is to learn a map that sends any point on a Probability-Flow (PF) ODE trajectory back to its origin (data).
+
+The PF ODE from SDE is:
+\begin{equation}
+\frac{dx_t}{dt} = -t s_\phi(x_t,t),
+\end{equation}
+where $s_\phi \approx \nabla \log p_t$ under EDM-style settings.
+
+A consistency function $f:(x_t,t) \mapsto x_\varepsilon$ with self-consistency $f(x_t,t) = f(x_{t'},t')$ if on the same trajectory. A consistency model is a neural estimator $f_\theta(x,t)$ of $f$ trained to enforce self-consistency.
+
+For one-step generation:
+\begin{equation}
+x_T \sim \mathcal{N}(0,T^2 I), \quad x_\varepsilon = f_\theta(x_T,T).
+\end{equation}
+
+For few-step generation, we alternate between denoising and noise injection:
+\begin{equation}
+x \leftarrow f_\theta(x_T,T), \text{ then for } \tau_1 > \ldots > \tau_{N-1}: \hat{x}_{\tau_n} \leftarrow x + \sqrt{\tau_n^2-\varepsilon^2} z, z \sim \mathcal{N}(0,I); x \leftarrow f_\theta(\hat{x}_{\tau_n},\tau_n).
+\end{equation}
+
+\section{Open Questions and Future Directions}
+
+Several important questions remain open in the field of diffusion models:
+
+1. \textbf{Equivalence of reverse forms:} Please prove that the forms of the reverse process are equivalent with the same marginal distribution $p(x,t)$ given the same initial condition.
+
+2. \textbf{Score function dynamics:} Please prove that the score function $s(x,t)$ satisfies:
+\begin{equation}
+\frac{\partial s}{\partial t} = \nabla \left(-\nabla \cdot f - \langle f, s\rangle + \frac{1}{2}g^2\|s\|^2 + \frac{1}{2}g^2\langle \nabla, s \rangle\right).
+\end{equation}
+
+3. \textbf{Practical considerations:} Why is ISM loss not commonly used like DSM loss in diffusion models nowadays? This question invites discussion about the practical trade-offs between different loss formulations.
+
+These questions represent active areas of research that could lead to further theoretical understanding and practical improvements in diffusion models.
+
+\section{Conclusion}
+
+Diffusion models represent a powerful and theoretically well-founded approach to generative modeling. The mathematical foundations, rooted in stochastic differential equations, score matching, and statistical physics, provide a solid theoretical basis for understanding these models. The connections between different formulations—score matching, DDPM, and continuous-time approaches—reveal the underlying unity of these methods.
+
+The practical implementations, from SMLD to DDPM to modern approaches like EDM and consistency models, demonstrate the evolution of the field toward more efficient and practical methods. The theoretical understanding of the relationships between different model formulations provides valuable insights for practitioners and researchers.
+
+As the field continues to evolve, the mathematical foundations established in this chapter will remain relevant for understanding new developments and for designing improved methods. The open questions identified provide directions for future research that could lead to further theoretical insights and practical improvements.
+
+The success of diffusion models in generating high-quality samples across diverse domains---from images to audio to scientific data---demonstrates the power of this approach. The mathematical rigor underlying these methods ensures that they will continue to be a valuable tool in the arsenal of generative modeling techniques.

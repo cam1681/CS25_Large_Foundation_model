@@ -1,0 +1,536 @@
+\documentclass[aspectratio=169]{beamer}
+
+% ==== Theme & basic look ====
+\usetheme{Madrid}
+\usecolortheme{seahorse}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+
+
+% Packages for mathematics  
+\usepackage{amsmath}  
+\usepackage{amsfonts}  
+\usepackage{amssymb}  
+\usepackage{CJKutf8}
+% Support for \Tilde macro used throughout
+\providecommand{\Tilde}[1]{\tilde{#1}}
+\providecommand{\proofname}{Proof}
+\newenvironment<>{proofs}[1][\proofname]{%
+    \par
+    \def\insertproofname{#1.}%
+    \usebeamertemplate{proof begin}#2}
+  {\usebeamertemplate{proof end}}
+\makeatother
+
+% Math shorthand and vector symbols
+\newcommand{\grad}{\nabla}
+\newcommand{\EE}{\mathbb{E}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\kbT}{k_B T}
+\newcommand{\vx}{\mathbf{x}}
+\newcommand{\va}{\mathbf{a}}
+\newcommand{\vs}{\mathbf{s}}
+\newcommand{\vr}{\mathbf{r}}
+\newcommand{\vz}{\mathbf{z}}
+
+% Bold vector/time-indexed variables
+\newcommand{\vst}{\mathbf{s}_t}
+\newcommand{\vat}{\mathbf{a}_t}
+\newcommand{\vrt}{\mathbf{r}_t}
+\newcommand{\vzt}{\mathbf{z}_t}
+\newcommand{\vstp}{\mathbf{s}_{t+1}}
+\newcommand{\vrtp}{\mathbf{r}_{t+1}}
+
+% Title page details:   
+\title[Understanding World Models]{Understanding World Models in Machine Learning and AGI}  
+\author{Pipi Hu}  
+\institute[BIMSA]{Beijing Institute of Mathematical Sciences and Applications}  
+\date{\today}  
+
+\pgfdeclareimage[width=2cm]{logo}{../figures/logo.png}
+\logo{\pgfuseimage{logo}}
+
+% Outline slide (moved to later; avoid frame before \begin{document})
+
+\setbeamertemplate{navigation symbols}{}
+\AtBeginSection[]  
+{  
+    \begin{frame}<beamer>{Outline}         
+        \tableofcontents[currentsection]  
+    \end{frame}  
+}  
+  
+\AtBeginSubsection[]  
+{  
+    \begin{frame}<beamer>{Outline}         
+        \tableofcontents[currentsection,currentsubsection]  
+    \end{frame}  
+}  
+
+\begin{document}  
+  
+% Title slide  
+\begin{frame}  
+  \titlepage  
+\end{frame}  
+
+\begin{frame}{Feynman's words}
+\centering
+    What I cannot create, I do not understand.
+\end{frame}
+  
+% Presentation slides  
+
+\section{Introduction: What are World Models?}
+
+\begin{frame}{The Concept of World Models}
+A \textbf{world model} is an internal representation that an AI system constructs to simulate and understand its environment.
+
+\begin{itemize}
+    \item \textcolor{red}{Abstraction}: Extract high-level features from raw sensory data
+    \item \textcolor{red}{Prediction}: Forecast future states and rewards
+    \item \textcolor{red}{Simulation}: Internally simulate virtual scenarios
+    \item \textcolor{red}{Interaction}: Infer intentions and beliefs of other agents
+\end{itemize}
+
+\textbf{Key Insight}: World models enable AI systems to reason about the world without direct interaction, crucial for achieving AGI.
+\end{frame}
+
+\begin{frame}{Historical Context: From Reinforcement Learning to AGI}
+\begin{enumerate}
+    \item \textbf{Classical RL}: Direct interaction with environment
+    \begin{equation}
+        \pi^*(s) = \arg\max_a \EE\left[\sum_{t=0}^{\infty} \gamma^t r_{t+1} \mid s_0 = s, a_0 = a\right]
+    \end{equation}
+    \item \textbf{Model-based RL}: Learn environment dynamics
+    \begin{equation}
+        \hat{p}(s_{t+1}, r_{t+1} \mid s_t, a_t) \approx p(s_{t+1}, r_{t+1} \mid s_t, a_t)
+    \end{equation}
+    \item \textbf{World Models}: Internal simulation and planning
+    \begin{equation}
+        \text{World Model} = \{\text{Encoder}, \text{Dynamics}, \text{Decoder}\}
+    \end{equation}
+\end{enumerate}
+\end{frame}
+
+\section{Mathematical Foundations of World Models}
+
+\begin{frame}{Formal Definition of World Models}
+A world model $\mathcal{W}$ consists of three components:
+
+\begin{enumerate}
+    \item \textbf{Encoder}: $z_t = \text{Enc}(s_t)$ - maps observations to latent states
+    \item \textbf{Dynamics}: $z_{t+1} = f(z_t, a_t)$ - predicts next latent state
+    \item \textbf{Decoder}: $\hat{s}_t = \text{Dec}(z_t)$ - reconstructs observations
+\end{enumerate}
+
+\textbf{Objective}: Learn a compressed representation that captures the essential dynamics of the environment.
+\end{frame}
+
+\begin{frame}{The World Model Learning Problem}
+Given a sequence of observations and actions $\{(s_t, a_t)\}_{t=1}^T$, we want to learn:
+
+\begin{equation}
+\min_{\theta} \mathcal{L}_{\text{world}} = \EE\left[\sum_{t=1}^T \|\hat{s}_t - s_t\|^2 + \lambda \mathcal{L}_{\text{consistency}}\right]
+\end{equation}
+
+where $\mathcal{L}_{\text{consistency}}$ ensures the learned dynamics are consistent with the true environment dynamics.
+
+\textbf{Key Challenge}: The dynamics model must be both accurate and generalizable to unseen scenarios.
+\end{frame}
+
+\begin{frame}{Variational World Models}
+Following the variational autoencoder framework, we can formulate world models as:
+
+\begin{equation}
+p(z_{1:T} \mid s_{1:T}, a_{1:T}) = \prod_{t=1}^T p(z_t \mid z_{t-1}, a_{t-1})
+\end{equation}
+
+\textbf{Variational Lower Bound}:
+\begin{equation}
+\log p(s_{1:T} \mid a_{1:T}) \geq \EE_{q(z_{1:T})}\left[\sum_{t=1}^T \log p(s_t \mid z_t) - \text{KL}(q(z_t \mid z_{t-1}, a_{t-1}) \| p(z_t \mid z_{t-1}, a_{t-1}))\right]
+\end{equation}
+
+This formulation allows for uncertainty quantification and better generalization.
+\end{frame}
+
+\section{World Models in Reinforcement Learning}
+
+\begin{frame}{Model-Based Reinforcement Learning with World Models}
+Traditional model-based RL learns environment dynamics:
+\begin{equation}
+\hat{p}(s_{t+1}, r_{t+1} \mid s_t, a_t) \approx p(s_{t+1}, r_{t+1} \mid s_t, a_t)
+\end{equation}
+
+\textbf{World Model Approach}: Learn dynamics in latent space
+\begin{equation}
+\hat{z}_{t+1} = f_\theta(z_t, a_t), \quad \hat{r}_{t+1} = g_\theta(z_t, a_t)
+\end{equation}
+
+\textbf{Advantages}:
+\begin{itemize}
+    \item More efficient learning in high-dimensional spaces
+    \item Better generalization to unseen states
+    \item Enables planning in latent space
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Planning with World Models}
+Once we have a world model, we can plan by:
+
+\begin{enumerate}
+    \item \textbf{Rollout Planning}: Simulate trajectories in latent space
+    \begin{equation}
+        z_{t+1} = f(z_t, a_t), \quad \hat{r}_{t+1} = g(z_t, a_t)
+    \end{equation}
+    \item \textbf{Value Function Learning}: Learn $V(z)$ in latent space
+    \begin{equation}
+        V(z_t) = \EE\left[\sum_{k=0}^H \gamma^k r_{t+k} \mid z_t\right]
+    \end{equation}
+    \item \textbf{Policy Optimization}: Update policy based on simulated experience
+\end{enumerate}
+
+\textbf{Key Insight}: Planning in compressed latent space is computationally more efficient than planning in raw observation space.
+\end{frame}
+
+\begin{frame}{Dreamer Algorithm: A Case Study}
+The Dreamer algorithm demonstrates world model learning:
+
+\begin{enumerate}
+    \item \textbf{Representation Learning}: 
+    \begin{equation}
+        z_t \sim q_\phi(z_t \mid s_t, z_{t-1}, a_{t-1})
+    \end{equation}
+    \item \textbf{Dynamics Learning}:
+    \begin{equation}
+        \hat{z}_{t+1} \sim p_\theta(z_{t+1} \mid z_t, a_t)
+    \end{equation}
+    \item \textbf{Reward Prediction}:
+    \begin{equation}
+        \hat{r}_{t+1} = r_\theta(z_t, a_t)
+    \end{equation}
+    \item \textbf{Policy Learning}: Learn policy in latent space
+    \begin{equation}
+        \pi_\psi(a_t \mid z_t) = \text{softmax}(Q_\psi(z_t, a_t))
+    \end{equation}
+\end{enumerate}
+\end{frame}
+
+\section{World Models for AGI}
+
+\begin{frame}{The Role of World Models in AGI}
+World models are fundamental for achieving AGI because they provide:
+
+\begin{enumerate}
+    \item \textbf{Generalization}: Transfer knowledge across domains
+    \item \textbf{Abstraction}: Extract high-level concepts
+    \item \textbf{Planning}: Reason about future scenarios
+    \item \textbf{Imagination}: Generate novel scenarios
+\end{enumerate}
+
+\textbf{AGI Requirements}:
+\begin{equation}
+\text{AGI} = \{\text{World Model}, \text{Reasoning}, \text{Learning}, \text{Planning}\}
+\end{equation}
+\end{frame}
+
+\begin{frame}{Hierarchical World Models}
+For complex environments, hierarchical world models are necessary:
+
+\begin{equation}
+\mathcal{W}_{\text{hier}} = \{\mathcal{W}_1, \mathcal{W}_2, \ldots, \mathcal{W}_L\}
+\end{equation}
+
+where each level $\mathcal{W}_i$ operates at different temporal and spatial scales.
+
+\textbf{Multi-scale Dynamics}:
+\begin{equation}
+z_t^{(i)} = f^{(i)}(z_{t-1}^{(i)}, a_{t-1}^{(i)}, z_t^{(i-1)})
+\end{equation}
+
+This enables reasoning at multiple levels of abstraction, crucial for AGI.
+\end{frame}
+
+\begin{frame}{World Models and Theory of Mind}
+For social AGI, world models must include models of other agents:
+
+\begin{equation}
+\mathcal{W}_{\text{social}} = \{\mathcal{W}_{\text{self}}, \mathcal{W}_{\text{others}}, \mathcal{W}_{\text{interaction}}\}
+\end{equation}
+
+\textbf{Other Agents' Models}:
+\begin{equation}
+\hat{a}_j^{(t+1)} = \pi_j(z_j^{(t)}, \mathcal{W}_{\text{others}})
+\end{equation}
+
+This enables:
+\begin{itemize}
+    \item Predicting other agents' actions
+    \item Cooperative behavior
+    \item Strategic reasoning
+\end{itemize}
+\end{frame}
+
+\section{Advanced World Model Architectures}
+
+\begin{frame}{Transformer-based World Models}
+Recent work uses transformers for world modeling:
+
+\begin{equation}
+z_{t+1} = \text{Transformer}(z_{1:t}, a_{1:t})
+\end{equation}
+
+\textbf{Advantages}:
+\begin{itemize}
+    \item Long-range dependencies
+    \item Parallel processing
+    \item Attention mechanisms for relevant information
+\end{itemize}
+
+\textbf{Challenges}:
+\begin{itemize}
+    \item Computational complexity
+    \item Memory requirements
+    \item Training stability
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Diffusion World Models}
+Inspired by diffusion models, we can formulate world models as:
+
+\begin{equation}
+p(z_{t+1} \mid z_t, a_t) = \int p(z_{t+1} \mid z_0, a_t) p(z_0 \mid z_t) dz_0
+\end{equation}
+
+where the diffusion process models the uncertainty in state transitions.
+
+\textbf{Benefits}:
+\begin{itemize}
+    \item Natural uncertainty quantification
+    \item Better handling of stochastic environments
+    \item Improved sample efficiency
+\end{itemize}
+\end{frame}
+
+\section{Challenges and Future Directions}
+
+\begin{frame}{Current Challenges in World Models}
+\begin{enumerate}
+    \item \textbf{Model Complexity}: Balancing expressiveness and computational efficiency
+    \item \textbf{Generalization}: Transferring knowledge across domains
+    \item \textbf{Uncertainty}: Quantifying and propagating uncertainty
+    \item \textbf{Scalability}: Scaling to complex, high-dimensional environments
+\end{enumerate}
+
+\textbf{Open Questions}:
+\begin{itemize}
+    \item How to learn world models from limited data?
+    \item How to ensure world models are interpretable?
+    \item How to combine multiple world models?
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Future Research Directions}
+\begin{enumerate}
+    \item \textbf{Neural-Symbolic World Models}: Combining neural networks with symbolic reasoning
+    \item \textbf{Continual Learning}: Learning world models that adapt over time
+    \item \textbf{Multi-modal World Models}: Integrating different sensory modalities
+    \item \textbf{World Model Composition}: Combining multiple specialized world models
+\end{enumerate}
+
+\textbf{Long-term Vision}: World models that can:
+\begin{itemize}
+    \item Learn from minimal data
+    \item Transfer knowledge across domains
+    \item Reason about abstract concepts
+    \item Collaborate with other agents
+\end{itemize}
+\end{frame}
+
+\section{Applications and Case Studies}
+
+\begin{frame}{World Models in Robotics}
+\begin{itemize}
+    \item \textbf{Sim-to-Real Transfer}: Train in simulation, deploy in real world
+    \item \textbf{Manipulation Planning}: Plan complex manipulation tasks
+    \item \textbf{Navigation}: Navigate in unknown environments
+\end{itemize}
+
+\textbf{Key Insight}: World models enable robots to reason about the physical world without direct interaction.
+\end{frame}
+
+\begin{frame}{World Models in Game AI}
+\begin{itemize}
+    \item \textbf{Strategy Games}: Model opponent behavior and game dynamics
+    \item \textbf{Real-time Strategy}: Plan complex multi-agent strategies
+    \item \textbf{Adversarial Games}: Model adversarial environments
+\end{itemize}
+
+\textbf{Examples}:
+\begin{itemize}
+    \item AlphaGo: Model-based planning in Go
+    \item StarCraft AI: Strategic planning in RTS games
+    \item Chess engines: Position evaluation and planning
+\end{itemize}
+\end{frame}
+
+\begin{frame}{World Models in Scientific Discovery}
+\begin{itemize}
+    \item \textbf{Physics Simulation}: Model physical laws and phenomena
+    \item \textbf{Chemical Reactions}: Predict reaction outcomes
+    \item \textbf{Biological Systems}: Model complex biological processes
+\end{itemize}
+
+\textbf{Potential Impact}: World models could accelerate scientific discovery by enabling:
+\begin{itemize}
+    \item Virtual experimentation
+    \item Hypothesis generation
+    \item Theory validation
+\end{itemize}
+\end{frame}
+
+\section{Theoretical Foundations}
+
+\begin{frame}{Information-Theoretic Perspective}
+World models can be understood through information theory:
+
+\begin{equation}
+I(S; Z) = H(S) - H(S \mid Z)
+\end{equation}
+
+where $I(S; Z)$ is the mutual information between observations $S$ and latent states $Z$.
+
+\textbf{Optimal World Model}: Maximizes mutual information while minimizing complexity:
+\begin{equation}
+\max_{\theta} I(S; Z_\theta) - \lambda \text{Complexity}(Z_\theta)
+\end{equation}
+\end{frame}
+
+\begin{frame}{Causal World Models}
+For AGI, world models must capture causal relationships:
+
+\begin{equation}
+p(\text{effect} \mid \text{cause}) \neq p(\text{effect} \mid \text{correlation})
+\end{equation}
+
+\textbf{Causal Discovery}: Learning causal graphs from data
+\begin{equation}
+\mathcal{G} = \{(V, E) : V \text{ variables}, E \text{ causal edges}\}
+\end{equation}
+
+\textbf{Intervention}: Predicting effects of interventions
+\begin{equation}
+p(Y \mid \text{do}(X = x)) \neq p(Y \mid X = x)
+\end{equation}
+\end{frame}
+
+\begin{frame}{World Models and Consciousness}
+Some researchers argue that world models are related to consciousness:
+
+\begin{itemize}
+    \item \textbf{Self-Model}: Model of the agent itself
+    \item \textbf{Attention}: Focus on relevant aspects of the world
+    \item \textbf{Memory}: Integration of past experiences
+    \item \textbf{Prediction}: Anticipation of future events
+\end{itemize}
+
+\textbf{Open Question}: Can sophisticated world models lead to artificial consciousness?
+\end{frame}
+
+\section{Implementation Considerations}
+
+\begin{frame}{Computational Requirements}
+World models have significant computational requirements:
+
+\begin{itemize}
+    \item \textbf{Training}: Large-scale optimization problems
+    \item \textbf{Inference}: Real-time prediction and planning
+    \item \textbf{Memory}: Storing and retrieving world state
+    \item \textbf{Communication}: Sharing world models between agents
+\end{itemize}
+
+\textbf{Optimization Strategies}:
+\begin{itemize}
+    \item Distributed training
+    \item Model compression
+    \item Efficient architectures
+    \item Hardware acceleration
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Evaluation Metrics}
+How do we evaluate world models?
+
+\begin{enumerate}
+    \item \textbf{Prediction Accuracy}: How well does the model predict future states?
+    \item \textbf{Planning Performance}: How well can the model be used for planning?
+    \item \textbf{Generalization}: How well does the model transfer to new domains?
+    \item \textbf{Efficiency}: How computationally efficient is the model?
+\end{enumerate}
+
+\textbf{Benchmarks}:
+\begin{itemize}
+    \item Atari games
+    \item MuJoCo environments
+    \item Real-world robotics tasks
+    \item Multi-agent environments
+\end{itemize}
+\end{frame}
+
+\section{Conclusion and Future Work}
+
+\begin{frame}{Summary}
+World models are fundamental for achieving AGI:
+
+\begin{itemize}
+    \item \textbf{Mathematical Foundation}: Rigorous theoretical framework
+    \item \textbf{Practical Applications}: Success in various domains
+    \item \textbf{Research Challenges}: Many open problems remain
+    \item \textbf{Future Potential}: Key to artificial general intelligence
+\end{itemize}
+
+\textbf{Key Takeaways}:
+\begin{enumerate}
+    \item World models enable efficient learning and planning
+    \item They are crucial for generalization and transfer
+    \item Current methods show promise but need improvement
+    \item Future work should focus on scalability and robustness
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{Open Research Questions}
+\begin{enumerate}[(1.)]
+    \item How can we learn world models from limited data?
+    \item How do we ensure world models are interpretable and trustworthy?
+    \item How can we combine multiple world models effectively?
+    \item How do we handle non-stationary environments?
+    \item How can world models enable artificial consciousness?
+\end{enumerate}
+
+\textbf{Call for Research}: These questions represent exciting opportunities for future research in AI and AGI.
+\end{frame}
+
+\begin{frame}{Thank You}
+\centering
+\textbf{Questions and Discussion}
+
+\vspace{2em}
+
+World models represent a crucial step toward artificial general intelligence. The mathematical foundations are solid, but many challenges remain.
+
+\vspace{1em}
+
+\textbf{Contact}: \href{mailto:hpp@bimsa.cn}{hpp@bimsa.cn}
+
+\vspace{1em}
+
+\textbf{References}: 
+\begin{itemize}
+    \item Ha \& Schmidhuber (2018): World Models
+    \item Hafner et al. (2019): Dreamer
+    \item Chen et al. (2021): Decision Transformer
+    \item And many more...
+\end{itemize}
+\end{frame}
+
+\end{document}

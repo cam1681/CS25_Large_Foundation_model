@@ -1,0 +1,668 @@
+\documentclass[aspectratio=169]{beamer}
+
+% ==== Theme & basic look ====
+\usetheme{Madrid}
+\usecolortheme{seahorse}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+
+
+% Packages for mathematics  
+\usepackage{amsmath}  
+\usepackage{amsfonts}  
+\usepackage{amssymb}  
+\usepackage{CJKutf8}
+% Support for \Tilde macro used throughout
+\providecommand{\Tilde}[1]{\tilde{#1}}
+\providecommand{\proofname}{Proof}
+\newenvironment<>{proofs}[1][\proofname]{%
+    \par
+    \def\insertproofname{#1.}%
+    \usebeamertemplate{proof begin}#2}
+  {\usebeamertemplate{proof end}}
+\makeatother
+
+% Math shorthand and vector symbols
+\newcommand{\grad}{\nabla}
+\newcommand{\EE}{\mathbb{E}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\kbT}{k_B T}
+\newcommand{\vx}{\mathbf{x}}
+
+% Bold vector/time-indexed variables
+\newcommand{\vxz}{\mathbf{x}_0}
+\newcommand{\vxt}{\mathbf{x}_t}
+\newcommand{\alpt}{\alpha_t}
+\newcommand{\sigt}{\sigma_t}
+\newcommand{\veps}{\boldsymbol{\epsilon}}
+\newcommand{\vF}{\mathbf{F}}
+
+% RL-specific notation
+\newcommand{\vs}{\mathbf{s}}
+\newcommand{\va}{\mathbf{a}}
+\newcommand{\vr}{\mathbf{r}}
+\newcommand{\vpi}{\boldsymbol{\pi}}
+\newcommand{\vQ}{\mathbf{Q}}
+\newcommand{\vV}{\mathbf{V}}
+\newcommand{\vP}{\mathbf{P}}
+\newcommand{\vR}{\mathbf{R}}
+\newcommand{\vgamma}{\gamma}
+\newcommand{\vlambda}{\lambda}
+\newcommand{\vtheta}{\boldsymbol{\theta}}
+\newcommand{\vphi}{\boldsymbol{\phi}}
+
+% Title page details:   
+\title[Understanding Reinforcement Learning]{Understanding Reinforcement Learning from a Mathematical View}  
+\author{Pipi Hu}  
+\institute[BIMSA]{Beijing Institute of Mathematical Sciences and Applications}  
+\date{\today}  
+
+\pgfdeclareimage[width=2cm]{logo}{../figures/logo.png}
+\logo{\pgfuseimage{logo}}
+
+% Outline slide (moved to later; avoid frame before \begin{document})
+
+\setbeamertemplate{navigation symbols}{}
+\AtBeginSection[]  
+{  
+    \begin{frame}<beamer>{Outline}         
+        \tableofcontents[currentsection]  
+    \end{frame}  
+}  
+  
+\AtBeginSubsection[]  
+{  
+    \begin{frame}<beamer>{Outline}         
+        \tableofcontents[currentsection,currentsubsection]  
+    \end{frame}  
+}  
+
+\begin{document}  
+  
+% Title slide  
+\begin{frame}  
+  \titlepage  
+\end{frame}  
+
+\begin{frame}{Bellman's words}
+\centering
+    The theory of dynamic programming is the mathematical foundation of sequential decision making.
+\end{frame}
+  
+% Presentation slides  
+
+\section{Introduction to Reinforcement Learning}
+
+\begin{frame}{What is Reinforcement Learning?}
+Reinforcement Learning (RL) is a machine learning paradigm where an agent learns to make decisions by interacting with an environment.
+\begin{itemize}
+    \item \textcolor{red}{Agent}: The decision maker
+    \item \textcolor{red}{Environment}: The world the agent interacts with
+    \item \textcolor{red}{State}: Current situation of the environment
+    \item \textcolor{red}{Action}: What the agent can do
+    \item \textcolor{red}{Reward}: Feedback from the environment
+\end{itemize}
+
+The goal is to learn a \textbf{policy} that maximizes cumulative reward.
+\end{frame}
+
+\begin{frame}{Mathematical Framework: Markov Decision Process}
+A Markov Decision Process (MDP) is defined by the tuple $(\mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R}, \gamma)$:
+\begin{itemize}
+    \item $\mathcal{S}$: State space
+    \item $\mathcal{A}$: Action space  
+    \item $\mathcal{P}(s'|s,a)$: Transition probability
+    \item $\mathcal{R}(s,a)$: Reward function
+    \item $\gamma \in [0,1]$: Discount factor
+\end{itemize}
+
+\textbf{Markov Property}: Future depends only on current state
+\begin{equation}
+    P(s_{t+1}|s_t, a_t, s_{t-1}, a_{t-1}, \ldots) = P(s_{t+1}|s_t, a_t)
+\end{equation}
+\end{frame}
+
+\begin{frame}{Policy and Value Functions}
+A \textbf{policy} $\pi(a|s)$ defines the probability of taking action $a$ in state $s$.
+
+\textbf{Value Functions}:
+\begin{itemize}
+    \item \textcolor{red}{State Value Function}:
+    \begin{equation}
+        V^\pi(s) = \EE_\pi\left[\sum_{t=0}^{\infty} \gamma^t r_{t+1} \Big| s_0 = s\right]
+    \end{equation}
+    \item \textcolor{red}{Action Value Function}:
+    \begin{equation}
+        Q^\pi(s,a) = \EE_\pi\left[\sum_{t=0}^{\infty} \gamma^t r_{t+1} \Big| s_0 = s, a_0 = a\right]
+    \end{equation}
+\end{itemize}
+
+\textbf{Optimal Value Functions}:
+\begin{equation}
+    V^*(s) = \max_\pi V^\pi(s), \quad Q^*(s,a) = \max_\pi Q^\pi(s,a)
+\end{equation}
+\end{frame}
+
+\section{Bellman Equations}
+
+\begin{frame}{Bellman Equation for State Value}
+The state value function satisfies the \textbf{Bellman equation}:
+\begin{equation}
+    V^\pi(s) = \sum_a \pi(a|s) \sum_{s'} \mathcal{P}(s'|s,a) [\mathcal{R}(s,a) + \gamma V^\pi(s')]
+\end{equation}
+
+\textbf{Optimal Bellman Equation}:
+\begin{equation}
+    V^*(s) = \max_a \sum_{s'} \mathcal{P}(s'|s,a) [\mathcal{R}(s,a) + \gamma V^*(s')]
+\end{equation}
+
+\textbf{Action Value Bellman Equation}:
+\begin{equation}
+    Q^\pi(s,a) = \sum_{s'} \mathcal{P}(s'|s,a) [\mathcal{R}(s,a) + \gamma \sum_{a'} \pi(a'|s') Q^\pi(s',a')]
+\end{equation}
+\end{frame}
+
+\begin{frame}{Bellman Optimality for Action Values}
+\textbf{Optimal Action Value Bellman Equation}:
+\begin{equation}
+    Q^*(s,a) = \sum_{s'} \mathcal{P}(s'|s,a) [\mathcal{R}(s,a) + \gamma \max_{a'} Q^*(s',a')]
+\end{equation}
+
+\textbf{Optimal Policy}:
+\begin{equation}
+    \pi^*(s) = \arg\max_a Q^*(s,a)
+\end{equation}
+
+\textbf{Key Insight}: If we know $Q^*$, we can find the optimal policy by taking the action with highest value in each state.
+\end{frame}
+
+\section{Dynamic Programming}
+
+\begin{frame}{Policy Evaluation}
+Given a policy $\pi$, how to compute $V^\pi$?
+
+\textbf{Iterative Policy Evaluation}:
+\begin{equation}
+    V_{k+1}(s) = \sum_a \pi(a|s) \sum_{s'} \mathcal{P}(s'|s,a) [\mathcal{R}(s,a) + \gamma V_k(s')]
+\end{equation}
+
+\textbf{Convergence}: $V_k \to V^\pi$ as $k \to \infty$
+
+\textbf{Matrix Form}:
+\begin{equation}
+    \mathbf{V}_{k+1} = \mathbf{R}^\pi + \gamma \mathbf{P}^\pi \mathbf{V}_k
+\end{equation}
+where $\mathbf{P}^\pi$ is the transition matrix under policy $\pi$.
+\end{frame}
+
+\begin{frame}{Policy Improvement}
+Given $V^\pi$, how to find a better policy?
+
+\textbf{Policy Improvement Theorem}: For any policy $\pi$, define a new policy $\pi'$:
+\begin{equation}
+    \pi'(s) = \arg\max_a \sum_{s'} \mathcal{P}(s'|s,a) [\mathcal{R}(s,a) + \gamma V^\pi(s')]
+\end{equation}
+
+Then $V^{\pi'}(s) \geq V^\pi(s)$ for all $s$.
+
+\textbf{Proof Sketch}: 
+\begin{equation}
+    V^\pi(s) \leq \max_a \sum_{s'} \mathcal{P}(s'|s,a) [\mathcal{R}(s,a) + \gamma V^\pi(s')] = V^{\pi'}(s)
+\end{equation}
+\end{frame}
+
+\begin{frame}{Policy Iteration}
+\textbf{Policy Iteration Algorithm}:
+\begin{enumerate}
+    \item Initialize policy $\pi_0$ randomly
+    \item \textbf{Policy Evaluation}: Compute $V^{\pi_k}$
+    \item \textbf{Policy Improvement}: 
+    \begin{equation}
+        \pi_{k+1}(s) = \arg\max_a \sum_{s'} \mathcal{P}(s'|s,a) [\mathcal{R}(s,a) + \gamma V^{\pi_k}(s')]
+    \end{equation}
+    \item Repeat until $\pi_{k+1} = \pi_k$
+\end{enumerate}
+
+\textbf{Convergence}: Guaranteed to find optimal policy in finite steps.
+\end{frame}
+
+\begin{frame}{Value Iteration}
+\textbf{Value Iteration Algorithm}:
+\begin{equation}
+    V_{k+1}(s) = \max_a \sum_{s'} \mathcal{P}(s'|s,a) [\mathcal{R}(s,a) + \gamma V_k(s')]
+\end{equation}
+
+\textbf{Convergence}: $V_k \to V^*$ as $k \to \infty$
+
+\textbf{Advantage}: No need for separate policy evaluation step.
+
+\textbf{Stopping Criterion}: $\max_s |V_{k+1}(s) - V_k(s)| < \epsilon$
+\end{frame}
+
+\section{Monte Carlo Methods}
+
+\begin{frame}{Monte Carlo Policy Evaluation}
+When transition probabilities $\mathcal{P}$ are unknown, use \textbf{Monte Carlo} methods.
+
+\textbf{First-Visit MC}:
+\begin{equation}
+    V(s) \leftarrow V(s) + \alpha [G_t - V(s)]
+\end{equation}
+where $G_t = r_{t+1} + \gamma r_{t+2} + \gamma^2 r_{t+3} + \ldots$ is the return.
+
+\textbf{Every-Visit MC}: Update $V(s)$ every time $s$ is visited in an episode.
+
+\textbf{Convergence}: $V(s) \to V^\pi(s)$ as number of visits $\to \infty$
+\end{frame}
+
+\begin{frame}{Monte Carlo Control}
+\textbf{MC Control Algorithm}:
+\begin{enumerate}
+    \item Initialize $Q(s,a)$ and $\pi(s)$ arbitrarily
+    \item For each episode:
+    \begin{itemize}
+        \item Generate episode following $\pi$
+        \item For each $(s,a)$ pair in episode:
+        \begin{itemize}
+            \item $Q(s,a) \leftarrow Q(s,a) + \alpha [G_t - Q(s,a)]$
+            \item $\pi(s) \leftarrow \arg\max_a Q(s,a)$
+        \end{itemize}
+    \end{itemize}
+\end{enumerate}
+
+\textbf{Exploration Problem}: Need to ensure all actions are tried.
+\end{frame}
+
+\begin{frame}{$\epsilon$-Greedy Policy}
+\textbf{$\epsilon$-Greedy Policy}:
+\begin{equation}
+    \pi(a|s) = \begin{cases}
+        1 - \epsilon + \frac{\epsilon}{|\mathcal{A}|} & \text{if } a = \arg\max_{a'} Q(s,a') \\
+        \frac{\epsilon}{|\mathcal{A}|} & \text{otherwise}
+    \end{cases}
+\end{equation}
+
+\textbf{GLIE (Greedy in the Limit with Infinite Exploration)}:
+\begin{itemize}
+    \item All state-action pairs visited infinitely often
+    \item Policy converges to greedy policy
+\end{itemize}
+
+\textbf{Example}: $\epsilon_k = \frac{1}{k}$ where $k$ is episode number.
+\end{frame}
+
+\section{Temporal Difference Learning}
+
+\begin{frame}{Temporal Difference (TD) Learning}
+\textbf{TD(0) Algorithm}:
+\begin{equation}
+    V(s_t) \leftarrow V(s_t) + \alpha [r_{t+1} + \gamma V(s_{t+1}) - V(s_t)]
+\end{equation}
+
+\textbf{TD Error}:
+\begin{equation}
+    \delta_t = r_{t+1} + \gamma V(s_{t+1}) - V(s_t)
+\end{equation}
+
+\textbf{Advantages over MC}:
+\begin{itemize}
+    \item Online learning (no need to wait for episode end)
+    \item Lower variance than MC
+    \item Can learn from incomplete sequences
+\end{itemize}
+\end{frame}
+
+\begin{frame}{SARSA: On-Policy TD Control}
+\textbf{SARSA Algorithm}:
+\begin{equation}
+    Q(s_t, a_t) \leftarrow Q(s_t, a_t) + \alpha [r_{t+1} + \gamma Q(s_{t+1}, a_{t+1}) - Q(s_t, a_t)]
+\end{equation}
+
+\textbf{On-Policy}: Learns the value of the policy being followed.
+
+\textbf{Algorithm}:
+\begin{enumerate}
+    \item Choose $a_t$ from $s_t$ using policy derived from $Q$
+    \item Take action $a_t$, observe $r_{t+1}, s_{t+1}$
+    \item Choose $a_{t+1}$ from $s_{t+1}$ using policy derived from $Q$
+    \item Update $Q(s_t, a_t)$
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{Q-Learning: Off-Policy TD Control}
+\textbf{Q-Learning Algorithm}:
+\begin{equation}
+    Q(s_t, a_t) \leftarrow Q(s_t, a_t) + \alpha [r_{t+1} + \gamma \max_a Q(s_{t+1}, a) - Q(s_t, a_t)]
+\end{equation}
+
+\textbf{Off-Policy}: Learns optimal policy while following different behavior policy.
+
+\textbf{Convergence}: $Q(s,a) \to Q^*(s,a)$ under certain conditions:
+\begin{itemize}
+    \item All state-action pairs visited infinitely often
+    \item Learning rate satisfies Robbins-Monro conditions
+\end{itemize}
+\end{frame}
+
+\section{Function Approximation}
+
+\begin{frame}{Linear Function Approximation}
+When state space is large, use function approximation:
+\begin{equation}
+    \hat{V}(s) = \mathbf{w}^T \boldsymbol{\phi}(s)
+\end{equation}
+where $\boldsymbol{\phi}(s)$ are features and $\mathbf{w}$ are weights.
+
+\textbf{Linear TD(0)}:
+\begin{equation}
+    \mathbf{w}_{t+1} = \mathbf{w}_t + \alpha [r_{t+1} + \gamma \mathbf{w}_t^T \boldsymbol{\phi}(s_{t+1}) - \mathbf{w}_t^T \boldsymbol{\phi}(s_t)] \boldsymbol{\phi}(s_t)
+\end{equation}
+
+\textbf{Convergence}: Guaranteed to converge to $\mathbf{w}^*$ that minimizes mean squared error.
+\end{frame}
+
+\begin{frame}{Neural Network Function Approximation}
+\textbf{Deep Q-Network (DQN)}:
+\begin{equation}
+    Q(s,a;\theta) \approx Q^*(s,a)
+\end{equation}
+
+\textbf{Loss Function}:
+\begin{equation}
+    L(\theta) = \EE[(r + \gamma \max_{a'} Q(s',a';\theta^-) - Q(s,a;\theta))^2]
+\end{equation}
+
+\textbf{Key Innovations}:
+\begin{itemize}
+    \item \textcolor{red}{Experience Replay}: Store transitions and sample randomly
+    \item \textcolor{red}{Target Network}: Use separate network for target values
+    \item \textcolor{red}{Double DQN}: Reduce overestimation bias
+\end{itemize}
+\end{frame}
+
+\section{Policy Gradient Methods}
+
+\begin{frame}{Policy Gradient Theorem}
+\textbf{Objective}: Maximize expected return
+\begin{equation}
+    J(\theta) = \EE_{\tau \sim \pi_\theta} \left[\sum_{t=0}^T \gamma^t r_t\right]
+\end{equation}
+
+\textbf{Policy Gradient Theorem}:
+\begin{equation}
+    \nabla_\theta J(\theta) = \EE_{\tau \sim \pi_\theta} \left[\sum_{t=0}^T \nabla_\theta \log \pi_\theta(a_t|s_t) \sum_{t'=t}^T \gamma^{t'-t} r_{t'}\right]
+\end{equation}
+
+\textbf{REINFORCE Algorithm}:
+\begin{equation}
+    \theta_{t+1} = \theta_t + \alpha \gamma^t G_t \nabla_\theta \log \pi_\theta(a_t|s_t)
+\end{equation}
+\end{frame}
+
+\begin{frame}{Actor-Critic Methods}
+\textbf{Actor-Critic}: Combine policy gradient with value function approximation.
+
+\textbf{Actor Update} (Policy):
+\begin{equation}
+    \theta_{t+1} = \theta_t + \alpha \nabla_\theta \log \pi_\theta(a_t|s_t) \delta_t
+\end{equation}
+
+\textbf{Critic Update} (Value Function):
+\begin{equation}
+    \mathbf{w}_{t+1} = \mathbf{w}_t + \beta \delta_t \boldsymbol{\phi}(s_t)
+\end{equation}
+
+where $\delta_t = r_{t+1} + \gamma V(s_{t+1};\mathbf{w}) - V(s_t;\mathbf{w})$ is the TD error.
+\end{frame}
+
+\begin{frame}{Advantage Actor-Critic (A2C)}
+\textbf{Advantage Function}:
+\begin{equation}
+    A^\pi(s,a) = Q^\pi(s,a) - V^\pi(s)
+\end{equation}
+
+\textbf{A2C Update}:
+\begin{equation}
+    \theta_{t+1} = \theta_t + \alpha \nabla_\theta \log \pi_\theta(a_t|s_t) A_t
+\end{equation}
+
+where $A_t = r_{t+1} + \gamma V(s_{t+1};\mathbf{w}) - V(s_t;\mathbf{w})$ is the advantage estimate.
+
+\textbf{Benefits}:
+\begin{itemize}
+    \item Reduces variance compared to REINFORCE
+    \item Faster convergence
+    \item More stable training
+\end{itemize}
+\end{frame}
+
+\section{Advanced Topics}
+
+\begin{frame}{Proximal Policy Optimization (PPO)}
+\textbf{Objective}: Prevent large policy updates that can destabilize training.
+
+\textbf{PPO-Clip Objective}:
+\begin{equation}
+    L^{CLIP}(\theta) = \EE_t \left[\min(r_t(\theta) A_t, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon) A_t)\right]
+\end{equation}
+
+where $r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$ is the probability ratio.
+
+\textbf{Key Features}:
+\begin{itemize}
+    \item \textcolor{red}{Clipping}: Prevents large policy updates
+    \item \textcolor{red}{Multiple Epochs}: Use data multiple times
+    \item \textcolor{red}{Stable Training}: Works well in practice
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Trust Region Policy Optimization (TRPO)}
+\textbf{Trust Region Constraint}:
+\begin{equation}
+    \max_\theta \EE_t \left[\frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)} A_t\right]
+\end{equation}
+subject to $\EE_t [KL(\pi_{\theta_{old}}(\cdot|s_t), \pi_\theta(\cdot|s_t))] \leq \delta$
+
+\textbf{Solution}: Use conjugate gradient to solve constrained optimization.
+
+\textbf{Advantages}:
+\begin{itemize}
+    \item Theoretical guarantees
+    \item Monotonic policy improvement
+    \item Robust to hyperparameters
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Soft Actor-Critic (SAC)}
+\textbf{Maximum Entropy RL}: Maximize both reward and entropy.
+
+\textbf{SAC Objective}:
+\begin{equation}
+    J(\pi) = \EE_{\tau \sim \pi} \left[\sum_{t=0}^T \gamma^t (r_t + \alpha \mathcal{H}(\pi(\cdot|s_t)))\right]
+\end{equation}
+
+where $\mathcal{H}(\pi(\cdot|s)) = -\sum_a \pi(a|s) \log \pi(a|s)$ is the entropy.
+
+\textbf{Benefits}:
+\begin{itemize}
+    \item \textcolor{red}{Exploration}: High entropy encourages exploration
+    \item \textcolor{red}{Robustness}: Less sensitive to hyperparameters
+    \item \textcolor{red}{Sample Efficiency}: Better than standard actor-critic
+\end{itemize}
+\end{frame}
+
+\section{Multi-Agent Reinforcement Learning}
+
+\begin{frame}{Multi-Agent Systems}
+\textbf{Multi-Agent MDP}: Multiple agents interact in the same environment.
+
+\textbf{Challenges}:
+\begin{itemize}
+    \item \textcolor{red}{Non-stationarity}: Environment changes as other agents learn
+    \item \textcolor{red}{Coordination}: Agents need to coordinate actions
+    \item \textcolor{red}{Scalability}: Complexity grows with number of agents
+\end{itemize}
+
+\textbf{Solution Approaches}:
+\begin{itemize}
+    \item \textcolor{red}{Independent Learning}: Each agent learns independently
+    \item \textcolor{red}{Centralized Training, Decentralized Execution}
+    \item \textcolor{red}{Communication}: Agents can share information
+\end{itemize}
+\end{frame}
+
+\begin{frame}{MADDPG: Multi-Agent DDPG}
+\textbf{Centralized Training, Decentralized Execution}:
+
+\textbf{Centralized Critic}:
+\begin{equation}
+    Q_i^\pi(o_1, \ldots, o_n, a_1, \ldots, a_n)
+\end{equation}
+
+\textbf{Decentralized Actor}:
+\begin{equation}
+    \pi_i(a_i|o_i)
+\end{equation}
+
+\textbf{Key Insight}: During training, agents can observe other agents' observations and actions, but during execution, they only use their own observations.
+\end{frame}
+
+\section{Applications and Future Directions}
+
+\begin{frame}{Applications of Reinforcement Learning}
+\textbf{Game Playing}:
+\begin{itemize}
+    \item AlphaGo, AlphaZero: Go, Chess, Shogi
+    \item OpenAI Five: Dota 2
+    \item StarCraft II: AlphaStar
+\end{itemize}
+
+\textbf{Robotics}:
+\begin{itemize}
+    \item Manipulation tasks
+    \item Locomotion
+    \item Autonomous driving
+\end{itemize}
+
+\textbf{Natural Language Processing}:
+\begin{itemize}
+    \item Dialogue systems
+    \item Text generation
+    \item Machine translation
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Current Challenges and Future Directions}
+\textbf{Current Challenges}:
+\begin{itemize}
+    \item \textcolor{red}{Sample Efficiency}: RL often requires many samples
+    \item \textcolor{red}{Generalization}: Transfer learning across tasks
+    \item \textcolor{red}{Safety}: Ensuring safe exploration and deployment
+    \item \textcolor{red}{Interpretability}: Understanding learned policies
+\end{itemize}
+
+\textbf{Future Directions}:
+\begin{itemize}
+    \item \textcolor{red}{Meta-Learning}: Learning to learn
+    \item \textcolor{red}{Hierarchical RL}: Learning at multiple time scales
+    \item \textcolor{red}{Causal RL}: Understanding cause and effect
+    \item \textcolor{red}{Federated RL}: Learning across distributed systems
+\end{itemize}
+\end{frame}
+
+\section{Mathematical Foundations}
+
+\begin{frame}{Convergence Analysis}
+\textbf{Q-Learning Convergence}:
+\begin{theorem}
+    Q-learning converges to $Q^*$ with probability 1 if:
+    \begin{enumerate}
+        \item All state-action pairs are visited infinitely often
+        \item Learning rates satisfy: $\sum_{t=0}^\infty \alpha_t = \infty$ and $\sum_{t=0}^\infty \alpha_t^2 < \infty$
+    \end{enumerate}
+\end{theorem}
+
+\textbf{Policy Gradient Convergence}:
+\begin{theorem}
+    Under certain regularity conditions, policy gradient methods converge to a local optimum of the expected return.
+\end{theorem}
+\end{frame}
+
+\begin{frame}{Exploration vs Exploitation}
+\textbf{Multi-Armed Bandit Problem}:
+\begin{itemize}
+    \item $k$ arms, each with unknown reward distribution
+    \item Goal: Maximize cumulative reward
+    \item Trade-off: Explore new arms vs exploit known good arms
+\end{itemize}
+
+\textbf{Upper Confidence Bound (UCB)}:
+\begin{equation}
+    a_t = \arg\max_a \left[\hat{\mu}_a + c\sqrt{\frac{\log t}{N_a}}\right]
+\end{equation}
+
+where $\hat{\mu}_a$ is the empirical mean and $N_a$ is the number of times arm $a$ was pulled.
+\end{frame}
+
+\begin{frame}{Information-Theoretic Exploration}
+\textbf{Thompson Sampling}:
+\begin{itemize}
+    \item Maintain posterior distribution over arm parameters
+    \item Sample from posterior and choose arm with highest sample
+    \item Update posterior based on observed reward
+\end{itemize}
+
+\textbf{Information Gain}:
+\begin{equation}
+    I(\theta; r_{t+1}|s_t, a_t) = \mathcal{H}(\theta|s_t, a_t) - \mathcal{H}(\theta|s_t, a_t, r_{t+1})
+\end{equation}
+
+\textbf{Curiosity-Driven Exploration}: Use prediction error as intrinsic reward.
+\end{frame}
+
+\section{Conclusion}
+
+\begin{frame}{Key Takeaways}
+\textbf{Fundamental Concepts}:
+\begin{itemize}
+    \item \textcolor{red}{MDP}: Mathematical framework for sequential decision making
+    \item \textcolor{red}{Value Functions}: Quantify long-term value of states/actions
+    \item \textcolor{red}{Bellman Equations}: Recursive relationships for value functions
+\end{itemize}
+
+\textbf{Learning Algorithms}:
+\begin{itemize}
+    \item \textcolor{red}{Dynamic Programming}: When model is known
+    \item \textcolor{red}{Monte Carlo}: Learn from complete episodes
+    \item \textcolor{red}{Temporal Difference}: Learn from incomplete sequences
+    \item \textcolor{red}{Policy Gradient}: Direct policy optimization
+\end{itemize}
+
+\textbf{Modern Developments}:
+\begin{itemize}
+    \item \textcolor{red}{Deep RL}: Neural networks for function approximation
+    \item \textcolor{red}{Multi-Agent RL}: Systems with multiple learning agents
+    \item \textcolor{red}{Safe RL}: Ensuring safety during learning and deployment
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Open Questions}
+If you are interested in these questions, please feel free to write an email to me {\color{red}(\href{mailto:hpp@bimsa.cn}{hpp@bimsa.cn})} with your comments.
+\begin{enumerate}[(1.)]
+    \item How can we design more sample-efficient RL algorithms?
+    \item What are the fundamental limits of exploration in RL?
+    \item How can we ensure safety and robustness in RL systems?
+    \item Can we develop theoretical frameworks for multi-agent RL?
+    \item How can RL be combined with other learning paradigms (supervised, unsupervised)?
+\end{enumerate}
+\end{frame}
+
+% Thank you slide  
+\begin{frame}{Welcome inputs}  
+  \centering  
+  Any comments?
+  \\[2em]
+  Welcome your inputs!  
+\end{frame}  
+  
+\end{document}

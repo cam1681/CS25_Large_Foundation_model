@@ -1,0 +1,173 @@
+\documentclass[11pt]{book}
+
+% ==== Packages ====
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{cleveref}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{tocloft}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{url}
+\usepackage{cite}
+\usepackage{appendix}
+\usepackage{makeidx}
+\makeindex
+
+% ==== Page Setup ====
+\geometry{a4paper, margin=1in}
+\setlength{\headheight}{26pt}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE,RO]{\thepage}
+\fancyhead[LO]{\rightmark}
+\fancyhead[RE]{\leftmark}
+
+% ==== Colors ====
+\definecolor{myblue}{RGB}{13,71,161}
+\definecolor{mygreen}{RGB}{27,94,32}
+\definecolor{myorange}{RGB}{230,81,0}
+\definecolor{myviolet}{RGB}{94,53,177}
+\definecolor{mygray}{RGB}{97,97,97}
+
+% ==== Math Commands ====
+\newcommand{\grad}{\nabla}
+\newcommand{\EE}{\mathbb{E}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\kbT}{k_B T}
+\newcommand{\vx}{\mathbf{x}}
+\newcommand{\vz}{\mathbf{z}}
+\newcommand{\vtheta}{\boldsymbol{\theta}}
+\newcommand{\vphi}{\boldsymbol{\phi}}
+\newcommand{\veps}{\boldsymbol{\epsilon}}
+\newcommand{\KL}{\text{KL}}
+\newcommand{\ELBO}{\text{ELBO}}
+\newcommand{\JS}{\text{JS}}
+\newcommand{\W}{\mathcal{W}}
+\newcommand{\D}{\mathcal{D}}
+\newcommand{\G}{\mathcal{G}}
+
+% Bold vector/time-indexed variables
+\newcommand{\vxz}{\mathbf{x}_0}
+\newcommand{\vxt}{\mathbf{x}_t}
+\newcommand{\alpt}{\alpha_t}
+\newcommand{\sigt}{\sigma_t}
+\newcommand{\vF}{\mathbf{F}}
+\newcommand{\vinst}{\mathbf{v}}
+\newcommand{\uavg}{\overline{\mathbf{u}}}
+\newcommand{\dv}[2]{\frac{d#1}{d#2}}
+\newcommand{\td}{\frac{d}{dt}}
+\newcommand{\x}{\mathbf{x}}
+\newcommand{\coloneqq}{\mathrel{\vcenter{\baselineskip0.5ex\lineskiplimit0pt\hbox{\scriptsize.}\hbox{\scriptsize.}}}=}
+\newcommand{\sg}{\mathrm{sg}}
+\newcommand{\JVP}{\mathrm{JVP}}
+
+% ==== Theorem Environments ====
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[chapter]
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}{Lemma}[chapter]
+\newtheorem{corollary}{Corollary}[chapter]
+\newtheorem{proposition}{Proposition}[chapter]
+\newtheorem{example}{Example}[chapter]
+\newtheorem{remark}{Remark}[chapter]
+
+% ==== Hyperref Setup ====
+\hypersetup{
+    colorlinks=true,
+    linkcolor=myblue,
+    urlcolor=myblue,
+    citecolor=mygreen,
+    bookmarksnumbered=true,
+    bookmarksopen=true
+}
+
+% ==== Title Page ====
+\title{Large Foundation Models: Mathematics, Algorithms, and Applications}
+\author{Pipi Hu}
+\date{\today}
+
+\begin{document}
+
+% ==== Front Matter ====
+\frontmatter
+
+% Title page
+\maketitle
+
+% Table of contents
+\tableofcontents
+
+% List of figures
+\listoffigures
+
+% List of tables
+\listoftables
+
+% Preface
+\chapter*{Preface}
+\addcontentsline{toc}{chapter}{Preface}
+
+This book presents a comprehensive mathematical treatment of large foundation models, covering the theoretical foundations, algorithmic developments, and practical applications that have revolutionized artificial intelligence in recent years. The material is based on a course taught at the Beijing Institute of Mathematical Sciences and Applications (BIMSA).
+
+The book is organized into three main parts:
+\begin{itemize}
+    \item \textbf{Part I: Generative Models} covers the mathematical foundations of modern generative modeling, including diffusion models, flow matching, variational autoencoders, normalizing flows, and generative adversarial networks.
+    \item \textbf{Part II: Autoregressive Models} focuses on sequential generation methods, particularly transformer-based architectures and their applications in language modeling.
+    \item \textbf{Part III: Advanced Topics} explores world models, reinforcement learning, reasoning, agents, and applications in AI for science.
+\end{itemize}
+
+Each chapter provides rigorous mathematical derivations, intuitive explanations, and practical insights that will be valuable for researchers, students, and practitioners working in the field of artificial intelligence.
+
+% ==== Main Content ====
+\mainmatter
+
+% Part I: Generative Models
+\part{Generative Models}
+
+\input{chapters/chapter1_diffusion_models}
+\input{chapters/chapter2_flow_matching}
+\input{chapters/chapter3_variational_autoencoders}
+\input{chapters/chapter4_normalizing_flows}
+\input{chapters/chapter5_generative_adversarial_networks}
+
+% Part II: Autoregressive Models
+\part{Autoregressive Models}
+
+\input{chapters/chapter6_autoregressive_models}
+
+% Part III: Advanced Topics
+\part{Advanced Topics}
+
+\input{chapters/chapter7_discrete_diffusion}
+\input{chapters/chapter8_world_models}
+\input{chapters/chapter9_reinforcement_learning}
+\input{chapters/chapter10_reasoning}
+\input{chapters/chapter11_agents}
+\input{chapters/chapter12_ai4science}
+
+% ==== Back Matter ====
+\backmatter
+
+% Bibliography
+\bibliographystyle{plain}
+\bibliography{references}
+
+% Index
+\printindex
+
+\end{document}

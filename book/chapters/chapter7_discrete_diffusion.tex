@@ -1,0 +1,291 @@
+\chapter{Discrete Diffusion Models: Extending Diffusion to Discrete Data}
+
+\section{Introduction}
+
+While traditional diffusion models work well with continuous data like images, many important applications involve discrete data such as text, categorical variables, or discrete tokens. Discrete diffusion models extend the diffusion framework to handle discrete data by defining appropriate forward and reverse processes on discrete spaces.
+
+This chapter provides a comprehensive treatment of discrete diffusion models, covering theoretical foundations, practical implementations, and applications to various discrete data types.
+
+\section{Mathematical Foundations}
+
+\subsection{Discrete State Spaces}
+
+For discrete data, we work with finite state spaces $\mathcal{X} = \{1, 2, \ldots, K\}$ where $K$ is the number of possible states. The forward process gradually adds noise to discrete data, while the reverse process learns to denoise and recover the original data.
+
+\subsection{Forward Process}
+
+The forward process is defined by a transition matrix $Q_t$ that specifies how to add noise at time $t$:
+\begin{equation}
+    q(x_t | x_{t-1}) = \text{Cat}(x_t; p = x_{t-1} Q_t)
+\end{equation}
+
+where $\text{Cat}$ denotes the categorical distribution.
+
+\subsection{Reverse Process}
+
+The reverse process learns to denoise by parameterizing the transition probabilities:
+\begin{equation}
+    p_\theta(x_{t-1} | x_t) = \text{Cat}(x_{t-1}; p = \text{softmax}(\log \hat{x}_{t-1} + \log Q_t^T))
+\end{equation}
+
+where $\hat{x}_{t-1}$ is the predicted logits from the neural network.
+
+\section{Noise Schedules for Discrete Data}
+
+\subsection{Uniform Noise}
+
+The simplest approach is to add uniform noise:
+\begin{equation}
+    Q_t = (1 - \beta_t) I + \beta_t \frac{1}{K} \mathbf{1} \mathbf{1}^T
+\end{equation}
+
+where $\beta_t$ is the noise schedule and $\mathbf{1}$ is the all-ones vector.
+
+\subsection{Gaussian-like Noise}
+
+For discrete data that can be embedded in continuous space, we can use Gaussian noise in the embedding space:
+\begin{equation}
+    q(x_t | x_0) = \int q(x_t | \mathbf{z}_t) q(\mathbf{z}_t | \mathbf{z}_0) d\mathbf{z}_t
+\end{equation}
+
+where $\mathbf{z}_t$ is the continuous embedding of $x_t$.
+
+\section{Training Objectives}
+
+\subsection{Denoising Score Matching}
+
+The training objective is to minimize the cross-entropy loss:
+\begin{equation}
+    \mathcal{L} = \mathbb{E}_{t, x_0, x_t} [-\log p_\theta(x_0 | x_t)]
+\end{equation}
+
+where $x_0$ is the original data and $x_t$ is the noisy version at time $t$.
+
+\subsection{Simplified Objective}
+
+For uniform noise, the objective simplifies to:
+\begin{equation}
+    \mathcal{L} = \mathbb{E}_{t, x_0, x_t} [-\log p_\theta(x_0 | x_t)]
+\end{equation}
+
+where $x_t$ is sampled from the forward process.
+
+\section{Applications to Text}
+
+\subsection{Text Diffusion}
+
+For text data, we can apply discrete diffusion at the token level:
+\begin{itemize}
+    \item \textbf{Token-level diffusion:} Add noise to individual tokens
+    \item \textbf{Character-level diffusion:} Add noise to individual characters
+    \item \textbf{Subword-level diffusion:} Add noise to subword units
+\end{itemize}
+
+\subsection{Training Procedure}
+
+\begin{enumerate}
+    \item Sample a text sequence $x_0$
+    \item Sample a time step $t \sim \text{Uniform}(0, T)$
+    \item Sample noisy sequence $x_t$ from $q(x_t | x_0)$
+    \item Train model to predict $x_0$ from $x_t$
+\end{enumerate}
+
+\subsection{Generation Procedure}
+
+\begin{enumerate}
+    \item Start with random noise $x_T \sim \text{Uniform}(1, K)$
+    \item For $t = T, T-1, \ldots, 1$:
+    \begin{itemize}
+        \item Predict $\hat{x}_0$ from $x_t$
+        \item Sample $x_{t-1}$ from $p_\theta(x_{t-1} | x_t)$
+    \end{itemize}
+\end{enumerate}
+
+\section{Advanced Techniques}
+
+\subsection{Learned Noise Schedules}
+
+Instead of fixed noise schedules, we can learn the transition matrices:
+\begin{equation}
+    Q_t = \text{softmax}(W_t)
+\end{equation}
+
+where $W_t$ is a learnable matrix.
+
+\subsection{Conditional Generation}
+
+For conditional generation, we can condition on additional information:
+\begin{equation}
+    p_\theta(x_{t-1} | x_t, c) = \text{Cat}(x_{t-1}; p = \text{softmax}(\log \hat{x}_{t-1} + \log Q_t^T))
+\end{equation}
+
+where $c$ is the conditioning information.
+
+\subsection{Classifier-Free Guidance}
+
+Similar to continuous diffusion, we can use classifier-free guidance:
+\begin{equation}
+    \hat{x}_{t-1} = (1 + w) \hat{x}_{t-1}^c - w \hat{x}_{t-1}^u
+\end{equation}
+
+where $w$ is the guidance weight, and $c$ and $u$ denote conditional and unconditional predictions.
+
+\section{Discrete Diffusion for Images}
+
+\subsection{VQ-VAE Integration}
+
+We can combine discrete diffusion with VQ-VAE:
+\begin{enumerate}
+    \item Encode images to discrete tokens using VQ-VAE
+    \item Apply discrete diffusion to the tokens
+    \item Decode the denoised tokens back to images
+\end{enumerate}
+
+\subsection{Benefits}
+
+\begin{itemize}
+    \item \textbf{Exact likelihood:} Can compute exact likelihood
+    \item \textbf{Fast sampling:} Can use fewer steps than continuous diffusion
+    \item \textbf{Better control:} More control over the generation process
+\end{itemize}
+
+\section{Evaluation Metrics}
+
+\subsection{Perplexity}
+
+For text generation, we can measure perplexity:
+\begin{equation}
+    \text{Perplexity} = \exp\left(-\frac{1}{N} \sum_{i=1}^N \log p(x_i)\right)
+\end{equation}
+
+\subsection{BLEU Score}
+
+For machine translation tasks, we can use BLEU score:
+\begin{equation}
+    \text{BLEU} = \exp\left(\sum_{n=1}^N w_n \log p_n\right)
+\end{equation}
+
+\subsection{FID Score}
+
+For image generation, we can use FID score:
+\begin{equation}
+    \text{FID} = \|\mu_r - \mu_g\|^2 + \text{Tr}(\Sigma_r + \Sigma_g - 2(\Sigma_r \Sigma_g)^{1/2})
+\end{equation}
+
+\section{Challenges and Limitations}
+
+\subsection{Computational Challenges}
+
+\begin{itemize}
+    \item \textbf{Memory requirements:} Need to store transition matrices
+    \item \textbf{Training time:} Can be slower than continuous diffusion
+    \item \textbf{Sampling speed:} May require multiple steps for good quality
+\end{itemize}
+
+\subsection{Modeling Challenges}
+
+\begin{itemize}
+    \item \textbf{Discrete nature:} Harder to model than continuous data
+    \item \textbf{State space size:} Large state spaces can be challenging
+    \item \textbf{Noise design:} Choosing appropriate noise schedules is difficult
+\end{itemize}
+
+\section{Recent Advances}
+
+\subsection{Improved Noise Schedules}
+
+\begin{itemize}
+    \item \textbf{Learned schedules:} Learn noise schedules from data
+    \item \textbf{Adaptive schedules:} Adapt schedules based on data complexity
+    \item \textbf{Multi-scale schedules:} Different schedules for different scales
+\end{itemize}
+
+\subsection{Better Training Techniques}
+
+\begin{itemize}
+    \item \textbf{Curriculum learning:} Start with easy examples
+    \item \textbf{Data augmentation:} Use data augmentation during training
+    \item \textbf{Regularization:} Better regularization techniques
+\end{itemize}
+
+\section{Applications}
+
+\subsection{Text Generation}
+
+\begin{itemize}
+    \item \textbf{Story generation:} Generate coherent stories
+    \item \textbf{Poetry generation:} Generate creative poetry
+    \item \textbf{Code generation:} Generate programming code
+\end{itemize}
+
+\subsection{Image Generation}
+
+\begin{itemize}
+    \item \textbf{High-resolution images:} Generate high-quality images
+    \item \textbf{Style transfer:} Transfer artistic styles
+    \item \textbf{Image editing:} Edit existing images
+\end{itemize}
+
+\subsection{Scientific Applications}
+
+\begin{itemize}
+    \item \textbf{Molecular generation:} Generate new molecules
+    \item \textbf{Protein design:} Design new proteins
+    \item \textbf{Material discovery:} Discover new materials
+\end{itemize}
+
+\section{Future Directions}
+
+\subsection{Theoretical Advances}
+
+\begin{itemize}
+    \item \textbf{Better understanding:} Theoretical analysis of discrete diffusion
+    \item \textbf{Convergence guarantees:} Better convergence guarantees
+    \item \textbf{Optimal schedules:} Find optimal noise schedules
+\end{itemize}
+
+\subsection{Architectural Improvements}
+
+\begin{itemize}
+    \item \textbf{More efficient models:} Reduce computational requirements
+    \item \textbf{Better conditioning:} Improved conditional generation
+    \item \textbf{Multi-modal models:} Handle multiple modalities
+\end{itemize}
+
+\subsection{Applications}
+
+\begin{itemize}
+    \item \textbf{Longer sequences:} Handle longer text sequences
+    \item \textbf{Better quality:} Improve generation quality
+    \item \textbf{New domains:} Apply to new domains and tasks
+\end{itemize}
+
+\section{Conclusion}
+
+Discrete diffusion models extend the powerful diffusion framework to discrete data:
+
+\textbf{Key contributions:}
+\begin{itemize}
+    \item \textbf{Discrete extension:} Extend diffusion to discrete state spaces
+    \item \textbf{Flexible framework:} Handle various types of discrete data
+    \item \textbf{Exact likelihood:} Can compute exact likelihood
+    \item \textbf{Better control:} More control over generation process
+\end{itemize}
+
+\textbf{Key insights:}
+\begin{itemize}
+    \item \textbf{Transition matrices:} Define noise through transition matrices
+    \item \textbf{Training objectives:} Use cross-entropy loss for training
+    \item \textbf{Generation process:} Iterative denoising for generation
+    \item \textbf{Applications:} Wide range of applications to discrete data
+\end{itemize}
+
+\textbf{Future work:}
+\begin{itemize}
+    \item \textbf{Efficiency:} More efficient training and inference
+    \item \textbf{Quality:} Better generation quality
+    \item \textbf{Theoretical understanding:} Better theoretical understanding
+    \item \textbf{Applications:} New applications and domains
+\end{itemize}
+
+Discrete diffusion models provide a powerful framework for generative modeling of discrete data, with ongoing research exploring new applications and improvements.

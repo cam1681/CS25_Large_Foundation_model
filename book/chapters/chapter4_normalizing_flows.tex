@@ -1,0 +1,438 @@
+\chapter{Normalizing Flows: Exact Likelihood Generative Modeling}
+
+\section{Introduction}
+
+Normalizing flows represent a powerful class of generative models that provide exact likelihood computation and exact sampling capabilities. Unlike other generative approaches that rely on approximations, normalizing flows learn invertible transformations that map simple distributions to complex data distributions while maintaining tractable likelihood evaluation.
+
+The fundamental principle underlying normalizing flows is the change of variables theorem, which allows us to transform probability densities through invertible mappings. This chapter provides a comprehensive mathematical treatment of normalizing flows, from theoretical foundations to practical implementations and recent advances.
+
+\section{Mathematical Foundations}
+
+\subsection{Change of Variables Theorem}
+
+Given a bijective transformation $T: \mathbb{R}^d \to \mathbb{R}^d$ with inverse $T^{-1}$, and probability densities $p_X(x)$ and $p_Y(y)$, we have:
+\begin{equation}
+    p_Y(y) = p_X(T^{-1}(y)) \left|\det \frac{\partial T^{-1}(y)}{\partial y}\right|
+\end{equation}
+where $\frac{\partial T^{-1}(y)}{\partial y}$ is the Jacobian matrix of the inverse transformation.
+
+\textbf{Key insights:}
+\begin{itemize}
+    \item We can transform simple distributions into complex ones
+    \item Computing determinants is computationally expensive
+    \item We need to design transformations with tractable Jacobians
+\end{itemize}
+
+\subsection{Proof of Change of Variables Formula}
+
+\textbf{Theorem:} For bijective $T: \mathbb{R}^d \to \mathbb{R}^d$ with inverse $T^{-1}$,
+\begin{equation}
+    p_Y(y) = p_X(T^{-1}(y)) \left|\det \frac{\partial T^{-1}(y)}{\partial y}\right|
+\end{equation}
+
+\textbf{Proof:} Let $A \subset \mathbb{R}^d$ be any measurable set. Then:
+\begin{equation}
+    \int_A p_Y(y) dy = \mathbb{P}(Y \in A) = \mathbb{P}(X \in T^{-1}(A))
+\end{equation}
+
+Using the change of variables formula for integrals:
+\begin{equation}
+    \mathbb{P}(X \in T^{-1}(A)) = \int_{T^{-1}(A)} p_X(x) dx = \int_A p_X(T^{-1}(y)) \left|\det \frac{\partial T^{-1}(y)}{\partial y}\right| dy
+\end{equation}
+
+Since this holds for any measurable set $A$, we have the desired result.
+
+\subsection{Normalizing Flows}
+
+A normalizing flow is a sequence of invertible transformations:
+\begin{equation}
+    \mathbf{x}_0 \xrightarrow{T_1} \mathbf{x}_1 \xrightarrow{T_2} \mathbf{x}_2 \xrightarrow{T_3} \cdots \xrightarrow{T_K} \mathbf{x}_K
+\end{equation}
+
+The probability density transforms as:
+\begin{equation}
+    \log p(\mathbf{x}_K) = \log p(\mathbf{x}_0) + \sum_{k=1}^K \log \left|\det \frac{\partial T_k}{\partial \mathbf{x}_{k-1}}\right|
+\end{equation}
+
+\textbf{Goal:} Learn $T_1, T_2, \ldots, T_K$ such that $p(\mathbf{x}_K)$ matches the data distribution.
+
+\section{Autoregressive Flows}
+
+\subsection{Autoregressive Transformations}
+
+An autoregressive transformation processes variables in order:
+\begin{equation}
+    y_i = \tau(x_i; \mathbf{h}_i)
+\end{equation}
+where $\mathbf{h}_i = h_i(x_1, x_2, \ldots, x_{i-1})$ is a function of previous variables.
+
+\textbf{Key properties:}
+\begin{itemize}
+    \item \textbf{Triangular Jacobian:} $\frac{\partial y_i}{\partial x_j} = 0$ for $j > i$
+    \item \textbf{Efficient determinant:} $\det J = \prod_{i=1}^d \frac{\partial y_i}{\partial x_i}$
+    \item \textbf{Easy inverse:} Can be computed sequentially
+\end{itemize}
+
+\subsection{Masked Autoregressive Flow (MAF)}
+
+MAF uses neural networks with masking to ensure autoregressive structure:
+\begin{equation}
+    y_i = x_i \odot \exp(\alpha_i) + \beta_i
+\end{equation}
+where $\alpha_i, \beta_i$ are outputs of a masked neural network.
+
+\textbf{Masking strategy:}
+\begin{itemize}
+    \item Input mask: Only allow connections from $x_1, \ldots, x_{i-1}$ to $\alpha_i, \beta_i$
+    \item Ensures $\frac{\partial y_i}{\partial x_j} = 0$ for $j \geq i$
+    \item Jacobian is lower triangular by construction
+\end{itemize}
+
+\subsection{Inverse Autoregressive Flow (IAF)}
+
+IAF is the inverse of MAF:
+\begin{equation}
+    x_i = (y_i - \beta_i) \odot \exp(-\alpha_i)
+\end{equation}
+
+\textbf{Key differences from MAF:}
+\begin{itemize}
+    \item \textbf{Fast sampling:} Can generate samples in parallel
+    \item \textbf{Slow density evaluation:} Requires sequential computation
+    \item \textbf{Fast training:} When used for variational inference
+\end{itemize}
+
+\textbf{Training strategy:} Use IAF for fast sampling, MAF for fast density evaluation.
+
+\subsection{TarFlow: Transformer-based Autoregressive Flow}
+
+TarFlow is a Transformer-based variant of Masked Autoregressive Flows designed for high-resolution image synthesis.
+
+\textbf{Key Features:}
+\begin{itemize}
+    \item \textbf{Autoregressive Transformer Blocks:} Stack of autoregressive Transformer blocks on image patches
+    \item \textbf{Alternating Autoregression:} Alternates autoregression direction between layers
+    \item \textbf{End-to-End Training:} Direct modeling and generation of pixels
+    \item \textbf{State-of-the-art Performance:} First standalone normalizing flow to match diffusion model quality
+\end{itemize}
+
+\textbf{Architecture:}
+\begin{itemize}
+    \item \textbf{Input Processing:} Images divided into patches, each patch embedded into $D$-dimensional vectors
+    \item \textbf{Transformer Layers:} $T$ autoregressive transformer layers with causal attention
+    \item \textbf{Permutation Strategy:} Alternating permutations between layers for bidirectional modeling
+    \item \textbf{Output:} Final latent representation $z^T$ in standard Gaussian space
+\end{itemize}
+
+\textbf{Forward Transformation:}
+\begin{align}
+    \tilde{z}^t &= \pi^t(z^t) \\
+    z_i^{t+1} &= \begin{cases}
+        \tilde{z}_i^t & i = 0 \\
+        (\tilde{z}_i^t - \mu_i^t(\tilde{z}_{<i}^t)) \odot \exp(-\alpha_i^t(\tilde{z}_{<i}^t)) & i > 0
+    \end{cases}
+\end{align}
+
+\textbf{Training Loss:}
+\begin{equation}
+    \min_f 0.5\|z^T\|_2^2 + \sum_{t=0}^{T-1} \sum_{i=1}^{N-1} \sum_{j=0}^{D-1} \alpha_i^t(z^t_{<i})_j
+\end{equation}
+
+\section{Coupling Layers}
+
+\subsection{Affine Coupling Layers}
+
+Split the input $\mathbf{x}$ into two parts: $\mathbf{x}_A$ and $\mathbf{x}_B$.
+
+\textbf{Forward transformation:}
+\begin{align}
+    \mathbf{y}_A &= \mathbf{x}_A \\
+    \mathbf{y}_B &= \mathbf{x}_B \odot \exp(\alpha(\mathbf{x}_A)) + \beta(\mathbf{x}_A)
+\end{align}
+
+\textbf{Jacobian:}
+\begin{equation}
+    J = \begin{pmatrix}
+        I & 0 \\
+        \frac{\partial \mathbf{y}_B}{\partial \mathbf{x}_A} & \text{diag}(\exp(\alpha(\mathbf{x}_A)))
+    \end{pmatrix}
+\end{equation}
+
+\textbf{Determinant:} $\det J = \prod_{i \in B} \exp(\alpha_i(\mathbf{x}_A))$
+
+\subsection{Real NVP: Real-valued Non-volume Preserving}
+
+Real NVP uses alternating coupling layers:
+\begin{enumerate}
+    \item \textbf{Checkerboard masking:} Alternate which dimensions are transformed
+    \item \textbf{Channel-wise masking:} For images, alternate RGB channels
+\end{enumerate}
+
+\textbf{Architecture:}
+\begin{itemize}
+    \item ResNet blocks for $\alpha$ and $\beta$ networks
+    \item Batch normalization between layers
+    \item Multi-scale architecture for images
+\end{itemize}
+
+\textbf{Advantages:}
+\begin{itemize}
+    \item \textbf{Exact likelihood:} Can compute $p(x)$ exactly
+    \item \textbf{Exact sampling:} Can generate samples exactly
+    \item \textbf{Stable training:} No gradient issues
+\end{itemize}
+
+\section{Continuous Normalizing Flows}
+
+\subsection{Neural Ordinary Differential Equations}
+
+Instead of discrete transformations, use continuous dynamics:
+\begin{equation}
+    \frac{d\mathbf{x}(t)}{dt} = f_\theta(\mathbf{x}(t), t)
+\end{equation}
+
+\textbf{Change of variables formula:}
+\begin{equation}
+    \log p(\mathbf{x}(t_1)) = \log p(\mathbf{x}(t_0)) + \int_{t_0}^{t_1} \text{tr}\left(\frac{\partial f_\theta}{\partial \mathbf{x}}\right) dt
+\end{equation}
+
+\textbf{Advantages:}
+\begin{itemize}
+    \item \textbf{Flexible architecture:} Any neural network can be used
+    \item \textbf{Adaptive computation:} Can adjust number of function evaluations
+    \item \textbf{Memory efficient:} No need to store intermediate states
+\end{itemize}
+
+\subsection{Proof of Neural ODE Change of Variables Formula}
+
+\textbf{Theorem:} For the ODE $\frac{d\mathbf{x}(t)}{dt} = f_\theta(\mathbf{x}(t), t)$, the change of variables formula is:
+\begin{equation}
+    \log p(\mathbf{x}(t_1)) = \log p(\mathbf{x}(t_0)) + \int_{t_0}^{t_1} \text{tr}\left(\frac{\partial f_\theta}{\partial \mathbf{x}}\right) dt
+\end{equation}
+
+\textbf{Proof:} The probability density $p(\mathbf{x}, t)$ satisfies the continuity equation:
+\begin{equation}
+    \frac{\partial p(\mathbf{x}, t)}{\partial t} + \nabla \cdot (f_\theta(\mathbf{x}, t) p(\mathbf{x}, t)) = 0
+\end{equation}
+
+Expanding the divergence:
+\begin{equation}
+    \frac{\partial p(\mathbf{x}, t)}{\partial t} + \nabla \cdot (f_\theta(\mathbf{x}, t)) p(\mathbf{x}, t) + f_\theta(\mathbf{x}, t) \cdot \nabla p(\mathbf{x}, t) = 0
+\end{equation}
+
+Taking the log-derivative and substituting the ODE:
+\begin{equation}
+    \frac{d \log p(\mathbf{x}(t), t)}{dt} = -\nabla \cdot f_\theta(\mathbf{x}(t), t)
+\end{equation}
+
+Integrating from $t_0$ to $t_1$ and using the trace identity $\nabla \cdot f = \text{tr}\left(\frac{\partial f}{\partial \mathbf{x}}\right)$:
+\begin{equation}
+    \log p(\mathbf{x}(t_1)) = \log p(\mathbf{x}(t_0)) + \int_{t_0}^{t_1} \text{tr}\left(\frac{\partial f_\theta}{\partial \mathbf{x}}\right) dt
+\end{equation}
+
+\subsection{FFJORD: Free-form Jacobian of Reversible Dynamics}
+
+FFJORD uses the continuous change of variables formula with Hutchinson's trace estimator:
+\begin{equation}
+    \text{tr}(A) = \mathbb{E}_{\mathbf{v}}[\mathbf{v}^T A \mathbf{v}]
+\end{equation}
+where $\mathbf{v}$ is a random vector with $\mathbb{E}[\mathbf{v}\mathbf{v}^T] = I$.
+
+\textbf{Benefits:}
+\begin{itemize}
+    \item \textbf{Scalable:} Works for high-dimensional data
+    \item \textbf{Flexible:} No architectural constraints
+    \item \textbf{Exact:} No approximation errors
+\end{itemize}
+
+\section{Conditional Normalizing Flows}
+
+\subsection{Goal and Conditional Likelihood}
+
+\textbf{Problem:} Learn a high-dimensional conditional density $p_{\mathbf{Y}|\mathbf{X}}(\mathbf{y}|\mathbf{x})$ that is multi-modal and correlated across dimensions.
+
+\textbf{CNF model:} Invertible, $\mathbf{x}$-conditioned map
+\begin{equation}
+    \mathbf{z} = f_\phi(\mathbf{y}; \mathbf{x}), \qquad f_\phi:\mathcal{Y}\times \mathcal{X}\to \mathcal{Z}
+\end{equation}
+with a simple conditional base $p_{\mathbf{Z}|\mathbf{X}}(\mathbf{z}|\mathbf{x})$ (e.g., diagonal Gaussian).
+
+\textbf{Change of variables (conditional):}
+\begin{equation}
+    p_{\mathbf{Y}|\mathbf{X}}(\mathbf{y}|\mathbf{x}) = p_{\mathbf{Z}|\mathbf{X}}(f_\phi(\mathbf{y};\mathbf{x})|\mathbf{x}) \left|\det \frac{\partial f_\phi(\mathbf{y};\mathbf{x})}{\partial \mathbf{y}}\right|
+\end{equation}
+
+\textbf{Training:}
+\begin{equation}
+    \max_\phi \mathbb{E}_{(\mathbf{x},\mathbf{y})}\left[\log p_{\mathbf{Z}|\mathbf{X}}(f_\phi(\mathbf{y};\mathbf{x})|\mathbf{x}) + \log \left| \det \frac{\partial f_\phi(\mathbf{y};\mathbf{x})}{\partial \mathbf{y}} \right|\right]
+\end{equation}
+
+\textbf{Sampling:} $\mathbf{z}\sim p_{\mathbf{Z}|\mathbf{X}}(\cdot|\mathbf{x})$, then $\mathbf{y}= f_\phi^{-1}(\mathbf{z};\mathbf{x})$.
+
+\subsection{Conditioning and Architecture}
+
+\textbf{Condition injection:}
+\begin{align}
+    \text{Conditional prior: } & p(\mathbf{z}|\mathbf{x})=\mathcal{N}(\mu(\mathbf{x}), \text{diag}\sigma^2(\mathbf{x}))\\
+    \text{Coupling (affine): } &
+    \begin{cases}
+        \mathbf{y}_a = \mathbf{z}_a, \\
+        \mathbf{y}_b = \mathbf{z}_b \odot \exp s(\mathbf{z}_a,\mathbf{x}) + t(\mathbf{z}_a,\mathbf{x}),
+    \end{cases}
+    \Rightarrow \log|\det J|=\sum s(\mathbf{z}_a,\mathbf{x})
+\end{align}
+
+\textbf{Architecture primitives:}
+\begin{itemize}
+    \item \emph{Coupling layers} (additive/affine/rational-quadratic spline) for cheap Jacobians
+    \item \emph{Invertible $1\times 1$ convs} or permutations to mix channels
+    \item \emph{Multi-scale} (squeeze \& factor-out) for efficiency and expressivity
+\end{itemize}
+
+\section{Training and Applications}
+
+\subsection{Maximum Likelihood Training}
+
+Given data $\{\mathbf{x}^{(i)}\}_{i=1}^N$, maximize:
+\begin{equation}
+    \mathcal{L}(\theta) = \frac{1}{N} \sum_{i=1}^N \log p_\theta(\mathbf{x}^{(i)})
+\end{equation}
+
+\textbf{Gradient computation:}
+\begin{equation}
+    \nabla_\theta \mathcal{L} = \frac{1}{N} \sum_{i=1}^N \nabla_\theta \log p_\theta(\mathbf{x}^{(i)})
+\end{equation}
+
+\textbf{Challenges:}
+\begin{itemize}
+    \item \textbf{Mode collapse:} Flow might ignore some data modes
+    \item \textbf{Training instability:} Gradients can be large
+    \item \textbf{Computational cost:} Jacobian computation is expensive
+\end{itemize}
+
+\subsection{Applications}
+
+\textbf{Generative modeling:}
+\begin{itemize}
+    \item Image generation (Real NVP, Glow)
+    \item Audio synthesis (WaveGlow)
+    \item Text generation (FlowSeq)
+\end{itemize}
+
+\textbf{Density estimation:}
+\begin{itemize}
+    \item Anomaly detection
+    \item Out-of-distribution detection
+    \item Uncertainty quantification
+\end{itemize}
+
+\textbf{Variational inference:}
+\begin{itemize}
+    \item Posterior approximation
+    \item Bayesian neural networks
+    \item Variational autoencoders
+\end{itemize}
+
+\section{Comparison with Other Methods}
+
+\subsection{Normalizing Flows vs. Other Generative Models}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+Method & Exact Likelihood & Fast Sampling & Fast Training & Stable \\
+\hline
+VAE & No & Yes & Yes & Yes \\
+GAN & No & Yes & No & No \\
+Diffusion & No & No & Yes & Yes \\
+Flow & Yes & Yes & No & Yes \\
+\hline
+\end{tabular}
+\caption{Comparison of generative modeling approaches}
+\end{table}
+
+\textbf{Unique advantages of flows:}
+\begin{itemize}
+    \item \textbf{Exact likelihood:} Can compute $p(x)$ exactly
+    \item \textbf{Exact sampling:} Can generate samples exactly
+    \item \textbf{Latent space:} Natural representation learning
+    \item \textbf{Interpretability:} Understandable transformations
+\end{itemize}
+
+\section{Challenges and Future Directions}
+
+\subsection{Current Challenges}
+
+\textbf{Computational challenges:}
+\begin{itemize}
+    \item \textbf{Jacobian computation:} Expensive for high dimensions
+    \item \textbf{Memory usage:} Need to store intermediate states
+    \item \textbf{Training time:} Slower than GANs or VAEs
+\end{itemize}
+
+\textbf{Modeling challenges:}
+\begin{itemize}
+    \item \textbf{Architectural constraints:} Must be invertible
+    \item \textbf{Mode collapse:} May ignore some data modes
+    \item \textbf{Expressiveness:} Limited by transformation family
+\end{itemize}
+
+\textbf{Theoretical challenges:}
+\begin{itemize}
+    \item \textbf{Universal approximation:} Not guaranteed for all distributions
+    \item \textbf{Convergence:} No global convergence guarantees
+    \item \textbf{Generalization:} Limited theoretical understanding
+\end{itemize}
+
+\subsection{Future Directions}
+
+\textbf{Architectural improvements:}
+\begin{itemize}
+    \item \textbf{More flexible transformations:} Beyond coupling layers
+    \item \textbf{Better conditioning:} Improved numerical stability
+    \item \textbf{Efficient computation:} Faster Jacobian computation
+\end{itemize}
+
+\textbf{Training improvements:}
+\begin{itemize}
+    \item \textbf{Better optimization:} More stable training
+    \item \textbf{Regularization:} Prevent overfitting
+    \item \textbf{Multi-scale training:} Progressive complexity
+\end{itemize}
+
+\textbf{Applications:}
+\begin{itemize}
+    \item \textbf{High-dimensional data:} Images, videos, audio
+    \item \textbf{Scientific computing:} Physics simulations
+    \item \textbf{Robotics:} Motion planning and control
+\end{itemize}
+
+\section{Conclusion}
+
+Normalizing flows provide a unique approach to generative modeling with several key advantages:
+
+\textbf{Key contributions:}
+\begin{itemize}
+    \item \textbf{Exact likelihood computation}
+    \item \textbf{Exact sampling}
+    \item \textbf{Flexible architectures}
+    \item \textbf{Interpretable representations}
+\end{itemize}
+
+\textbf{Key insights:}
+\begin{itemize}
+    \item \textbf{Change of variables:} Foundation of all flow-based methods
+    \item \textbf{Jacobian computation:} Central computational challenge
+    \item \textbf{Architectural design:} Balance between expressiveness and efficiency
+    \item \textbf{Training strategies:} Maximum likelihood with proper regularization
+\end{itemize}
+
+\textbf{Future work:}
+\begin{itemize}
+    \item \textbf{Scalability:} Handle higher-dimensional data
+    \item \textbf{Efficiency:} Reduce computational costs
+    \item \textbf{Theoretical understanding:} Better convergence guarantees
+\end{itemize}
+
+The mathematical rigor and practical effectiveness of normalizing flows make them a valuable tool in the arsenal of generative modeling techniques, with ongoing research exploring their applications to increasingly complex domains.

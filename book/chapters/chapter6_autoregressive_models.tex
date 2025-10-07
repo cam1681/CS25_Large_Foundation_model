@@ -1,0 +1,394 @@
+\chapter{Autoregressive Models: Sequential Generation and Language Modeling}
+
+\section{Introduction}
+
+Autoregressive models represent a fundamental approach to generative modeling that generates data sequentially, one element at a time, by modeling the conditional probability of each element given the previous elements. This approach has been particularly successful in language modeling, where the goal is to predict the next word given the previous words in a sequence.
+
+The key insight of autoregressive models is to factorize the joint probability distribution as a product of conditional distributions:
+\begin{equation}
+    p(x_1, x_2, \ldots, x_T) = \prod_{t=1}^T p(x_t | x_{<t})
+\end{equation}
+
+This chapter provides a comprehensive mathematical treatment of autoregressive models, from theoretical foundations to practical implementations and recent advances, with particular focus on transformer-based architectures.
+
+\section{Mathematical Foundations}
+
+\subsection{Autoregressive Factorization}
+
+Given a sequence $\mathbf{x} = (x_1, x_2, \ldots, x_T)$, the autoregressive factorization is:
+\begin{equation}
+    p(\mathbf{x}) = \prod_{t=1}^T p(x_t | x_1, x_2, \ldots, x_{t-1}) = \prod_{t=1}^T p(x_t | \mathbf{x}_{<t})
+\end{equation}
+
+where $\mathbf{x}_{<t} = (x_1, x_2, \ldots, x_{t-1})$ represents the history up to time $t-1$.
+
+\subsection{Maximum Likelihood Training}
+
+The training objective is to maximize the log-likelihood:
+\begin{equation}
+    \mathcal{L}(\theta) = \sum_{t=1}^T \log p_\theta(x_t | \mathbf{x}_{<t})
+\end{equation}
+
+This can be optimized using standard gradient descent methods.
+
+\subsection{Sampling}
+
+To generate new sequences, we sample from the conditional distributions:
+\begin{enumerate}
+    \item Sample $x_1 \sim p_\theta(x_1)$
+    \item For $t = 2, \ldots, T$: Sample $x_t \sim p_\theta(x_t | \mathbf{x}_{<t})$
+\end{enumerate}
+
+\section{Neural Autoregressive Models}
+
+\subsection{Neural Language Models}
+
+Neural autoregressive models use neural networks to parameterize the conditional distributions:
+\begin{equation}
+    p_\theta(x_t | \mathbf{x}_{<t}) = \text{softmax}(f_\theta(\mathbf{x}_{<t}))_{x_t}
+\end{equation}
+
+where $f_\theta$ is a neural network that maps the history to logits over the vocabulary.
+
+\subsection{Recurrent Neural Networks (RNNs)}
+
+RNNs process sequences sequentially using hidden states:
+\begin{align}
+    h_t &= f_\theta(h_{t-1}, x_t) \\
+    p(x_{t+1} | \mathbf{x}_{\leq t}) &= \text{softmax}(W h_t + b)
+\end{align}
+
+\textbf{Advantages:}
+\begin{itemize}
+    \item Can handle variable-length sequences
+    \item Memory of previous states
+    \item Sequential processing is natural
+\end{itemize}
+
+\textbf{Disadvantages:}
+\begin{itemize}
+    \item Sequential processing is slow
+    \item Vanishing/exploding gradients
+    \item Limited long-range dependencies
+\end{itemize}
+
+\subsection{Long Short-Term Memory (LSTM)}
+
+LSTM addresses the vanishing gradient problem through gating mechanisms:
+\begin{align}
+    f_t &= \sigma(W_f \cdot [h_{t-1}, x_t] + b_f) \quad \text{(forget gate)} \\
+    i_t &= \sigma(W_i \cdot [h_{t-1}, x_t] + b_i) \quad \text{(input gate)} \\
+    \tilde{C}_t &= \tanh(W_C \cdot [h_{t-1}, x_t] + b_C) \quad \text{(candidate values)} \\
+    C_t &= f_t * C_{t-1} + i_t * \tilde{C}_t \quad \text{(cell state)} \\
+    o_t &= \sigma(W_o \cdot [h_{t-1}, x_t] + b_o) \quad \text{(output gate)} \\
+    h_t &= o_t * \tanh(C_t) \quad \text{(hidden state)}
+\end{align}
+
+\section{Transformer Architecture}
+
+\subsection{Self-Attention Mechanism}
+
+The core innovation of transformers is the self-attention mechanism:
+\begin{equation}
+    \text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V
+\end{equation}
+
+where $Q$, $K$, and $V$ are query, key, and value matrices respectively.
+
+\subsection{Multi-Head Attention}
+
+Multi-head attention allows the model to attend to different representation subspaces:
+\begin{equation}
+    \text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, \ldots, \text{head}_h)W^O
+\end{equation}
+
+where:
+\begin{equation}
+    \text{head}_i = \text{Attention}(QW_i^Q, KW_i^K, VW_i^V)
+\end{equation}
+
+\subsection{Positional Encoding}
+
+Since transformers have no inherent notion of sequence order, positional encodings are added:
+\begin{align}
+    PE_{(pos, 2i)} &= \sin(pos / 10000^{2i/d_{model}}) \\
+    PE_{(pos, 2i+1)} &= \cos(pos / 10000^{2i/d_{model}})
+\end{align}
+
+\subsection{Transformer Block}
+
+A transformer block consists of:
+\begin{enumerate}
+    \item Multi-head self-attention
+    \item Residual connection and layer normalization
+    \item Feed-forward network
+    \item Another residual connection and layer normalization
+\end{enumerate}
+
+\section{GPT: Generative Pre-trained Transformer}
+
+\subsection{Architecture}
+
+GPT uses a decoder-only transformer architecture:
+\begin{itemize}
+    \item \textbf{Decoder-only:} No encoder, only decoder blocks
+    \item \textbf{Causal attention:} Each position can only attend to previous positions
+    \item \textbf{Autoregressive:} Generates text one token at a time
+\end{itemize}
+
+\subsection{Training}
+
+GPT is trained using the standard autoregressive objective:
+\begin{equation}
+    \mathcal{L} = \sum_{t=1}^T \log p_\theta(x_t | \mathbf{x}_{<t})
+\end{equation}
+
+\subsection{Pre-training and Fine-tuning}
+
+\textbf{Pre-training:} Train on large unlabeled text corpora
+\textbf{Fine-tuning:} Adapt to specific tasks with labeled data
+
+\section{BERT: Bidirectional Encoder Representations}
+
+\subsection{Masked Language Modeling}
+
+BERT uses masked language modeling (MLM) for pre-training:
+\begin{itemize}
+    \item Randomly mask 15\% of tokens
+    \item Predict masked tokens from context
+    \item Use bidirectional context (unlike GPT)
+\end{itemize}
+
+\subsection{Next Sentence Prediction}
+
+BERT also uses next sentence prediction (NSP):
+\begin{itemize}
+    \item Given two sentences, predict if second follows first
+    \item Helps with understanding sentence relationships
+\end{itemize}
+
+\section{Advanced Architectures}
+
+\subsection{T5: Text-to-Text Transfer Transformer}
+
+T5 frames all tasks as text-to-text problems:
+\begin{itemize}
+    \item \textbf{Unified framework:} All tasks use same input/output format
+    \item \textbf{Encoder-decoder:} Uses both encoder and decoder
+    \item \textbf{Transfer learning:} Pre-train on large dataset, fine-tune on specific tasks
+\end{itemize}
+
+\subsection{PaLM: Pathways Language Model}
+
+PaLM uses the Pathways system for efficient training:
+\begin{itemize}
+    \item \textbf{Model parallelism:} Distribute model across multiple devices
+    \item \textbf{Data parallelism:} Distribute data across multiple devices
+    \item \textbf{Pipeline parallelism:} Overlap computation and communication
+\end{itemize}
+
+\section{Training Techniques}
+
+\subsection{Gradient Accumulation}
+
+For large models that don't fit in memory:
+\begin{itemize}
+    \item Accumulate gradients over multiple mini-batches
+    \item Update parameters after accumulating sufficient gradients
+    \item Effective batch size = mini-batch size × accumulation steps
+\end{itemize}
+
+\subsection{Mixed Precision Training}
+
+Use both FP16 and FP32 precision:
+\begin{itemize}
+    \item \textbf{Forward pass:} Use FP16 for speed and memory
+    \item \textbf{Gradient computation:} Use FP16 for gradients
+    \item \textbf{Parameter updates:} Use FP32 for stability
+\end{itemize}
+
+\subsection{Gradient Clipping}
+
+Prevent exploding gradients:
+\begin{equation}
+    \text{if } \|\mathbf{g}\| > \text{max\_norm: } \mathbf{g} \leftarrow \mathbf{g} \times \frac{\text{max\_norm}}{\|\mathbf{g}\|}
+\end{equation}
+
+\section{Evaluation Metrics}
+
+\subsection{Perplexity}
+
+Perplexity measures how well the model predicts the next token:
+\begin{equation}
+    \text{Perplexity} = \exp\left(-\frac{1}{T} \sum_{t=1}^T \log p_\theta(x_t | \mathbf{x}_{<t})\right)
+\end{equation}
+
+Lower perplexity indicates better performance.
+
+\subsection{BLEU Score}
+
+BLEU measures the quality of generated text by comparing n-grams:
+\begin{equation}
+    \text{BLEU} = \exp\left(\sum_{n=1}^N w_n \log p_n\right)
+\end{equation}
+
+where $p_n$ is the precision of n-grams and $w_n$ are weights.
+
+\subsection{ROUGE Score}
+
+ROUGE measures recall-oriented evaluation:
+\begin{itemize}
+    \item \textbf{ROUGE-N:} N-gram overlap
+    \item \textbf{ROUGE-L:} Longest common subsequence
+    \item \textbf{ROUGE-W:} Weighted longest common subsequence
+\end{itemize}
+
+\section{Applications}
+
+\subsection{Language Modeling}
+
+\begin{itemize}
+    \item \textbf{Text generation:} Generate coherent and contextually appropriate text
+    \item \textbf{Completion:} Complete partial sentences or paragraphs
+    \item \textbf{Question answering:} Answer questions based on context
+\end{itemize}
+
+\subsection{Machine Translation}
+
+\begin{itemize}
+    \item \textbf{Sequence-to-sequence:} Translate between languages
+    \item \textbf{Multilingual models:} Handle multiple languages in one model
+    \item \textbf{Zero-shot translation:} Translate between language pairs not seen during training
+\end{itemize}
+
+\subsection{Text Summarization}
+
+\begin{itemize}
+    \item \textbf{Extractive:} Select important sentences from source
+    \item \textbf{Abstractive:} Generate new sentences that capture main ideas
+    \item \textbf{Multi-document:} Summarize information from multiple sources
+\end{itemize}
+
+\subsection{Dialog Systems}
+
+\begin{itemize}
+    \item \textbf{Conversational AI:} Generate human-like responses
+    \item \textbf{Task-oriented:} Help users accomplish specific tasks
+    \item \textbf{Open-domain:} Engage in general conversation
+\end{itemize}
+
+\section{Challenges and Limitations}
+
+\subsection{Computational Challenges}
+
+\begin{itemize}
+    \item \textbf{Quadratic complexity:} Self-attention scales as $O(n^2)$ with sequence length
+    \item \textbf{Memory requirements:} Large models require significant memory
+    \item \textbf{Training time:} Long training times for large models
+\end{itemize}
+
+\subsection{Theoretical Limitations}
+
+\begin{itemize}
+    \item \textbf{Context length:} Limited by attention mechanism
+    \item \textbf{Positional encoding:} May not generalize to longer sequences
+    \item \textbf{Inductive bias:} Less inductive bias than RNNs
+\end{itemize}
+
+\subsection{Practical Challenges}
+
+\begin{itemize}
+    \item \textbf{Reproducibility:} Difficult to reproduce results due to computational requirements
+    \item \textbf{Interpretability:} Black-box nature makes interpretation difficult
+    \item \textbf{Bias:} Models may learn and amplify societal biases
+\end{itemize}
+
+\section{Recent Advances}
+
+\subsection{Efficient Attention Mechanisms}
+
+\textbf{Sparse Attention:}
+\begin{itemize}
+    \item \textbf{Local attention:} Only attend to nearby positions
+    \item \textbf{Strided attention:} Attend to every k-th position
+    \item \textbf{Random attention:} Randomly sample positions to attend to
+\end{itemize}
+
+\textbf{Linear Attention:}
+\begin{itemize}
+    \item \textbf{Performer:} Use random features to approximate attention
+    \item \textbf{Linformer:} Low-rank approximation of attention matrix
+    \item \textbf{Linear Transformer:} Linear complexity attention
+\end{itemize}
+
+\subsection{Long-Range Dependencies}
+
+\textbf{Transformer-XL:}
+\begin{itemize}
+    \item \textbf{Segment-level recurrence:} Reuse hidden states across segments
+    \item \textbf{Relative positional encoding:} Use relative positions instead of absolute
+    \item \textbf{Longer context:} Handle longer sequences than standard transformers
+\end{itemize}
+
+\textbf{Compressive Transformer:}
+\begin{itemize}
+    \item \textbf{Compression:} Compress old memories to save space
+    \item \textbf{Longer memory:} Maintain longer context than Transformer-XL
+    \item \textbf{Efficient:} More efficient than standard attention
+\end{itemize}
+
+\section{Future Directions}
+
+\subsection{Architectural Improvements}
+
+\begin{itemize}
+    \item \textbf{More efficient attention:} Reduce computational complexity
+    \item \textbf{Better positional encoding:} Handle variable-length sequences
+    \item \textbf{Hierarchical models:} Multi-scale processing
+\end{itemize}
+
+\subsection{Training Improvements}
+
+\begin{itemize}
+    \item \textbf{More efficient training:} Reduce computational requirements
+    \item \textbf{Better optimization:} New optimization algorithms
+    \item \textbf{Regularization:} Better regularization techniques
+\end{itemize}
+
+\subsection{Applications}
+
+\begin{itemize}
+    \item \textbf{Multimodal models:} Handle text, images, and other modalities
+    \item \textbf{Code generation:} Generate and understand code
+    \item \textbf{Scientific applications:} Apply to scientific problems
+\end{itemize}
+
+\section{Conclusion}
+
+Autoregressive models have revolutionized natural language processing and generative modeling:
+
+\textbf{Key contributions:}
+\begin{itemize}
+    \item \textbf{Sequential generation:} Generate data one element at a time
+    \item \textbf{Transformer architecture:} Efficient parallel processing
+    \item \textbf{Pre-training:} Learn from large unlabeled datasets
+    \item \textbf{Transfer learning:} Adapt to specific tasks through fine-tuning
+\end{itemize}
+
+\textbf{Key insights:}
+\begin{itemize}
+    \item \textbf{Autoregressive factorization:} Factorize joint probability as product of conditionals
+    \item \textbf{Attention mechanism:} Capture long-range dependencies efficiently
+    \item \textbf{Pre-training importance:} Large-scale pre-training is crucial for performance
+    \item \textbf{Scalability:} Performance improves with model size and data
+\end{itemize}
+
+\textbf{Future work:}
+\begin{itemize}
+    \item \textbf{Efficiency:} More efficient architectures and training methods
+    \item \textbf{Longer context:} Handle longer sequences and documents
+    \item \textbf{Multimodal:} Extend to multiple modalities
+    \item \textbf{Interpretability:} Better understanding of model behavior
+\end{itemize}
+
+The autoregressive approach, combined with transformer architectures, has enabled unprecedented advances in natural language processing and continues to drive innovation in the field.

@@ -1,0 +1,29 @@
+# CS25 Large Foundation Models - Example Code Requirements
+
+# Core ML/AI libraries
+torch>=2.0.0
+torchvision>=0.15.0
+transformers>=4.30.0
+datasets>=2.12.0
+
+# Scientific computing
+numpy>=1.24.0
+scipy>=1.10.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Jupyter and interactive development
+jupyter>=1.0.0
+ipywidgets>=8.0.0
+
+# Data processing
+pandas>=2.0.0
+scikit-learn>=1.3.0
+
+# Visualization
+plotly>=5.15.0
+wandb>=0.15.0  # For experiment tracking
+
+# Optional: GPU acceleration
+# torch-audio>=2.0.0  # Uncomment if needed
+# accelerate>=0.20.0  # For distributed training

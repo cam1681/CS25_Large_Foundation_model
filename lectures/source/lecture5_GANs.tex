@@ -1,0 +1,621 @@
+\documentclass[aspectratio=169]{beamer}
+
+% ==== Theme & basic look ====
+\usetheme{Madrid}
+\usecolortheme{seahorse}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+
+
+% Packages for mathematics  
+\usepackage{amsmath}  
+\usepackage{amsfonts}  
+\usepackage{amssymb}  
+\usepackage{CJKutf8}
+\usepackage{booktabs}
+\usepackage{array}
+% Support for \Tilde macro used throughout
+\providecommand{\Tilde}[1]{\tilde{#1}}
+\providecommand{\proofname}{Proof}
+\newenvironment<>{proofs}[1][\proofname]{%
+    \par
+    \def\insertproofname{#1.}%
+    \usebeamertemplate{proof begin}#2}
+  {\usebeamertemplate{proof end}}
+\makeatother
+
+% Math shorthand and vector symbols
+\newcommand{\grad}{\nabla}
+\newcommand{\EE}{\mathbb{E}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\vx}{\mathbf{x}}
+\newcommand{\x}{\mathbf{x}}
+\newcommand{\vz}{\mathbf{z}}
+\newcommand{\z}{\mathbf{z}}
+\newcommand{\vtheta}{\boldsymbol{\theta}}
+\newcommand{\vphi}{\boldsymbol{\phi}}
+\newcommand{\W}{\mathcal{W}}
+\newcommand{\D}{\mathcal{D}}
+\newcommand{\G}{\mathcal{G}}
+\newcommand{\JS}{\text{JS}}
+
+% Bold vector/time-indexed variables
+\newcommand{\vxz}{\mathbf{x}_0}
+\newcommand{\vxt}{\mathbf{x}_t}
+\newcommand{\alpt}{\alpha_t}
+\newcommand{\sigt}{\sigma_t}
+\newcommand{\veps}{\boldsymbol{\epsilon}}
+\newcommand{\vF}{\mathbf{F}}
+
+% Title page details:   
+\title[Understanding GANs]{Understanding Generative Adversarial Networks from a mathematical view}  
+\author{Pipi Hu}  
+\institute[BIMSA]{Beijing Institute of Mathematical Sciences and Applications}  
+\date{\today}  
+
+\pgfdeclareimage[width=2cm]{logo}{../figures/logo.png}
+\logo{\pgfuseimage{logo}}
+
+% Outline slide (moved to later; avoid frame before \begin{document})
+
+\setbeamertemplate{navigation symbols}{}
+\AtBeginSection[]  
+{  
+    \begin{frame}<beamer>{Outline}         
+        \tableofcontents[currentsection]  
+    \end{frame}  
+}  
+  
+\AtBeginSubsection[]  
+{  
+    \begin{frame}<beamer>{Outline}         
+        \tableofcontents[currentsection,currentsubsection]  
+    \end{frame}  
+}  
+
+\begin{document}  
+  
+% Title slide  
+\begin{frame}  
+  \titlepage  
+\end{frame}  
+
+\begin{frame}{Feynman's words}
+\centering
+    What I cannot create, I do not understand.
+\end{frame}
+  
+% Presentation slides  
+
+\section{Preliminary: Generative Modeling and Adversarial Training}
+
+\begin{frame}{The Generative Modeling Problem}
+Given a dataset $\{x_i\}_{i=1}^n$ sampled from an unknown distribution $p_{data}(x)$, how to learn a model that can generate new samples from $p_{data}(x)$?
+
+\begin{itemize}
+    \item \textcolor{red}{Explicit modeling}: Learn $p_\theta(x)$ directly
+    \begin{itemize}
+        \item Maximum Likelihood Estimation (MLE)
+        \item Variational Autoencoders (VAEs)
+        \item Normalizing Flows
+    \end{itemize}
+    \item \textcolor{red}{Implicit modeling}: Learn a generator $G_\theta(z)$ that maps noise to data
+    \begin{itemize}
+        \item Generative Adversarial Networks (GANs)
+        \item Diffusion Models
+    \end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{The Adversarial Training Paradigm}
+The key insight of GANs: \textcolor{red}{Two-player minimax game}
+
+\begin{itemize}
+    \item \textbf{Generator} $G_\theta(z)$: Maps noise $z \sim p_z$ to data space
+    \item \textbf{Discriminator} $D_\phi(x)$: Distinguishes real from fake data
+    \item \textbf{Objective}: Generator tries to fool discriminator, discriminator tries to detect fakes
+\end{itemize}
+
+The minimax objective:
+\begin{equation}
+\min_G \max_D V(D,G) = \EE_{x \sim p_{data}}[\log D(x)] + \EE_{z \sim p_z}[\log(1-D(G(z)))]
+\end{equation}
+\end{frame}
+
+\begin{frame}{Why Adversarial Training?}
+Traditional generative models face challenges:
+\begin{itemize}
+    \item \textbf{Explicit likelihood}: Hard to compute for complex distributions
+    \item \textbf{Mode collapse}: Tend to generate similar samples
+    \item \textbf{Blurry samples}: MLE often produces average-looking samples
+\end{itemize}
+
+GANs offer advantages:
+\begin{itemize}
+    \item \textcolor{red}{No explicit likelihood}: Avoid normalization issues
+    \item \textcolor{red}{Sharp samples}: Adversarial training encourages realistic details
+    \item \textcolor{red}{Flexible architecture}: Can use any differentiable network
+\end{itemize}
+\end{frame}
+
+\section{Theoretical Foundations: Minimax Game and Nash Equilibrium}
+
+\begin{frame}{The Minimax Game Formulation}
+For fixed generator $G$, the optimal discriminator is:
+\begin{equation}
+D_G^*(x) = \frac{p_{data}(x)}{p_{data}(x) + p_g(x)}
+\end{equation}
+
+\begin{proof}
+The discriminator loss for fixed $G$:
+\begin{equation}
+V(D,G) = \int_x p_{data}(x)\log D(x) + p_g(x)\log(1-D(x)) dx
+\end{equation}
+Taking derivative w.r.t. $D(x)$ and setting to zero:
+\begin{equation}
+\frac{p_{data}(x)}{D(x)} - \frac{p_g(x)}{1-D(x)} = 0 \Rightarrow D_G^*(x) = \frac{p_{data}(x)}{p_{data}(x) + p_g(x)}
+\end{equation}
+\end{proof}
+\end{frame}
+
+\begin{frame}{Global Optimum Analysis}
+When $p_g = p_{data}$, the optimal discriminator becomes:
+\begin{equation}
+D_G^*(x) = \frac{1}{2}
+\end{equation}
+
+The global minimum of the generator loss is:
+\begin{equation}
+C(G) = \max_D V(D,G) = -\log(4) + 2 \cdot JSD(p_{data} \| p_g)
+\end{equation}
+
+where $JSD$ is the Jensen-Shannon divergence.
+
+\begin{proof}
+Substituting $D_G^*$ into $V(D,G)$:
+\begin{equation}
+\begin{aligned}
+C(G) &= \EE_{x \sim p_{data}}[\log \frac{p_{data}(x)}{p_{data}(x) + p_g(x)}] + \EE_{x \sim p_g}[\log \frac{p_g(x)}{p_{data}(x) + p_g(x)}] \\
+&= -\log(4) + KL(p_{data} \| \frac{p_{data} + p_g}{2}) + KL(p_g \| \frac{p_{data} + p_g}{2}) \\
+&= -\log(4) + 2 \cdot JSD(p_{data} \| p_g)
+\end{aligned}
+\end{equation}
+\end{proof}
+\end{frame}
+
+\begin{frame}{Convergence Analysis}
+\textbf{Theorem}: If $G$ and $D$ have enough capacity, and at each step the discriminator is allowed to reach its optimum given $G$, then $p_g$ converges to $p_{data}$.
+
+\begin{itemize}
+    \item \textcolor{red}{Sufficient capacity}: Networks can represent the optimal functions
+    \item \textcolor{red}{Perfect discriminator}: $D$ reaches optimum at each step
+    \item \textcolor{red}{Generator updates}: $G$ is updated to minimize $C(G)$
+\end{itemize}
+
+However, in practice:
+\begin{itemize}
+    \item Networks have limited capacity
+    \item Discriminator is not trained to optimality
+    \item Training dynamics can be unstable
+\end{itemize}
+\end{frame}
+
+\section{Loss Functions and Training Objectives}
+
+\begin{frame}{Original GAN Loss}
+The original GAN uses the binary cross-entropy loss:
+\begin{equation}
+\mathcal{L}_{GAN} = \EE_{x \sim p_{data}}[\log D(x)] + \EE_{z \sim p_z}[\log(1-D(G(z)))]
+\end{equation}
+
+\textbf{Problems with original loss}:
+\begin{itemize}
+    \item \textcolor{red}{Gradient vanishing}: When $D$ is too good, gradients vanish
+    \item \textcolor{red}{Mode collapse}: Generator finds one mode and sticks to it
+    \item \textcolor{red}{Training instability}: Oscillations between $G$ and $D$
+\end{itemize}
+
+\textbf{Non-saturating loss} (alternative for generator):
+\begin{equation}
+\mathcal{L}_{G}^{NS} = -\EE_{z \sim p_z}[\log D(G(z))]
+\end{equation}
+\end{frame}
+
+\section{WGAN}
+\begin{frame}{WGAN: What goes wrong with vanilla GANs?}
+\begin{itemize}
+\item Objective uses \textbf{Jensen–Shannon (JS)} divergence between $p_\theta$ and $p_\mathcal{D}$.
+\item When supports are disjoint or lie on low-dimensional manifolds, $\JS$ is \textbf{maxed out} and gradients vanish.
+\item Symptoms: \textcolor{red}{mode collapse}, \textcolor{red}{training instability}, sensitivity to architecture and hyperparameters.
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}{WGAN: Wasserstein-1 (Earth-Mover) distance}
+\begin{equation}
+\W(p_\theta, p_\mathcal{D}) \;=\; \inf_{\gamma\in\Pi(p_\theta, p_\mathcal{D})} \E_{(\x,\tilde{\x})\sim\gamma} \big[\,\|\x-\tilde{\x}\|\,\big],
+\end{equation}
+where $\Pi$ are couplings with marginals $p_\theta$ and $p_\mathcal{D}$.
+\vspace{0.35em}
+\textbf{Why it helps:}
+\begin{itemize}
+\item Provides \emph{meaningful} distances even when supports do not overlap.
+\item Changes \emph{continuously} with generator parameters $\theta$.
+\item Leads to \textbf{usable gradients} almost everywhere.
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}{WGAN: Kantorovich–Rubinstein duality}
+\small
+\begin{equation}
+\W(p_\theta, p_\mathcal{D}) \;=\; \sup_{\|f\|_{\text{Lip}}\le1} \Big(\E_{\x\sim p_\mathcal{D}}[f(\x)] - \E_{\x\sim p_\theta}[f(\x)]\Big).
+\end{equation}
+\begin{block}{WGAN idea}
+Learn a \textbf{1-Lipschitz critic} $\D$ to approximate the supremum and minimize $\W$ by moving $p_\theta$.
+\end{block}
+\end{frame}
+
+
+\begin{frame}{WGAN: Optimization problem}
+\small
+Critic (\emph{not a classifier}):
+\begin{equation}
+\max_{\psi\,:\,\|\D\|_{\text{Lip}}\le1} \; \E_{\x\sim p_\mathcal{D}}[\D(\x)] - \E_{\z\sim p(\zeta)}[\D(\G(\z))].
+\end{equation}
+Generator:
+\begin{equation}
+\min_{\theta} \; \E_{\z\sim p(\zeta)}[\D(\G(\z))].
+\end{equation}
+\begin{itemize}
+\item The critic's output is a \textbf{score} (real number), not a probability.
+\item Enforcing 1-Lipschitzness is \emph{crucial} (see next slide).
+\end{itemize}
+\end{frame}
+
+\begin{frame}{WGAN: How to enforce 1-Lipschitz?}
+\begin{columns}[T,onlytextwidth]
+\column{0.55\textwidth}
+\textbf{Weight clipping (original WGAN)}
+\begin{itemize}
+\item Constrain each weight to $[-c, c]$.
+\item Simple but can underfit or cause gradient issues.
+\end{itemize}
+\vspace{0.25em}
+\textbf{Gradient penalty (WGAN-GP)}
+\begin{equation}
+\lambda\,\E_{\hat{\x}=t\x + (1-t)\tilde{\x}}\big(\|\nabla_{\hat{\x}}\D(\hat{\x})\|_2 - 1\big)^2.
+\end{equation}
+\begin{itemize}
+\item Encourages $\|\nabla \D\|\approx1$ on lines between real and fake.
+\item Typically far more stable than clipping.
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Least Squares GAN (LSGAN)}
+LSGAN uses the least squares loss:
+\begin{equation}
+\min_D \mathcal{L}_{D}^{LS} = \frac{1}{2}\EE_{x \sim p_{data}}[(D(x) - 1)^2] + \frac{1}{2}\EE_{z \sim p_z}[(D(G(z)))^2]
+\end{equation}
+
+\begin{equation}
+\min_G \mathcal{L}_{G}^{LS} = \frac{1}{2}\EE_{z \sim p_z}[(D(G(z)) - 1)^2]
+\end{equation}
+
+\textbf{Advantages}:
+\begin{itemize}
+    \item \textcolor{red}{Stable gradients}: No vanishing gradient problem
+    \item \textcolor{red}{Better quality}: Produces higher quality samples
+    \item \textcolor{red}{Faster convergence}: More stable training dynamics
+\end{itemize}
+\end{frame}
+
+\section{GAN Architectures and Design Principles}
+
+\begin{frame}{DCGAN: Deep Convolutional GAN}
+Key architectural guidelines:
+\begin{itemize}
+    \item \textbf{Replace pooling} with strided convolutions
+    \item \textbf{Remove fully connected layers} (except first/last)
+    \item \textbf{Batch normalization} in both G and D
+    \item \textbf{ReLU} in generator, \textbf{LeakyReLU} in discriminator
+    \item \textbf{Remove bias} from batch norm layers
+\end{itemize}
+
+\textbf{Generator architecture}:
+\begin{itemize}
+    \item Input: 100-dim noise $z$
+    \item Project to $4 \times 4 \times 1024$ feature maps
+    \item Upsample through transposed convolutions
+    \item Output: $64 \times 64 \times 3$ RGB image
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Progressive Growing of GANs}
+Train GANs progressively from low to high resolution:
+\begin{itemize}
+    \item Start with $4 \times 4$ images
+    \item Gradually add layers for higher resolution
+    \item Smooth transition between resolutions
+\end{itemize}
+
+\textbf{Benefits}:
+\begin{itemize}
+    \item \textcolor{red}{Stable training}: Easier to train at low resolution
+    \item \textcolor{red}{High quality}: Can generate very high resolution images
+    \item \textcolor{red}{Faster convergence}: Progressive training is more efficient
+\end{itemize}
+
+\textbf{Key techniques}:
+\begin{itemize}
+    \item Fade-in new layers gradually
+    \item Use minibatch standard deviation
+    \item Equalized learning rate
+\end{itemize}
+\end{frame}
+
+\begin{frame}{StyleGAN: Style-Based Generator}
+StyleGAN introduces style-based architecture:
+\begin{itemize}
+    \item \textbf{Mapping network}: Transforms $z$ to intermediate latent $w$
+    \item \textbf{Style modulation}: Each layer can be modulated by style
+    \item \textbf{Noise injection}: Adds stochastic variation
+    \item \textbf{Progressive growing}: Builds up resolution gradually
+\end{itemize}
+
+\textbf{Key innovations}:
+\begin{equation}
+y = (w \cdot s) \cdot x + b
+\end{equation}
+where $w$ is the style vector, $s$ is the style scale, $x$ is the feature map.
+
+\textbf{Benefits}:
+\begin{itemize}
+    \item \textcolor{red}{Better control}: Separate content and style
+    \item \textcolor{red}{Higher quality}: More realistic generation
+    \item \textcolor{red}{Interpolation}: Smooth latent space
+\end{itemize}
+\end{frame}
+
+\section{Training Challenges and Solutions}
+
+\begin{frame}{Common Training Problems}
+\textbf{Mode Collapse}:
+\begin{itemize}
+    \item Generator produces limited variety of samples
+    \item Discriminator becomes too strong
+    \item Generator finds one "safe" mode
+\end{itemize}
+
+\textbf{Training Instability}:
+\begin{itemize}
+    \item Losses oscillate wildly
+    \item Generator and discriminator don't converge
+    \item Sensitive to hyperparameters
+\end{itemize}
+
+\textbf{Vanishing Gradients}:
+\begin{itemize}
+    \item Discriminator becomes too good
+    \item Generator receives no useful gradients
+    \item Training stagnates
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Solutions to Training Problems}
+\textbf{For Mode Collapse}:
+\begin{itemize}
+    \item \textcolor{red}{Unrolled GANs}: Look ahead in discriminator updates
+    \item \textcolor{red}{Minibatch discrimination}: Encourage diversity
+    \item \textcolor{red}{Feature matching}: Match feature statistics
+\end{itemize}
+
+\textbf{For Training Instability}:
+\begin{itemize}
+    \item \textcolor{red}{Two time-scale update rule}: Different learning rates
+    \item \textcolor{red}{Spectral normalization}: Constrain discriminator
+    \item \textcolor{red}{Gradient penalty}: Enforce Lipschitz constraint
+\end{itemize}
+
+\textbf{For Vanishing Gradients}:
+\begin{itemize}
+    \item \textcolor{red}{Wasserstein loss}: More stable gradients
+    \item \textcolor{red}{Least squares loss}: Better gradient properties
+    \item \textcolor{red}{Hinge loss}: Alternative to cross-entropy
+\end{itemize}
+\end{frame}
+
+
+\section{Evaluation Metrics and Methods}
+
+\begin{frame}{Quantitative Evaluation Metrics}
+\textbf{Inception Score (IS)}:
+\begin{equation}
+IS = \exp(\EE_{x \sim p_g}[KL(p(y|x) \| p(y))])
+\end{equation}
+where $p(y|x)$ is the class probability from Inception network.
+
+\textbf{Fréchet Inception Distance (FID)}:
+\begin{equation}
+FID = \|\mu_r - \mu_g\|_2^2 + \text{Tr}(\Sigma_r + \Sigma_g - 2(\Sigma_r \Sigma_g)^{1/2})
+\end{equation}
+where $(\mu_r, \Sigma_r)$ and $(\mu_g, \Sigma_g)$ are mean and covariance of real and generated features.
+
+\textbf{Precision and Recall}:
+\begin{itemize}
+    \item \textbf{Precision}: Quality of generated samples
+    \item \textbf{Recall}: Coverage of real data distribution
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Qualitative Evaluation Methods}
+\textbf{Interpolation}:
+\begin{itemize}
+    \item Linear interpolation in latent space
+    \item Should produce smooth transitions
+    \item Tests continuity of learned manifold
+\end{itemize}
+
+\textbf{Arithmetic in Latent Space}:
+\begin{itemize}
+    \item $G(z_1) + G(z_2) - G(z_3) \approx G(z_1 + z_2 - z_3)$
+    \item Tests linear structure of latent space
+\end{itemize}
+
+\textbf{Truncation Trick}:
+\begin{itemize}
+    \item Vary the magnitude of latent vectors
+    \item Trade-off between quality and diversity
+    \item Useful for controlling generation
+\end{itemize}
+\end{frame}
+
+
+\section{The GAN is dead; long live the GAN! A Modern Baseline GAN (R3GAN)}
+\begin{frame}{R3GAN in one picture: fix the landscape \& the dynamics}
+\small
+\textbf{Goal.} Make GAN a \emph{convergent} game with strong fidelity at 1-NFE.
+
+\textbf{Two steps:}
+\begin{enumerate}
+  \item \textbf{Relativistic pairing (RpGAN)} improves the \emph{loss landscape} by comparing real vs.\ fake relatively:
+  \[
+    L_{\mathrm{Rp}}(\theta,\psi)
+    = \mathbb{E}_{x\sim p_{\mathcal D},\,z\sim p(\zeta)} \,
+      f\!\big(D_\psi(G_\theta(z)) - D_\psi(x)\big),
+  \]
+  which anchors decision boundaries around each real sample and mitigates mode dropping.
+  \item \textbf{Zero-centered gradient penalties (R1+R2)} fix the \emph{training dynamics}:
+  \[
+  \text{R1}(\psi)=\tfrac{\gamma}{2}\,\mathbb{E}_{x\sim p_{\mathcal D}}\!\big[\|\nabla_x D_\psi(x)\|_2^2\big],\quad
+  \text{R2}(\theta,\psi)=\tfrac{\gamma}{2}\,\mathbb{E}_{x\sim p_\theta}\!\big[\|\nabla_x D_\psi(x)\|_2^2\big].
+  \]
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{Why RpGAN helps: relative scoring removes bad minima}
+\small
+\textbf{Classic f-GAN:}
+\[
+L(\theta,\psi) = \mathbb{E}_{z}[f(D_\psi(G_\theta(z)))] + \mathbb{E}_{x}[f(-D_\psi(x))].
+\]
+Mode dropping corresponds to spurious local minima/flat regions.
+
+\textbf{RpGAN:}
+\[
+L_{\mathrm{Rp}}(\theta,\psi)
+= \mathbb{E}_{x,z} \, f\!\big(D_\psi(G_\theta(z)) - D_\psi(x)\big).
+\]
+\begin{itemize}
+  \item Each real $x$ contributes a local margin against nearby fakes $\Rightarrow$ fewer mode-drop basins.
+  \item \emph{However}, unregularized RpGAN can still diverge under gradient descent (unstable dynamics).
+\end{itemize}
+\end{frame}
+
+\begin{frame}{R1+R2: enforcing the correct fixed point (zero slope at equilibrium)}
+\small
+At equilibrium $p_\theta = p_{\mathcal D}$ we want the critic's spatial gradient to \emph{vanish}:
+\[
+\nabla_x D_\psi(x) = 0\quad\text{for } x\in \operatorname{supp}(p_\theta)=\operatorname{supp}(p_{\mathcal D}).
+\]
+Zero-centered penalties achieve exactly this:
+\[
+\text{R1}(\psi)=\frac{\gamma}{2}\,\mathbb{E}_{x\sim p_{\mathcal D}}\!\big[\|\nabla_x D_\psi(x)\|^2\big],\quad
+\text{R2}(\theta,\psi)=\frac{\gamma}{2}\,\mathbb{E}_{x\sim p_\theta}\!\big[\|\nabla_x D_\psi(x)\|^2\big].
+\]
+\textbf{Contrast with WGAN-GP (``1-GP''):} encourages $\|\nabla_x D\|\approx 1$ along real–fake lines, which \emph{does not} enforce the zero-slope fixed point and can sustain rotational dynamics near the optimum.
+\end{frame}
+
+\begin{frame}{Local convergence via Jacobian of the game dynamics (informal)}
+\small
+Define the training field
+\[
+v(\theta,\psi)=
+\begin{pmatrix}
+ -\nabla_\theta L_{\mathrm{Rp}}(\theta,\psi) \\
+ \nabla_\psi L_{\mathrm{Rp}}(\theta,\psi) + \nabla_\psi(\text{R1}+\text{R2})
+\end{pmatrix},\qquad
+J=\nabla v(\theta^*,\psi^*).
+\]
+First-order update $(\theta,\psi)\leftarrow(\theta,\psi) + h\,v(\theta,\psi)$.
+\medskip
+
+\textbf{Claim (informal):} With RpGAN + \textbf{R1+R2}, $J$ has eigenvalues with negative real parts near $(\theta^*,\psi^*)$ for small $h$:
+\[
+\Re\,\sigma(J) < 0 \quad\Longrightarrow\quad \text{linearized stability (no cycling)}.
+\]
+\textit{Intuition:} 0-GP damps the critic blocks (adds positive-definite terms), kills the rotational component that causes oscillation, and aligns the fixed point with $\nabla_x D=0$.
+\end{frame}
+
+\begin{frame}{Putting it together: the R3GAN objective \& loop}
+\small
+\textbf{Critic loss (one minibatch):}
+\[
+\mathcal{L}_{\text{critic}}
+= -\,\tfrac{1}{m}\sum_{i=1}^m f\!\big(D_\psi(\tilde x_i)-D_\psi(x_i)\big)
+ + \tfrac{\gamma}{2}\!\left(\|\nabla D_\psi(x_i)\|^2 + \|\nabla D_\psi(\tilde x_i)\|^2\right),
+\]
+where $\tilde x_i = G_\theta(z_i)$.
+
+\textbf{Generator loss:}
+\[
+\mathcal{L}_{\text{gen}} = -\,\tfrac{1}{m}\sum_{i=1}^m f\!\big(D_\psi(G_\theta(z_i)) - D_\psi(x_i)\big).
+\]
+
+\textbf{Recipe:} several critic steps per gen step; Adam with $\beta_1{=}0$; moderate $\gamma$; balanced batch sizes.
+\end{frame}
+
+\begin{frame}{Why the engineering works (enabled by the math)}
+\small
+Once the \emph{game} is stable, R3GAN drops many ad-hoc tricks and uses a clean backbone:
+\begin{itemize}
+  \item \textbf{No normalization}; fix-up initialization to keep variance controlled.
+  \item \textbf{Bilinear} up/down-sampling; avoid transposed-conv artifacts.
+  \item Per-resolution \textbf{Transition} (resample+1x1) + two \textbf{1–3–1 residual} blocks.
+  \item \textbf{Grouped conv} + \textbf{inverted bottlenecks} for efficient width.
+  \item Symmetric G/D; LeakyReLU; small LR for critic.
+\end{itemize}
+\textbf{Outcome:} strong 1-NFE quality (FFHQ/CIFAR/ImageNet) and full mode coverage on StackedMNIST \emph{without} StyleGAN-style tricks.
+\end{frame}
+
+\begin{frame}{Takeaways}
+\small
+\begin{enumerate}
+  \item \textbf{Landscape:} RpGAN’s relative scoring reduces mode-drop minima:
+  \[
+    L_{\mathrm{Rp}}(\theta,\psi) = \mathbb{E}_{x,z} f(D(G(z)) - D(x)).
+  \]
+  \item \textbf{Dynamics:} Zero-centered penalties make the fixed point correct ($\nabla_x D=0$) and the Jacobian stable:
+  \[
+    \text{R1}+\text{R2}\;\Rightarrow\;\Re\,\sigma(J)<0.
+  \]
+  \item \textbf{Engineering:} with a convergent loss, a minimalist modern backbone achieves SOTA-level 1-NFE results.
+\end{enumerate}
+\end{frame}
+
+\section{Open Questions and Future Research}
+
+\begin{frame}{Open Questions}
+If you are interested in these questions, please feel free to write an email to me {\color{red}(\href{mailto:hpp@bimsa.cn}{hpp@bimsa.cn})} with your comments.
+
+\begin{enumerate}[(1.)]
+    \item \textbf{Theoretical understanding}: Why do GANs work despite the minimax game being non-convex?
+    \item \textbf{Mode collapse}: Can we guarantee that GANs will cover all modes of the data distribution?
+    \item \textbf{Evaluation metrics}: How can we better evaluate the quality and diversity of generated samples?
+    \item \textbf{Training stability}: What are the fundamental principles for stable GAN training?
+    \item \textbf{Generalization}: How do GANs generalize beyond the training distribution?
+\end{enumerate}
+\end{frame}
+
+
+% Thank you slide  
+\begin{frame}{Welcome inputs}  
+  \centering  
+  Any comments?
+  \\[2em]
+  Welcome your inputs!  
+\end{frame}  
+  
+\end{document}

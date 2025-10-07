@@ -1,0 +1,364 @@
+\chapter[Generative Adversarial Networks]{Generative Adversarial Networks:\\Adversarial Training for Generative Modeling}
+
+\section{Introduction}
+
+Generative Adversarial Networks (GANs) represent a revolutionary approach to generative modeling that introduced the concept of adversarial training. Unlike traditional methods that rely on likelihood maximization, GANs use a game-theoretic framework where two neural networks compete against each other: a generator that creates fake data and a discriminator that distinguishes between real and fake data.
+
+The key insight of GANs is to frame generative modeling as a minimax game, where the generator learns to produce samples that are indistinguishable from real data, while the discriminator learns to accurately classify samples as real or fake. This chapter provides a comprehensive mathematical treatment of GANs, from theoretical foundations to practical implementations and recent advances.
+
+\section{Mathematical Foundations}
+
+\subsection{The Minimax Game}
+
+The GAN objective is formulated as a minimax game:
+\begin{equation}
+    \min_G \max_D V(D, G) = \mathbb{E}_{x \sim p_{\text{data}}}[\log D(x)] + \mathbb{E}_{z \sim p_z}[\log(1 - D(G(z)))]
+\end{equation}
+
+where:
+\begin{itemize}
+    \item $G$ is the generator network that maps noise $z \sim p_z$ to data space
+    \item $D$ is the discriminator network that outputs the probability that input $x$ is real
+    \item $p_{\text{data}}$ is the real data distribution
+    \item $p_z$ is the noise distribution (typically Gaussian)
+\end{itemize}
+
+\subsection{Optimal Discriminator}
+
+For a fixed generator $G$, the optimal discriminator is:
+\begin{equation}
+    D^*(x) = \frac{p_{\text{data}}(x)}{p_{\text{data}}(x) + p_g(x)}
+\end{equation}
+
+where $p_g$ is the distribution induced by the generator.
+
+\textbf{Proof:} The discriminator's objective is:
+\begin{equation}
+    \max_D V(D, G) = \int_x p_{\text{data}}(x) \log D(x) + p_g(x) \log(1 - D(x)) dx
+\end{equation}
+
+Taking the derivative with respect to $D(x)$ and setting it to zero:
+\begin{equation}
+    \frac{p_{\text{data}}(x)}{D(x)} - \frac{p_g(x)}{1 - D(x)} = 0
+\end{equation}
+
+Solving for $D(x)$ gives the optimal discriminator.
+
+\subsection{Global Optimum}
+
+When the generator is optimal, the global minimum of the minimax game is achieved when $p_g = p_{\text{data}}$, and the value of the game is $-\log 4$.
+
+\textbf{Proof:} Substituting the optimal discriminator into the objective:
+\begin{equation}
+    C(G) = \max_D V(D, G) = \mathbb{E}_{x \sim p_{\text{data}}}[\log D^*(x)] + \mathbb{E}_{x \sim p_g}[\log(1 - D^*(x))]
+\end{equation}
+
+When $p_g = p_{\text{data}}$, we have $D^*(x) = \frac{1}{2}$ for all $x$, giving:
+\begin{equation}
+    C(G) = \mathbb{E}_{x \sim p_{\text{data}}}[\log \frac{1}{2}] + \mathbb{E}_{x \sim p_g}[\log \frac{1}{2}] = -\log 4
+\end{equation}
+
+\section{Training Dynamics and Challenges}
+
+\subsection{Training Algorithm}
+
+The GAN training algorithm alternates between:
+\begin{enumerate}
+    \item \textbf{Discriminator update:} $\theta_d \leftarrow \theta_d + \alpha_d \nabla_{\theta_d} V(D, G)$
+    \item \textbf{Generator update:} $\theta_g \leftarrow \theta_g - \alpha_g \nabla_{\theta_g} V(D, G)$
+\end{enumerate}
+
+\subsection{Mode Collapse}
+
+Mode collapse occurs when the generator produces a limited variety of samples, ignoring some modes of the data distribution.
+
+\textbf{Causes:}
+\begin{itemize}
+    \item Generator finds a mode that consistently fools the discriminator
+    \item Discriminator becomes too strong, causing generator to focus on specific samples
+    \item Training instability leads to convergence to suboptimal solutions
+\end{itemize}
+
+\textbf{Solutions:}
+\begin{itemize}
+    \item Unrolled GANs: Use multiple discriminator updates
+    \item Feature matching: Match intermediate representations
+    \item Minibatch discrimination: Encourage diversity in generated samples
+\end{itemize}
+
+\subsection{Training Instability}
+
+GAN training is notoriously unstable due to:
+\begin{itemize}
+    \item \textbf{Non-convex optimization:} The minimax game has no global convergence guarantees
+    \item \textbf{Vanishing gradients:} When discriminator is too good, generator gradients vanish
+    \item \textbf{Oscillatory behavior:} Generator and discriminator can oscillate without converging
+\end{itemize}
+
+\section{Improved GAN Architectures}
+
+\subsection{DCGAN: Deep Convolutional GANs}
+
+DCGAN introduced architectural guidelines for stable GAN training:
+
+\textbf{Generator architecture:}
+\begin{itemize}
+    \item Use transposed convolutions for upsampling
+    \item Use batch normalization in generator (except output layer)
+    \item Use ReLU activations in generator
+    \item Use tanh activation in output layer
+\end{itemize}
+
+\textbf{Discriminator architecture:}
+\begin{itemize}
+    \item Use strided convolutions for downsampling
+    \item Use batch normalization in discriminator (except input layer)
+    \item Use LeakyReLU activations in discriminator
+\end{itemize}
+
+\subsection{WGAN: Wasserstein GAN}
+
+WGAN addresses training instability by using the Wasserstein distance instead of JS divergence.
+
+\textbf{Wasserstein distance:}
+\begin{equation}
+    W(p_{\text{data}}, p_g) = \inf_{\gamma \in \Pi(p_{\text{data}}, p_g)} \mathbb{E}_{(x,y) \sim \gamma}[\|x - y\|]
+\end{equation}
+
+\textbf{WGAN objective:}
+\begin{equation}
+    \min_G \max_{D \in \mathcal{D}} \mathbb{E}_{x \sim p_{\text{data}}}[D(x)] - \mathbb{E}_{z \sim p_z}[D(G(z))]
+\end{equation}
+
+where $\mathcal{D}$ is the set of 1-Lipschitz functions.
+
+\textbf{Benefits:}
+\begin{itemize}
+    \item More stable training
+    \item Meaningful loss function (correlates with sample quality)
+    \item Reduced mode collapse
+\end{itemize}
+
+\subsection{WGAN-GP: Gradient Penalty}
+
+WGAN-GP enforces the Lipschitz constraint through gradient penalty:
+
+\textbf{Objective:}
+\begin{equation}
+    \mathcal{L} = \mathbb{E}_{x \sim p_{\text{data}}}[D(x)] - \mathbb{E}_{z \sim p_z}[D(G(z))] + \lambda \mathbb{E}_{\hat{x} \sim p_{\hat{x}}}[(\|\nabla_{\hat{x}} D(\hat{x})\| - 1)^2]
+\end{equation}
+
+where $\hat{x} = \epsilon x + (1-\epsilon) G(z)$ with $\epsilon \sim U[0,1]$.
+
+\section{Loss Functions and Training Techniques}
+
+\subsection{Alternative Loss Functions}
+
+\textbf{Least Squares GAN (LSGAN):}
+\begin{equation}
+    \min_D \frac{1}{2}\mathbb{E}_{x \sim p_{\text{data}}}[(D(x) - 1)^2] + \frac{1}{2}\mathbb{E}_{z \sim p_z}[(D(G(z)))^2]
+\end{equation}
+
+\textbf{Hinge Loss:}
+\begin{equation}
+    \mathcal{L}_D = -\mathbb{E}_{x \sim p_{\text{data}}}[\min(0, -1 + D(x))] - \mathbb{E}_{z \sim p_z}[\min(0, -1 - D(G(z)))]
+\end{equation}
+
+\subsection{Training Techniques}
+
+\textbf{Spectral Normalization:}
+\begin{itemize}
+    \item Normalizes the weight matrices to have spectral norm 1
+    \item Enforces Lipschitz constraint on discriminator
+    \item More stable than gradient penalty
+\end{itemize}
+
+\textbf{Progressive Growing:}
+\begin{itemize}
+    \item Start with low-resolution images
+    \item Gradually increase resolution during training
+    \item Improves training stability and sample quality
+\end{itemize}
+
+\textbf{Self-Attention:}
+\begin{itemize}
+    \item Add self-attention layers to generator and discriminator
+    \item Captures long-range dependencies in images
+    \item Improves sample quality
+\end{itemize}
+
+\section{Evaluation Metrics}
+
+\subsection{Inception Score (IS)}
+
+The Inception Score measures both quality and diversity:
+\begin{equation}
+    \text{IS} = \exp(\mathbb{E}_{x \sim p_g}[D_{KL}(p(y|x) \| p(y))])
+\end{equation}
+
+where $p(y|x)$ is the conditional class distribution and $p(y)$ is the marginal class distribution.
+
+\subsection{Fréchet Inception Distance (FID)}
+
+FID measures the distance between real and generated distributions in feature space:
+\begin{equation}
+    \text{FID} = \|\mu_r - \mu_g\|^2 + \text{Tr}(\Sigma_r + \Sigma_g - 2(\Sigma_r \Sigma_g)^{1/2})
+\end{equation}
+
+where $(\mu_r, \Sigma_r)$ and $(\mu_g, \Sigma_g)$ are the mean and covariance of real and generated features.
+
+\subsection{Precision and Recall}
+
+\textbf{Precision:} Fraction of generated samples that are realistic
+\textbf{Recall:} Fraction of real data modes that are covered by generated samples
+
+\section{Recent Advances}
+
+\subsection{StyleGAN: Style-Based Generator}
+
+StyleGAN introduces a style-based generator architecture:
+
+\textbf{Key innovations:}
+\begin{itemize}
+    \item \textbf{Style modulation:} Each layer is modulated by a style vector
+    \item \textbf{Noise injection:} Add stochastic variation at each layer
+    \item \textbf{Progressive growing:} Start with low resolution and grow
+    \item \textbf{Mapping network:} Transform latent code to style vectors
+\end{itemize}
+
+\textbf{Architecture:}
+\begin{equation}
+    \mathbf{w} = f(\mathbf{z}), \quad \mathbf{y} = g(\mathbf{w}, \mathbf{n})
+\end{equation}
+
+where $f$ is the mapping network, $g$ is the synthesis network, and $\mathbf{n}$ is noise.
+
+\subsection{BigGAN: Large Scale GAN Training}
+
+BigGAN demonstrates that GANs can scale to large datasets:
+
+\textbf{Key techniques:}
+\begin{itemize}
+    \item \textbf{Large batch sizes:} Use batch sizes of 2048 or higher
+    \item \textbf{Class conditioning:} Use class labels for conditional generation
+    \item \textbf{Truncation trick:} Truncate latent codes for better quality
+    \item \textbf{Orthogonal initialization:} Initialize weights orthogonally
+\end{itemize}
+
+\subsection{Self-Attention GAN (SAGAN)}
+
+SAGAN introduces self-attention mechanisms to GANs:
+
+\textbf{Self-attention layer:}
+\begin{equation}
+    \text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V
+\end{equation}
+
+\textbf{Benefits:}
+\begin{itemize}
+    \item Captures long-range dependencies
+    \item Improves sample quality
+    \item Enables generation of complex scenes
+\end{itemize}
+
+\section{Applications}
+
+\subsection{Image Generation}
+
+\begin{itemize}
+    \item \textbf{Unconditional generation:} Generate images from noise
+    \item \textbf{Conditional generation:} Generate images from class labels or text
+    \item \textbf{Style transfer:} Transfer artistic style between images
+    \item \textbf{Super-resolution:} Generate high-resolution images from low-resolution inputs
+\end{itemize}
+
+\subsection{Data Augmentation}
+
+\begin{itemize}
+    \item \textbf{Synthetic data:} Generate additional training data
+    \item \textbf{Domain adaptation:} Adapt models to new domains
+    \item \textbf{Privacy preservation:} Generate synthetic data for privacy-sensitive applications
+\end{itemize}
+
+\subsection{Scientific Applications}
+
+\begin{itemize}
+    \item \textbf{Molecular generation:} Generate new drug molecules
+    \item \textbf{Protein design:} Design new protein structures
+    \item \textbf{Material discovery:} Discover new materials with desired properties
+\end{itemize}
+
+\section{Challenges and Limitations}
+
+\subsection{Training Challenges}
+
+\begin{itemize}
+    \item \textbf{Instability:} Training can be unstable and sensitive to hyperparameters
+    \item \textbf{Mode collapse:} Generator may ignore some data modes
+    \item \textbf{Evaluation:} Difficult to evaluate GAN performance objectively
+    \item \textbf{Computational cost:} Training can be computationally expensive
+\end{itemize}
+
+\subsection{Theoretical Limitations}
+
+\begin{itemize}
+    \item \textbf{No convergence guarantees:} No global convergence guarantees
+    \item \textbf{Mode collapse:} Theoretical understanding of mode collapse is limited
+    \item \textbf{Generalization:} Limited understanding of generalization properties
+\end{itemize}
+
+\section{Future Directions}
+
+\subsection{Theoretical Advances}
+
+\begin{itemize}
+    \item \textbf{Convergence analysis:} Better understanding of training dynamics
+    \item \textbf{Generalization bounds:} Theoretical guarantees for GAN performance
+    \item \textbf{Mode collapse:} Better understanding and prevention of mode collapse
+\end{itemize}
+
+\subsection{Architectural Improvements}
+
+\begin{itemize}
+    \item \textbf{More stable training:} New architectures that are easier to train
+    \item \textbf{Better conditioning:} Improved conditional generation
+    \item \textbf{Efficiency:} More efficient training and inference
+\end{itemize}
+
+\subsection{Applications}
+
+\begin{itemize}
+    \item \textbf{High-resolution generation:} Generate higher resolution images
+    \item \textbf{Video generation:} Extend GANs to video generation
+    \item \textbf{3D generation:} Generate 3D objects and scenes
+\end{itemize}
+
+\section{Conclusion}
+
+Generative Adversarial Networks have revolutionized the field of generative modeling by introducing adversarial training:
+
+\textbf{Key contributions:}
+\begin{itemize}
+    \item \textbf{Adversarial training:} Game-theoretic framework for generative modeling
+    \item \textbf{High-quality samples:} Generate realistic images and other data
+    \item \textbf{Flexible conditioning:} Support for various types of conditioning
+    \item \textbf{Active research area:} Continues to drive innovation in generative modeling
+\end{itemize}
+
+\textbf{Key insights:}
+\begin{itemize}
+    \item \textbf{Minimax game:} Generator and discriminator compete in a zero-sum game
+    \item \textbf{Training challenges:} Instability and mode collapse are major challenges
+    \item \textbf{Evaluation difficulty:} Objective evaluation of GAN performance remains challenging
+    \item \textbf{Practical impact:} GANs have enabled many practical applications
+\end{itemize}
+
+\textbf{Future work:}
+\begin{itemize}
+    \item \textbf{Theoretical understanding:} Better convergence and generalization guarantees
+    \item \textbf{Training stability:} More robust training procedures
+    \item \textbf{Evaluation metrics:} Better ways to evaluate GAN performance
+    \item \textbf{Applications:} Extending GANs to new domains and tasks
+\end{itemize}
+
+The adversarial training paradigm introduced by GANs has fundamentally changed how we approach generative modeling, with ongoing research exploring new architectures, training techniques, and applications.
