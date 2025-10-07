@@ -46,7 +46,7 @@ All lecture slides are available in the [`lectures/`](lectures/) directory:
 
 Comprehensive course materials are available in the [`book/`](book/) directory:
 
-- **📚 Main Book**: [`book.pdf`](book/compiled_pdfs/book.pdf) - Complete course textbook
+- **📚 Main Book**: [`book.pdf`](book/compiled_pdfs/book.pdf) - course textbook under construction
 - **📄 Individual Chapters**: Source files in [`book/chapters/`](book/chapters/)
 - **🖼️ Figures**: All course figures in [`book/figures/`](book/figures/)
 
