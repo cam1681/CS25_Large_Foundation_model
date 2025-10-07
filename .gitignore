@@ -9,3 +9,8 @@
 *.snm
 *.synctex.gz
 *.toc
+
+# book
+book.*
+chapters
+
