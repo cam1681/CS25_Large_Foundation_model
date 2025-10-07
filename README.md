@@ -80,7 +80,7 @@ The course covers 13 comprehensive lectures on Large Foundation Models:
 - **🌐 Online Access**: [Course Website](https://bimsa.net/activity/LarFouModMatAlgandApp/)
 - **🏢 In-Person**: Room C546, Shuangqing Complex Building A, Tsinghua University （校外，清华大学双清综合楼A座C546）
 - **📅 Semester**: Autumn 2025
-- **🏫 Institution**: Beijing Institute of Mathematical Sciences and Applications (BIMSA)
+- **🏫 Institution**: [Beijing Institute of Mathematical Sciences and Applications (BIMSA)](https://www.bimsa.cn/)
 
 ### 👨‍🏫 Instructor
 
@@ -245,7 +245,7 @@ For questions about the course content or materials:
 
 - **🌐 Course Website**: [BIMSA Course Page](https://bimsa.net/activity/LarFouModMatAlgandApp/)
 - **📧 Instructor**: [Pipi Hu](https://bimsa.net/people/pipihu/)
-- **🏫 Institution**: Beijing Institute of Mathematical Sciences and Applications
+- **🏫 Institution**: [Beijing Institute of Mathematical Sciences and Applications](https://www.bimsa.cn/)
 
 ---
 
