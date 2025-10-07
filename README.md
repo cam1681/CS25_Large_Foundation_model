@@ -5,9 +5,9 @@
 **CS25 Course - Autumn 2025**  
 *Beijing Institute of Mathematical Sciences and Applications (BIMSA)*
 
-[![Course Status](https://img.shields.io/badge/Status-Active-brightgreen)](https://bimsa.net/activity/LarFouModMatAlgandApp/)
-[![Instructor](https://img.shields.io/badge/Instructor-Pipi%20Hu-blue)](https://bimsa.net/activity/LarFouModMatAlgandApp/)
-[![Format](https://img.shields.io/badge/Format-Online%20%7C%20In--Person-orange)](https://bimsa.net/activity/LarFouModMatAlgandApp/)
+[![Course Status](https://img.shields.io/badge/Status-Course_Info-brightgreen)](https://bimsa.net/activity/LarFouModMatAlgandApp/)
+[![Instructor](https://img.shields.io/badge/Instructor-Pipi%20Hu-blue)](https://bimsa.net/people/pipihu/)
+[![Format](https://img.shields.io/badge/Format-Online%20%7C%20In--Person-orange)](#-location--schedule)
 
 </div>
 
