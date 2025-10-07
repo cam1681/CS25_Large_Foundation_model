@@ -1,0 +1,446 @@
+\documentclass[aspectratio=169]{beamer}
+
+% ==== Theme & basic look ====
+\usetheme{Madrid}
+\usecolortheme{seahorse}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+
+
+% Packages for mathematics  
+\usepackage{amsmath}  
+\usepackage{amsfonts}  
+\usepackage{amssymb}  
+\usepackage{CJKutf8}
+% Support for \Tilde macro used throughout
+\providecommand{\Tilde}[1]{\tilde{#1}}
+\providecommand{\proofname}{Proof}
+\newenvironment<>{proofs}[1][\proofname]{%
+    \par
+    \def\insertproofname{#1.}%
+    \usebeamertemplate{proof begin}#2}
+  {\usebeamertemplate{proof end}}
+\makeatother
+
+% Math shorthand and vector symbols
+\newcommand{\grad}{\nabla}
+\newcommand{\EE}{\mathbb{E}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\kbT}{k_B T}
+\newcommand{\vx}{\mathbf{x}}
+
+% Bold vector/time-indexed variables
+\newcommand{\vxz}{\mathbf{x}_0}
+\newcommand{\vxt}{\mathbf{x}_t}
+\newcommand{\alpt}{\alpha_t}
+\newcommand{\sigt}{\sigma_t}
+\newcommand{\veps}{\boldsymbol{\epsilon}}
+\newcommand{\vF}{\mathbf{F}}
+
+% Discrete diffusion specific notation
+\newcommand{\vq}{\mathbf{q}}
+\newcommand{\vQ}{\mathbf{Q}}
+\newcommand{\vK}{\mathbf{K}}
+\newcommand{\vV}{\mathbf{V}}
+\newcommand{\vP}{\mathbf{P}}
+
+% Title page details:   
+\title[Discrete diffusion models]{Discrete diffusion models: From continuous to categorical}  
+\author{Pipi Hu}  
+\institute[BIMSA]{Beijing Institute of Mathematical Sciences and Applications}  
+\date{\today}  
+
+\pgfdeclareimage[width=2cm]{logo}{figs/logo.png}
+\logo{\pgfuseimage{logo}}
+
+% Outline slide (moved to later; avoid frame before \begin{document})
+
+\setbeamertemplate{navigation symbols}{}
+\AtBeginSection[]  
+{  
+    \begin{frame}<beamer>{Outline}         
+        \tableofcontents[currentsection]  
+    \end{frame}  
+}  
+  
+\AtBeginSubsection[]  
+{  
+    \begin{frame}<beamer>{Outline}         
+        \tableofcontents[currentsection,currentsubsection]  
+    \end{frame}  
+}  
+
+\begin{document}  
+  
+% Title slide  
+\begin{frame}  
+  \titlepage  
+\end{frame}  
+
+\begin{frame}{Feynman's words}
+\centering
+    What I cannot create, I do not understand.
+\end{frame}
+  
+% Presentation slides  
+
+\section{From Continuous to Discrete: The Challenge}
+
+\begin{frame}{The discrete data challenge}
+Traditional diffusion models work well for continuous data, but many real-world applications involve discrete data:
+\begin{itemize}
+    \item \textcolor{red}{Text generation}: Words, tokens, characters
+    \item \textcolor{red}{Image generation}: Pixel values, categorical features
+    \item \textcolor{red}{Molecular generation}: Atom types, bond types
+    \item \textcolor{red}{Music generation}: Notes, chords, instruments
+\end{itemize}
+
+\textbf{Key question}: How to apply diffusion principles to discrete/categorical data?
+\end{frame}
+
+\begin{frame}{Why not just discretize continuous diffusion?}
+Direct discretization of continuous diffusion faces several challenges:
+\begin{enumerate}
+    \item \textcolor{red}{Score function undefined}: $\nabla \log p(x)$ doesn't exist for discrete $x$
+    \item \textcolor{red}{Noise structure}: Gaussian noise doesn't preserve categorical structure
+    \item \textcolor{red}{Sampling complexity}: Discrete spaces have different geometry
+    \item \textcolor{red}{Training instability}: Continuous losses don't translate directly
+\end{enumerate}
+
+\textbf{Need}: New mathematical framework for discrete diffusion
+\end{frame}
+
+\section{Discrete Diffusion: Mathematical Foundation}
+
+\begin{frame}{Discrete state spaces and transition matrices}
+For discrete data $x \in \{1, 2, \ldots, K\}$, we need discrete transition probabilities.
+
+\textbf{Forward process}: Define transition matrix $\vQ_t$ such that
+\begin{equation}
+    q(x_t | x_{t-1}) = \vQ_t[x_{t-1}, x_t]
+\end{equation}
+
+\textbf{Key properties}:
+\begin{itemize}
+    \item $\vQ_t$ is a stochastic matrix: $\sum_{x_t} \vQ_t[x_{t-1}, x_t] = 1$
+    \item $\vQ_t[x_{t-1}, x_t] \geq 0$ for all $x_{t-1}, x_t$
+    \item Can be time-dependent: $\vQ_t$ changes with $t$
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Discrete forward process}
+The discrete forward process is defined as:
+\begin{equation}
+    q(x_t | x_0) = \sum_{x_1, \ldots, x_{t-1}} \prod_{s=1}^t \vQ_s[x_{s-1}, x_s]
+\end{equation}
+
+For \textcolor{red}{uniform transitions} (common choice):
+\begin{equation}
+    \vQ_t = (1-\beta_t)\mathbf{I} + \beta_t \mathbf{1}\mathbf{1}^T/K
+\end{equation}
+where $\mathbf{I}$ is identity matrix and $\mathbf{1}\mathbf{1}^T$ is uniform transition matrix.
+
+\textbf{Interpretation}: With probability $(1-\beta_t)$, stay the same; with probability $\beta_t$, jump to any state uniformly.
+\end{frame}
+
+\begin{frame}{Discrete reverse process}
+The reverse process requires learning transition probabilities:
+\begin{equation}
+    p_\theta(x_{t-1} | x_t) = \text{Cat}(x_{t-1}; \boldsymbol{\pi}_\theta(x_t, t))
+\end{equation}
+
+where $\boldsymbol{\pi}_\theta(x_t, t) \in \mathbb{R}^K$ is a probability vector.
+
+\textbf{Training objective}: Learn to reverse the forward process
+\begin{equation}
+    \mathcal{L} = \mathbb{E}_{t, x_0, x_t} \left[ -\log p_\theta(x_{t-1} | x_t) \right]
+\end{equation}
+
+\textbf{Challenge}: How to parameterize $\boldsymbol{\pi}_\theta(x_t, t)$ effectively?
+\end{frame}
+
+\section{Score-based Discrete Diffusion}
+
+\begin{frame}{Discrete score function}
+For discrete data, we define the \textcolor{red}{discrete score function}:
+\begin{equation}
+    s(x, t) = \nabla \log p(x, t) = \frac{\partial \log p(x, t)}{\partial x}
+\end{equation}
+
+\textbf{Problem}: This is not well-defined for categorical $x$.
+
+\textbf{Solution}: Use \textcolor{red}{logits} instead of direct gradients:
+\begin{equation}
+    s(x, t) = \log p(x, t) - \log \sum_{x'} p(x', t)
+\end{equation}
+
+Or equivalently:
+\begin{equation}
+    s(x, t) = \log p(x, t) + C
+\end{equation}
+where $C$ is a constant that doesn't affect the relative probabilities.
+\end{frame}
+
+\begin{frame}{Discrete denoising score matching}
+For discrete data, the DSM loss becomes:
+\begin{equation}
+    \mathcal{L}_{DSM} = \mathbb{E}_{t, x_0, x_t} \left[ \|s_\theta(x_t, t) - \nabla_{x_t} \log q(x_t | x_0)\|^2 \right]
+\end{equation}
+
+\textbf{Key insight}: The score $\nabla_{x_t} \log q(x_t | x_0)$ can be computed analytically for discrete transitions.
+
+For uniform transitions:
+\begin{equation}
+    \nabla_{x_t} \log q(x_t | x_0) = \frac{\vQ_t[x_0, x_t]}{\sum_{x'} \vQ_t[x_0, x']} - \frac{1}{K}
+\end{equation}
+\end{frame}
+
+\section{Autoregressive vs Diffusion for Discrete Data}
+
+\begin{frame}{Autoregressive models for discrete data}
+Traditional approach for discrete data:
+\begin{equation}
+    p(x) = \prod_{i=1}^n p(x_i | x_{<i})
+\end{equation}
+
+\textbf{Advantages}:
+\begin{itemize}
+    \item Natural for discrete data
+    \item Easy to train with cross-entropy loss
+    \item Can model complex dependencies
+\end{itemize}
+
+\textbf{Disadvantages}:
+\begin{itemize}
+    \item Sequential generation (slow)
+    \item Order dependence
+    \item Hard to parallelize
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Discrete diffusion advantages}
+Discrete diffusion offers several advantages over autoregressive models:
+\begin{enumerate}
+    \item \textcolor{red}{Parallel generation}: All positions can be generated simultaneously
+    \item \textcolor{red}{Order independence}: No fixed generation order
+    \item \textcolor{red}{Flexible conditioning}: Easy to condition on partial information
+    \item \textcolor{red}{Unified framework}: Same principles as continuous diffusion
+\end{enumerate}
+
+\textbf{Trade-off}: More complex training but more flexible generation
+\end{frame}
+
+\section{Implementation Strategies}
+
+\begin{frame}{Discrete diffusion implementation}
+\textbf{Strategy 1: Direct parameterization}
+\begin{equation}
+    p_\theta(x_{t-1} | x_t) = \text{softmax}(f_\theta(x_t, t))
+\end{equation}
+where $f_\theta: \mathbb{R}^K \times \mathbb{R} \to \mathbb{R}^K$
+
+\textbf{Strategy 2: Score-based approach}
+\begin{equation}
+    s_\theta(x_t, t) = f_\theta(x_t, t) - \log \sum_{x'} \exp(f_\theta(x', t))
+\end{equation}
+
+\textbf{Strategy 3: Embedding approach}
+\begin{itemize}
+    \item Embed discrete states in continuous space
+    \item Apply continuous diffusion in embedding space
+    \item Project back to discrete space
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Training discrete diffusion models}
+\textbf{Training procedure}:
+\begin{enumerate}
+    \item Sample $x_0 \sim p_{data}$
+    \item Sample $t \sim \text{Uniform}(0, T)$
+    \item Sample $x_t \sim q(x_t | x_0)$ using forward process
+    \item Train model to predict $x_0$ or $x_{t-1}$ from $x_t$
+\end{enumerate}
+
+\textbf{Loss functions}:
+\begin{itemize}
+    \item Cross-entropy: $\mathcal{L} = -\log p_\theta(x_0 | x_t)$
+    \item Score matching: $\mathcal{L} = \|s_\theta(x_t, t) - s_{true}(x_t, t)\|^2$
+    \item Variational bound: $\mathcal{L} = \text{ELBO}(x_0, x_t)$
+\end{itemize}
+\end{frame}
+
+\section{Advanced Discrete Diffusion}
+
+\begin{frame}{Categorical diffusion}
+For categorical data with $K$ classes, use categorical distribution:
+\begin{equation}
+    q(x_t | x_{t-1}) = \text{Cat}(x_t; \boldsymbol{\alpha}_t)
+\end{equation}
+
+where $\boldsymbol{\alpha}_t$ is the concentration parameter.
+
+\textbf{Forward process}:
+\begin{equation}
+    \boldsymbol{\alpha}_t = (1-\beta_t) \mathbf{e}_{x_{t-1}} + \beta_t \mathbf{1}/K
+\end{equation}
+
+where $\mathbf{e}_{x_{t-1}}$ is the one-hot vector for $x_{t-1}$.
+\end{frame}
+
+\begin{frame}{Discrete diffusion with structure}
+For structured discrete data (e.g., molecules, graphs):
+\begin{itemize}
+    \item \textcolor{red}{Graph diffusion}: Diffuse over graph structure
+    \item \textcolor{red}{Hierarchical diffusion}: Multi-level discrete states
+    \item \textcolor{red}{Conditional diffusion}: Condition on partial structure
+\end{itemize}
+
+\textbf{Example}: Molecular generation
+\begin{equation}
+    p(\text{molecule}) = \prod_{t=1}^T p(\text{atom}_t | \text{atoms}_{<t}, \text{bonds}_{<t})
+\end{equation}
+
+\textbf{Challenge}: Maintaining chemical validity during diffusion
+\end{frame}
+
+\section{Applications and Examples}
+
+\begin{frame}{Text generation with discrete diffusion}
+\textbf{Token-level diffusion}:
+\begin{itemize}
+    \item Forward: Gradually replace tokens with noise
+    \item Reverse: Learn to denoise and recover original text
+    \item Training: Predict original tokens from noisy versions
+\end{itemize}
+
+\textbf{Advantages over autoregressive}:
+\begin{itemize}
+    \item Parallel generation
+    \item Better long-range dependencies
+    \item More flexible conditioning
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Image generation with discrete diffusion}
+\textbf{Pixel-level discrete diffusion}:
+\begin{itemize}
+    \item Treat pixel values as discrete categories
+    \item Forward: Gradually randomize pixel values
+    \item Reverse: Learn to recover original pixels
+\end{itemize}
+
+\textbf{Hybrid approaches}:
+\begin{itemize}
+    \item Continuous diffusion for low-level features
+    \item Discrete diffusion for high-level structure
+    \item Multi-scale discrete diffusion
+\end{itemize}
+\end{frame}
+
+\section{Theoretical Analysis}
+
+\begin{frame}{Discrete diffusion convergence}
+\textbf{Theorem}: Under certain conditions, discrete diffusion converges to the data distribution.
+
+\textbf{Key assumptions}:
+\begin{enumerate}
+    \item Forward process is ergodic
+    \item Reverse process is properly parameterized
+    \item Training loss is minimized
+\end{enumerate}
+
+\textbf{Proof sketch}:
+\begin{equation}
+    p_\theta(x_0) = \int p_\theta(x_0 | x_T) p(x_T) dx_T
+\end{equation}
+
+As $T \to \infty$, $p(x_T)$ approaches uniform distribution, and $p_\theta(x_0 | x_T)$ learns to recover the data distribution.
+\end{frame}
+
+\begin{frame}{Discrete vs continuous diffusion}
+\textbf{Comparison}:
+\begin{itemize}
+    \item \textcolor{red}{Continuous}: Smooth interpolation, gradient-based
+    \item \textcolor{red}{Discrete}: Categorical jumps, probability-based
+\end{itemize}
+
+\textbf{Mathematical differences}:
+\begin{itemize}
+    \item Score function: $\nabla \log p(x)$ vs $\log p(x)$
+    \item Noise: Gaussian vs categorical
+    \item Sampling: Langevin dynamics vs discrete transitions
+\end{itemize}
+
+\textbf{Unified view}: Both can be seen as special cases of a general diffusion framework
+\end{frame}
+
+\section{Challenges and Open Problems}
+
+\begin{frame}{Current challenges in discrete diffusion}
+\begin{enumerate}
+    \item \textcolor{red}{Training stability}: Discrete losses can be unstable
+    \item \textcolor{red}{Sampling efficiency}: Discrete sampling can be slow
+    \item \textcolor{red}{Model capacity}: Need large models for complex discrete data
+    \item \textcolor{red}{Evaluation metrics}: How to measure quality of discrete generation?
+\end{enumerate}
+
+\textbf{Open problems}:
+\begin{itemize}
+    \item Optimal transition matrices for different data types
+    \item Theoretical guarantees for discrete diffusion
+    \item Efficient sampling algorithms
+    \item Better loss functions for discrete data
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Future directions}
+\textbf{Research directions}:
+\begin{enumerate}
+    \item \textcolor{red}{Hybrid models}: Combine continuous and discrete diffusion
+    \item \textcolor{red}{Structured diffusion}: Incorporate domain knowledge
+    \item \textcolor{red}{Efficient algorithms}: Faster training and sampling
+    \item \textcolor{red}{Theoretical understanding}: Better mathematical foundations
+\end{enumerate}
+
+\textbf{Applications}:
+\begin{itemize}
+    \item Scientific discovery (molecules, materials)
+    \item Creative applications (music, art)
+    \item Natural language processing
+    \item Code generation
+\end{itemize}
+\end{frame}
+
+\section{Conclusion}
+
+\begin{frame}{Summary}
+Discrete diffusion models provide a powerful framework for generating discrete data:
+\begin{itemize}
+    \item \textcolor{red}{Mathematical foundation}: Discrete transition matrices and score functions
+    \item \textcolor{red}{Implementation strategies}: Direct parameterization, score-based, embedding-based
+    \item \textcolor{red}{Applications}: Text, images, molecules, and more
+    \item \textcolor{red}{Advantages}: Parallel generation, flexible conditioning, unified framework
+\end{itemize}
+
+\textbf{Key insight}: Discrete diffusion extends the power of continuous diffusion to categorical data while maintaining the core principles of iterative denoising.
+\end{frame}
+
+\begin{frame}{Questions}
+If you are interested in the questions, please feel free to write an email to me {\color{red}(\href{mailto:hpp@bimsa.cn}{hpp@bimsa.cn})} with your comments. 
+\begin{enumerate}[(1.)]
+    \item How can we design optimal transition matrices for specific types of discrete data (e.g., text, molecules, graphs)?
+    \item What are the theoretical guarantees for convergence of discrete diffusion models?
+    \item How can we efficiently sample from discrete diffusion models while maintaining quality?
+    \item What are the best practices for training discrete diffusion models on large-scale datasets?
+\end{enumerate}
+\end{frame}
+
+% Thank you slide  
+\begin{frame}{Welcome inputs}  
+  \centering  
+  Any comments?
+  \\[2em]
+  Welcome your inputs!  
+\end{frame}  
+  
+\end{document}  

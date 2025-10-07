@@ -1,0 +1,483 @@
+\documentclass[aspectratio=169]{beamer}
+
+% ==== Theme & basic look ====
+\usetheme{Madrid}
+\usecolortheme{seahorse}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+
+
+% Packages for mathematics  
+\usepackage{amsmath}  
+\usepackage{amsfonts}  
+\usepackage{amssymb}  
+\usepackage{CJKutf8}
+% Support for \Tilde macro used throughout
+\providecommand{\Tilde}[1]{\tilde{#1}}
+\providecommand{\proofname}{Proof}
+\newenvironment<>{proofs}[1][\proofname]{%
+    \par
+    \def\insertproofname{#1.}%
+    \usebeamertemplate{proof begin}#2}
+  {\usebeamertemplate{proof end}}
+\makeatother
+
+% Math shorthand and vector symbols
+\newcommand{\grad}{\nabla}
+\newcommand{\EE}{\mathbb{E}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\kbT}{k_B T}
+\newcommand{\vx}{\mathbf{x}}
+
+% Bold vector/time-indexed variables
+\newcommand{\vxz}{\mathbf{x}_0}
+\newcommand{\vxt}{\mathbf{x}_t}
+\newcommand{\alpt}{\alpha_t}
+\newcommand{\sigt}{\sigma_t}
+\newcommand{\veps}{\boldsymbol{\epsilon}}
+\newcommand{\vF}{\mathbf{F}}
+
+% Title page details:   
+\title[AI for Science]{AI for Science: Bridging Machine Learning and Scientific Discovery}  
+\author{Pipi Hu}  
+\institute[BIMSA]{Beijing Institute of Mathematical Sciences and Applications}  
+\date{\today}  
+
+\pgfdeclareimage[width=2cm]{logo}{figs/logo.png}
+\logo{\pgfuseimage{logo}}
+
+% Outline slide (moved to later; avoid frame before \begin{document})
+
+\setbeamertemplate{navigation symbols}{}
+\AtBeginSection[]  
+{  
+    \begin{frame}<beamer>{Outline}         
+        \tableofcontents[currentsection]  
+    \end{frame}  
+}  
+  
+\AtBeginSubsection[]  
+{  
+    \begin{frame}<beamer>{Outline}         
+        \tableofcontents[currentsection,currentsubsection]  
+    \end{frame}  
+}  
+
+\begin{document}  
+  
+% Title slide  
+\begin{frame}  
+  \titlepage  
+\end{frame}  
+
+\begin{frame}{Feynman's words}
+\centering
+    What I cannot create, I do not understand.
+\end{frame}
+  
+% Presentation slides  
+
+\section{Introduction: AI for Science}
+
+\begin{frame}{What is AI for Science?}
+AI for Science represents the intersection of artificial intelligence and scientific research, where machine learning methods are applied to accelerate scientific discovery.
+\begin{itemize}
+    \item \textcolor{red}{Drug Discovery}: Predicting molecular properties and designing new compounds
+    \item \textcolor{red}{Materials Science}: Discovering new materials with desired properties
+    \item \textcolor{red}{Climate Modeling}: Understanding and predicting climate patterns
+    \item \textcolor{red}{Physics}: Solving complex physical systems and equations
+    \item \textcolor{red}{Biology}: Understanding protein folding and biological processes
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Key Challenges in AI for Science}
+Scientific problems present unique challenges for machine learning:
+\begin{enumerate}
+    \item \textbf{Data scarcity}: Limited experimental data, expensive to collect
+    \item \textbf{Physical constraints}: Solutions must obey physical laws
+    \item \textbf{Interpretability}: Scientific understanding requires explainable models
+    \item \textbf{Uncertainty quantification}: Scientific predictions need confidence bounds
+    \item \textbf{Multi-scale phenomena}: From quantum to macroscopic scales
+\end{enumerate}
+\end{frame}
+
+\section{Physics-Informed Neural Networks (PINNs)}
+
+\begin{frame}{Physics-Informed Neural Networks}
+PINNs incorporate physical laws directly into neural network training:
+\begin{equation}
+    \mathcal{L} = \mathcal{L}_{data} + \lambda \mathcal{L}_{physics}
+\end{equation}
+where
+\begin{itemize}
+    \item $\mathcal{L}_{data}$: Standard data fitting loss
+    \item $\mathcal{L}_{physics}$: Physics constraint loss (PDEs, conservation laws)
+    \item $\lambda$: Weighting parameter balancing data and physics
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Example: Solving PDEs with PINNs}
+Consider the heat equation:
+\begin{equation}
+    \frac{\partial u}{\partial t} = \alpha \nabla^2 u + f(x,t)
+\end{equation}
+with boundary conditions $u(x,0) = g(x)$ and $u(\partial\Omega,t) = h(x,t)$.
+
+The physics loss becomes:
+\begin{equation}
+    \mathcal{L}_{physics} = \left\|\frac{\partial u_{NN}}{\partial t} - \alpha \nabla^2 u_{NN} - f\right\|^2
+\end{equation}
+where $u_{NN}(x,t;\theta)$ is the neural network approximation.
+\end{frame}
+
+\begin{frame}{Advantages of PINNs}
+\begin{itemize}
+    \item \textbf{No mesh required}: Unlike traditional numerical methods
+    \item \textbf{Unified framework}: Handle forward and inverse problems
+    \item \textbf{Data fusion}: Combine sparse data with physical knowledge
+    \item \textbf{Parameter discovery}: Learn unknown parameters in PDEs
+\end{itemize}
+
+\textbf{Challenges:}
+\begin{itemize}
+    \item Training can be unstable
+    \item Requires careful hyperparameter tuning
+    \item May struggle with complex geometries
+\end{itemize}
+\end{frame}
+
+\section{Molecular Property Prediction}
+
+\begin{frame}{Molecular Representation Learning}
+Converting molecules to machine-readable formats:
+\begin{itemize}
+    \item \textbf{SMILES strings}: Text-based molecular representation
+    \item \textbf{Graph neural networks}: Molecular graphs with atoms as nodes, bonds as edges
+    \item \textbf{3D coordinates}: Spatial arrangement of atoms
+    \item \textbf{Descriptors}: Hand-crafted molecular features
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Graph Neural Networks for Molecules}
+For a molecular graph $G = (V, E)$ with atoms $v_i \in V$ and bonds $e_{ij} \in E$:
+
+\textbf{Message passing:}
+\begin{equation}
+    h_v^{(l+1)} = \text{UPDATE}\left(h_v^{(l)}, \text{AGGREGATE}\left(\{h_u^{(l)} : u \in \mathcal{N}(v)\}\right)\right)
+\end{equation}
+
+\textbf{Property prediction:}
+\begin{equation}
+    y = \text{READOUT}(\{h_v^{(L)} : v \in V\})
+\end{equation}
+where $L$ is the number of message passing layers.
+\end{frame}
+
+\begin{frame}{Applications in Drug Discovery}
+\begin{itemize}
+    \item \textbf{Property prediction}: Solubility, toxicity, binding affinity
+    \item \textbf{Molecular generation}: Designing new drug candidates
+    \item \textbf{Retrosynthesis}: Planning synthetic routes
+    \item \textbf{Protein-ligand binding}: Predicting drug-target interactions
+\end{itemize}
+
+\textbf{Key datasets:}
+\begin{itemize}
+    \item QM9: 134k small organic molecules
+    \item ChEMBL: Large-scale bioactivity data
+    \item PDB: Protein structures
+\end{itemize}
+\end{frame}
+
+\section{Climate and Environmental Modeling}
+
+\begin{frame}{Climate Modeling with AI}
+Climate systems involve complex interactions across multiple scales:
+\begin{equation}
+    \frac{\partial \mathbf{u}}{\partial t} + (\mathbf{u} \cdot \nabla)\mathbf{u} = -\frac{1}{\rho}\nabla p + \nu \nabla^2 \mathbf{u} + \mathbf{F}
+\end{equation}
+where $\mathbf{u}$ is velocity, $p$ is pressure, and $\mathbf{F}$ represents external forces.
+\end{frame}
+
+\begin{frame}{Weather Prediction}
+\textbf{Traditional approach:} Numerical weather prediction (NWP) using physics-based models.
+
+\textbf{AI approach:} Deep learning models trained on historical weather data:
+\begin{itemize}
+    \item \textbf{ConvLSTM}: Spatiotemporal weather prediction
+    \item \textbf{Graph neural networks}: Modeling atmospheric dynamics
+    \item \textbf{Transformer models}: Long-range dependencies in weather patterns
+\end{itemize}
+
+\textbf{Hybrid approach:} Combining AI with traditional NWP for improved accuracy.
+\end{frame}
+
+\begin{frame}{Climate Change Detection}
+Using AI to detect and attribute climate change:
+\begin{itemize}
+    \item \textbf{Pattern recognition}: Identifying climate change signatures
+    \item \textbf{Attribution studies}: Linking extreme events to climate change
+    \item \textbf{Scenario modeling}: Predicting future climate under different emissions
+\end{itemize}
+
+\textbf{Key challenges:}
+\begin{itemize}
+    \item Limited historical data
+    \item Non-stationary climate system
+    \item Uncertainty quantification
+\end{itemize}
+\end{frame}
+
+\section{Protein Folding and Structure Prediction}
+
+\begin{frame}{The Protein Folding Problem}
+Proteins fold from linear amino acid sequences to 3D structures:
+\begin{equation}
+    \text{Sequence: } \text{ACDEFGHIKLMNPQRSTVWY} \rightarrow \text{3D Structure}
+\end{equation}
+
+\textbf{Key challenges:}
+\begin{itemize}
+    \item Exponential number of possible conformations
+    \item Complex energy landscapes
+    \item Multiple timescales (nanoseconds to seconds)
+\end{itemize}
+\end{frame}
+
+\begin{frame}{AlphaFold and Structure Prediction}
+\textbf{AlphaFold approach:}
+\begin{enumerate}
+    \item \textbf{Multiple sequence alignment}: Evolutionary information
+    \item \textbf{Attention mechanisms}: Long-range interactions
+    \item \textbf{Structure module}: 3D coordinate prediction
+    \item \textbf{Confidence estimation}: Reliability of predictions
+\end{enumerate}
+
+\textbf{Key innovations:}
+\begin{itemize}
+    \item End-to-end differentiable architecture
+    \item Integration of evolutionary and physical constraints
+    \item Uncertainty quantification
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Impact of AlphaFold}
+\begin{itemize}
+    \item \textbf{Structural biology revolution}: Millions of protein structures predicted
+    \item \textbf{Drug discovery}: Better understanding of drug targets
+    \item \textbf{Protein design}: Engineering proteins with desired functions
+    \item \textbf{Evolutionary biology}: Understanding protein evolution
+\end{itemize}
+
+\textbf{Current limitations:}
+\begin{itemize}
+    \item Limited accuracy for disordered regions
+    \item Challenges with protein complexes
+    \item Difficulty with membrane proteins
+\end{itemize}
+\end{frame}
+
+\section{Materials Discovery}
+
+\begin{frame}{Materials Property Prediction}
+Predicting material properties from composition and structure:
+\begin{itemize}
+    \item \textbf{Electronic properties}: Band gap, conductivity, magnetic properties
+    \item \textbf{Mechanical properties}: Elastic modulus, strength, hardness
+    \item \textbf{Thermal properties}: Heat capacity, thermal conductivity
+    \item \textbf{Optical properties}: Refractive index, absorption spectra
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Crystal Structure Representation}
+\textbf{Periodic systems:} Representing crystal structures with periodic boundary conditions.
+
+\textbf{Graph representations:}
+\begin{itemize}
+    \item \textbf{Crystal graphs}: Atoms as nodes, bonds as edges
+    \item \textbf{Periodic embeddings}: Handling translational symmetry
+    \item \textbf{Multi-scale features}: From atomic to macroscopic properties
+\end{itemize}
+
+\textbf{Deep learning approaches:}
+\begin{itemize}
+    \item \textbf{CGCNN}: Crystal Graph Convolutional Neural Networks
+    \item \textbf{SchNet}: Quantum-chemical property prediction
+    \item \textbf{MEGNet}: Materials property prediction
+\end{itemize}
+\end{frame}
+
+\begin{frame}{High-Throughput Materials Discovery}
+\textbf{Computational screening:}
+\begin{enumerate}
+    \item Generate candidate materials
+    \item Predict properties using ML models
+    \item Filter promising candidates
+    \item Experimental validation
+\end{enumerate}
+
+\textbf{Key databases:}
+\begin{itemize}
+    \item \textbf{Materials Project}: 150k+ materials with computed properties
+    \item \textbf{OQMD}: Open Quantum Materials Database
+    \item \textbf{AFLOW}: Automatic Flow for Materials Discovery
+\end{itemize}
+\end{frame}
+
+\section{Scientific Computing and Simulation}
+
+\begin{frame}{Accelerating Scientific Simulations}
+AI can accelerate traditional scientific computing:
+\begin{itemize}
+    \item \textbf{Surrogate models}: Fast approximations of expensive simulations
+    \item \textbf{Multiscale modeling}: Bridging different length and time scales
+    \item \textbf{Parameter optimization}: Finding optimal simulation parameters
+    \item \textbf{Uncertainty quantification}: Propagating uncertainties through simulations
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Neural Operators}
+Learning mappings between function spaces:
+\begin{equation}
+    G: \mathcal{U} \rightarrow \mathcal{V}, \quad u \mapsto v
+\end{equation}
+where $\mathcal{U}$ and $\mathcal{V}$ are function spaces.
+
+\textbf{Examples:}
+\begin{itemize}
+    \item \textbf{Neural ODEs}: Learning dynamics of ordinary differential equations
+    \item \textbf{Neural PDEs}: Solving partial differential equations
+    \item \textbf{Fourier Neural Operators}: Learning in frequency domain
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Applications in Scientific Computing}
+\begin{itemize}
+    \item \textbf{Fluid dynamics}: Turbulence modeling, flow prediction
+    \item \textbf{Quantum chemistry}: Electronic structure calculations
+    \item \textbf{Solid mechanics}: Stress analysis, fracture prediction
+    \item \textbf{Electromagnetics}: Wave propagation, antenna design
+\end{itemize}
+
+\textbf{Benefits:}
+\begin{itemize}
+    \item Orders of magnitude speedup
+    \item Reduced computational cost
+    \item Real-time predictions
+\end{itemize}
+\end{frame}
+
+\section{Challenges and Future Directions}
+
+\begin{frame}{Current Challenges in AI for Science}
+\begin{enumerate}
+    \item \textbf{Data quality and quantity}: Limited, noisy, or biased scientific data
+    \item \textbf{Physical consistency}: Ensuring AI predictions obey physical laws
+    \item \textbf{Interpretability}: Understanding what AI models learn
+    \item \textbf{Generalization}: Models that work across different domains
+    \item \textbf{Uncertainty quantification}: Reliable error estimates
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{Future Directions}
+\begin{itemize}
+    \item \textbf{Foundation models for science}: Large-scale models trained on scientific data
+    \item \textbf{Automated hypothesis generation}: AI systems that propose new scientific theories
+    \item \textbf{Scientific reasoning}: AI that can perform logical scientific reasoning
+    \item \textbf{Multimodal scientific AI}: Integrating different types of scientific data
+    \item \textbf{Scientific collaboration}: AI systems that work alongside human scientists
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Ethical Considerations}
+\begin{itemize}
+    \item \textbf{Scientific integrity}: Ensuring AI doesn't introduce bias in scientific research
+    \item \textbf{Reproducibility}: Making AI for science research reproducible
+    \item \textbf{Open science}: Sharing models, data, and code
+    \item \textbf{Scientific communication}: How AI affects scientific publishing and peer review
+\end{itemize}
+\end{frame}
+
+\section{Case Studies and Applications}
+
+\begin{frame}{Case Study 1: Drug Discovery}
+\textbf{Problem:} Discovering new drugs for COVID-19 treatment.
+
+\textbf{AI approach:}
+\begin{itemize}
+    \item Molecular property prediction
+    \item Virtual screening of compound libraries
+    \item Drug-target interaction prediction
+    \item Synthesis route planning
+\end{itemize}
+
+\textbf{Results:} Several AI-discovered compounds entered clinical trials.
+\end{frame}
+
+\begin{frame}{Case Study 2: Climate Modeling}
+\textbf{Problem:} Improving climate change predictions.
+
+\textbf{AI approach:}
+\begin{itemize}
+    \item Hybrid physics-AI models
+    \item Downscaling global climate models
+    \item Extreme weather event prediction
+    \item Climate change attribution
+\end{itemize}
+
+\textbf{Impact:} Better understanding of climate change impacts and adaptation strategies.
+\end{frame}
+
+\begin{frame}{Case Study 3: Materials Discovery}
+\textbf{Problem:} Finding new materials for renewable energy applications.
+
+\textbf{AI approach:}
+\begin{itemize}
+    \item High-throughput computational screening
+    \item Property prediction models
+    \item Structure-property relationships
+    \item Synthesis pathway optimization
+\end{itemize}
+
+\textbf{Results:} Discovery of new photovoltaic and battery materials.
+\end{frame}
+
+\section{Conclusion}
+
+\begin{frame}{Summary}
+AI for Science represents a paradigm shift in how we approach scientific research:
+\begin{itemize}
+    \item \textbf{Acceleration}: Faster discovery and development cycles
+    \item \textbf{Integration}: Combining data-driven and physics-based approaches
+    \item \textbf{Automation}: Reducing manual work in scientific research
+    \item \textbf{Insights}: Discovering patterns humans might miss
+\end{itemize}
+\end{frame}
+
+\begin{frame}{The Future of AI for Science}
+\begin{itemize}
+    \item \textbf{Democratization}: Making advanced scientific tools accessible to all researchers
+    \item \textbf{Interdisciplinary collaboration}: Breaking down silos between scientific fields
+    \item \textbf{Scientific method evolution}: How AI changes the scientific process
+    \item \textbf{Grand challenges}: Tackling humanity's biggest scientific problems
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Questions for Discussion}
+\begin{enumerate}
+    \item How can we ensure AI for Science maintains scientific rigor and reproducibility?
+    \item What are the implications of AI for the future of scientific careers?
+    \item How should we balance AI automation with human scientific intuition?
+    \item What ethical guidelines should govern AI for Science research?
+\end{enumerate}
+\end{frame}
+
+% Thank you slide  
+\begin{frame}{Welcome inputs}  
+  \centering  
+  Any comments?
+  \\[2em]
+  Welcome your inputs!  
+\end{frame}  
+  
+\end{document}  

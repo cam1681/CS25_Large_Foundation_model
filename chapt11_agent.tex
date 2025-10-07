@@ -1,0 +1,487 @@
+\documentclass[aspectratio=169]{beamer}
+
+% ==== Theme & basic look ====
+\usetheme{Madrid}
+\usecolortheme{seahorse}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+
+
+% Packages for mathematics  
+\usepackage{amsmath}  
+\usepackage{amsfonts}  
+\usepackage{amssymb}  
+\usepackage{CJKutf8}
+% Support for \Tilde macro used throughout
+\providecommand{\Tilde}[1]{\tilde{#1}}
+\providecommand{\proofname}{Proof}
+\newenvironment<>{proofs}[1][\proofname]{%
+    \par
+    \def\insertproofname{#1.}%
+    \usebeamertemplate{proof begin}#2}
+  {\usebeamertemplate{proof end}}
+\makeatother
+
+% Math shorthand and vector symbols
+\newcommand{\grad}{\nabla}
+\newcommand{\EE}{\mathbb{E}}
+\newcommand{\dd}{\mathrm{d}}
+\newcommand{\kbT}{k_B T}
+\newcommand{\vx}{\mathbf{x}}
+
+% Bold vector/time-indexed variables
+\newcommand{\vxz}{\mathbf{x}_0}
+\newcommand{\vxt}{\mathbf{x}_t}
+\newcommand{\alpt}{\alpha_t}
+\newcommand{\sigt}{\sigma_t}
+\newcommand{\veps}{\boldsymbol{\epsilon}}
+\newcommand{\vF}{\mathbf{F}}
+
+% Agent-specific notation
+\newcommand{\agent}{\mathcal{A}}
+\newcommand{\state}{\mathbf{s}}
+
+% Title page details:   
+\title[LLM Agents]{Agent Technologies in Large Language Models: Intelligent Systems Beyond Traditional AI}  
+\author{Pipi Hu}  
+\institute[BIMSA]{Beijing Institute of Mathematical Sciences and Applications}  
+\date{\today}  
+
+\pgfdeclareimage[width=2cm]{logo}{figs/logo.png}
+\logo{\pgfuseimage{logo}}
+
+% Outline slide (moved to later; avoid frame before \begin{document})
+
+\setbeamertemplate{navigation symbols}{}
+\AtBeginSection[]  
+{  
+    \begin{frame}<beamer>{Outline}         
+        \tableofcontents[currentsection]  
+    \end{frame}  
+}  
+  
+\AtBeginSubsection[]  
+{  
+    \begin{frame}<beamer>{Outline}         
+        \tableofcontents[currentsection,currentsubsection]  
+    \end{frame}  
+}  
+
+\begin{document}  
+  
+% Title slide  
+\begin{frame}  
+  \titlepage  
+\end{frame}  
+
+\begin{frame}{The Evolution of AI Agents}
+\centering
+    "The question of whether a computer can think is like asking whether a submarine can swim."
+    \\[1em]
+    \textit{--- Edsger W. Dijkstra}
+    \\[1em]
+    Today's LLM agents can reason, plan, and interact with the world.
+\end{frame}
+  
+% Presentation slides  
+
+\section{Introduction: LLM Agents vs Traditional AI}
+
+\begin{frame}{What are LLM Agents?}
+LLM agents are intelligent systems built on large language models that can:
+\begin{itemize}
+    \item \textbf{Natural Language Processing}: Understand and generate human-like text
+    \item \textbf{Tool Integration}: Use external APIs and functions to perform tasks
+    \item \textbf{Reasoning}: Perform logical inference and problem-solving
+    \item \textbf{Planning}: Create and execute multi-step plans
+    \item \textbf{Context Awareness}: Maintain and utilize conversation context
+\end{itemize}
+\end{frame}
+
+\begin{frame}{LLM Agents vs Traditional AI}
+\begin{center}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Aspect} & \textbf{Traditional AI} & \textbf{LLM Agents} \\
+\hline
+Learning & Supervised/Unsupervised & Few-shot/Prompt-based \\
+\hline
+Interaction & Rule-based & Natural language \\
+\hline
+Flexibility & Domain-specific & General-purpose \\
+\hline
+Tool Use & Limited & Extensive API integration \\
+\hline
+Reasoning & Pre-programmed & Emergent from training \\
+\hline
+\end{tabular}
+\end{center}
+\end{frame}
+
+\section{Mathematical Foundations of LLM Agents}
+
+\begin{frame}{LLM Agent Architecture}
+An LLM agent can be modeled as:
+\begin{equation}
+    \agent_{LLM}: \mathcal{P} \times \mathcal{C} \times \mathcal{T} \rightarrow \mathcal{R}
+\end{equation}
+where:
+\begin{itemize}
+    \item $\mathcal{P}$: Prompt space (user inputs)
+    \item $\mathcal{C}$: Context space (conversation history)
+    \item $\mathcal{T}$: Tool space (available functions/APIs)
+    \item $\mathcal{R}$: Response space (text outputs)
+\end{itemize}
+\end{frame}
+
+\begin{frame}{LLM Agent Decision Process}
+The agent's response generation:
+\begin{equation}
+    \text{Response} = \text{LLM}(\text{Prompt} \| \text{Context} \| \text{Tool\_Calls})
+\end{equation}
+
+The complete process:
+\begin{align}
+    \text{Understanding} &= \text{Parse}(\text{Prompt}) \\
+    \text{Planning} &= \text{Reason}(\text{Understanding}, \text{Context}) \\
+    \text{Execution} &= \text{Act}(\text{Planning}, \text{Tools}) \\
+    \text{Response} &= \text{Generate}(\text{Execution\_Results})
+\end{align}
+\end{frame}
+
+\begin{frame}{Multi-LLM Agent Collaboration}
+For a system with $N$ LLM agents $\{\agent_1, \agent_2, \ldots, \agent_N\}$:
+\begin{equation}
+    \text{Output} = \text{Coordination}(\agent_1(\text{Task}_1), \agent_2(\text{Task}_2), \ldots, \agent_N(\text{Task}_N))
+\end{equation}
+
+Each agent's response:
+\begin{equation}
+    \text{Response}_i = \agent_i(\text{Prompt}_i, \text{Context}_i, \text{Tools}_i)
+\end{equation}
+
+Inter-agent communication:
+\begin{equation}
+    \text{Context}_i = \text{Context}_i \cup \{\text{Response}_j : j \neq i\}
+\end{equation}
+\end{frame}
+
+\begin{frame}{LLM Agent Prompt Engineering}
+The effectiveness of an LLM agent depends on prompt quality:
+\begin{equation}
+    \text{Performance} = f(\text{Prompt\_Quality}, \text{Context\_Relevance}, \text{Tool\_Availability})
+\end{equation}
+
+Prompt optimization:
+\begin{equation}
+    \text{Optimal\_Prompt} = \arg\max_{\text{Prompt}} \text{Task\_Success\_Rate}(\text{Prompt})
+\end{equation}
+
+Chain-of-thought reasoning:
+\begin{equation}
+    \text{Response} = \text{LLM}(\text{Problem} + \text{"Let's think step by step..."})
+\end{equation}
+\end{frame}
+
+\section{LLM Agent Architectures}
+
+\begin{frame}{Core Components of LLM Agents}
+LLM agents integrate several key components:
+\begin{enumerate}
+    \item \textbf{Language Model}: Core transformer architecture for text understanding
+    \item \textbf{Function Calling}: Ability to invoke external tools and APIs
+    \item \textbf{Memory System}: Conversation history and context management
+    \item \textbf{Reasoning Engine}: Chain-of-thought and logical inference
+    \item \textbf{Planning Module}: Multi-step task decomposition and execution
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{LLM Agent Processing Pipeline}
+The LLM agent processes tasks through a structured pipeline:
+\begin{equation}
+    \text{Output} = \text{LLM}(\text{System\_Prompt} \| \text{User\_Input} \| \text{Context} \| \text{Tool\_Results})
+\end{equation}
+
+The processing stages:
+\begin{align}
+    \text{Parse} &: \text{Input} \rightarrow \text{Structured\_Intent} \\
+    \text{Plan} &: \text{Intent} \rightarrow \text{Action\_Sequence} \\
+    \text{Execute} &: \text{Sequence} \rightarrow \text{Tool\_Calls} \\
+    \text{Synthesize} &: \text{Results} \rightarrow \text{Final\_Response}
+\end{align}
+\end{frame}
+
+\begin{frame}{Function Calling in LLM Agents}
+LLM agents can call external functions through structured outputs:
+\begin{equation}
+    \text{Function\_Call} = \text{LLM}(\text{Input}) \rightarrow \{\text{function\_name}, \text{parameters}\}
+\end{equation}
+
+Function execution:
+\begin{equation}
+    \text{Result} = \text{Execute}(\text{Function\_Call}) \rightarrow \text{Response}
+\end{equation}
+
+The complete cycle:
+\begin{equation}
+    \text{User\_Input} \rightarrow \text{LLM} \rightarrow \text{Function\_Call} \rightarrow \text{Result} \rightarrow \text{Response}
+\end{equation}
+\end{frame}
+
+\section{Multi-LLM Agent Systems}
+
+\begin{frame}{LLM Agent Collaboration Patterns}
+Multiple LLM agents can work together in different patterns:
+\begin{enumerate}
+    \item \textbf{Sequential}: $\agent_1 \rightarrow \agent_2 \rightarrow \agent_3$
+    \item \textbf{Parallel}: $\agent_1 \| \agent_2 \| \agent_3$
+    \item \textbf{Hierarchical}: $\agent_{master} \rightarrow \{\agent_{worker_i}\}$
+    \item \textbf{Democratic}: $\text{Vote}(\{\agent_i\})$
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{Agent Communication Protocols}
+LLM agents communicate through structured messages:
+\begin{equation}
+    \text{Message} = \{\text{sender}, \text{receiver}, \text{content}, \text{timestamp}\}
+\end{equation}
+
+Message routing:
+\begin{equation}
+    \text{Route}(\text{Message}) = \text{Find\_Agent}(\text{receiver})
+\end{equation}
+\end{frame}
+
+\begin{frame}{LLM Agent Specialization}
+Different LLM agents can specialize in different tasks:
+\begin{itemize}
+    \item \textbf{Research Agent}: Information gathering and analysis
+    \item \textbf{Coding Agent}: Software development and debugging
+    \item \textbf{Creative Agent}: Content generation and design
+    \item \textbf{Analytical Agent}: Data processing and insights
+    \item \textbf{Communication Agent}: Human interaction and translation
+\end{itemize}
+\end{frame}
+
+\section{Tool Integration in LLM Agents}
+
+\begin{frame}{Function Calling Architecture}
+LLM agents can integrate with external tools through function calling:
+\begin{equation}
+    \text{Tool\_Call} = \text{LLM}(\text{Input}) \rightarrow \{\text{name}, \text{arguments}\}
+\end{equation}
+
+Tool execution pipeline:
+\begin{align}
+    \text{Parse} &: \text{LLM\_Output} \rightarrow \text{Function\_Spec} \\
+    \text{Validate} &: \text{Spec} \rightarrow \text{Validated\_Call} \\
+    \text{Execute} &: \text{Call} \rightarrow \text{Result} \\
+    \text{Format} &: \text{Result} \rightarrow \text{Response}
+\end{align}
+\end{frame}
+
+\begin{frame}{Common Tool Categories for LLM Agents}
+LLM agents can integrate with various tool categories:
+\begin{enumerate}
+    \item \textbf{Web Search}: Real-time information retrieval
+    \item \textbf{Code Execution}: Running and debugging code
+    \item \textbf{Database Access}: Querying structured data
+    \item \textbf{File Operations}: Reading and writing files
+    \item \textbf{API Integration}: Third-party service calls
+\end{enumerate}
+\end{frame}
+
+\section{Reasoning and Planning in LLM Agents}
+
+\begin{frame}{Chain-of-Thought Reasoning}
+LLM agents use chain-of-thought prompting for complex reasoning:
+\begin{equation}
+    \text{Response} = \text{LLM}(\text{Problem} + \text{"Let's think step by step..."})
+\end{equation}
+
+The reasoning process:
+\begin{align}
+    \text{Step}_1 &: \text{Understand}(\text{problem}) \rightarrow \text{key\_concepts} \\
+    \text{Step}_2 &: \text{Decompose}(\text{problem}) \rightarrow \text{subproblems} \\
+    \text{Step}_3 &: \text{Solve}(\text{subproblems}) \rightarrow \text{solutions} \\
+    \text{Step}_4 &: \text{Synthesize}(\text{solutions}) \rightarrow \text{final\_answer}
+\end{align}
+\end{frame}
+
+\begin{frame}{Task Planning in LLM Agents}
+LLM agents break down complex tasks into manageable steps:
+\begin{equation}
+    \text{Task\_Plan} = \text{LLM}(\text{Goal} + \text{"Break this down into steps"})
+\end{equation}
+
+Planning components:
+\begin{align}
+    \text{Goal\_Analysis} &: \text{Understand}(\text{objective}) \\
+    \text{Step\_Generation} &: \text{Decompose}(\text{goal}) \\
+    \text{Sequence\_Ordering} &: \text{Arrange}(\text{steps}) \\
+    \text{Execution\_Plan} &: \text{Optimize}(\text{sequence})
+\end{align}
+\end{frame}
+
+\section{Memory and Context in LLM Agents}
+
+\begin{frame}{Context Window Management}
+LLM agents manage conversation context within token limits:
+\begin{equation}
+    \text{Context} = \text{System\_Prompt} + \text{Conversation\_History} + \text{Current\_Input}
+\end{equation}
+
+Context optimization:
+\begin{equation}
+    \text{Optimized\_Context} = \text{Truncate}(\text{Context}, \text{max\_tokens})
+\end{equation}
+\end{frame}
+
+\begin{frame}{Long-Term Memory for LLM Agents}
+LLM agents can maintain long-term memory through:
+\begin{itemize}
+    \item \textbf{Vector Databases}: Semantic similarity search
+    \item \textbf{External Storage}: Persistent conversation history
+    \item \textbf{Knowledge Graphs}: Structured relationship storage
+    \item \textbf{Embedding Caches}: Pre-computed similarity vectors
+\end{itemize}
+\end{frame}
+
+\section{LLM Agent Applications}
+
+\begin{frame}{Real-World LLM Agent Applications}
+LLM agents are being deployed in various domains:
+\begin{itemize}
+    \item \textbf{Code Generation}: GitHub Copilot, ChatGPT Code Interpreter
+    \item \textbf{Research Assistance}: Literature review and data analysis
+    \item \textbf{Customer Service}: Automated support and chatbots
+    \item \textbf{Content Creation}: Writing, editing, and creative tasks
+    \item \textbf{Data Analysis}: Business intelligence and insights
+\end{itemize}
+\end{frame}
+
+\begin{frame}{LLM Agent Success Stories}
+Notable examples of successful LLM agent implementations:
+\begin{enumerate}
+    \item \textbf{AutoGPT}: Autonomous task execution and planning
+    \item \textbf{LangChain Agents}: Modular agent framework
+    \item \textbf{ReAct Framework}: Reasoning and acting in language models
+    \item \textbf{Toolformer}: Teaching LLMs to use tools
+    \item \textbf{WebGPT}: Web-based question answering
+\end{enumerate}
+\end{frame}
+
+\section{Evaluation of LLM Agents}
+
+\begin{frame}{LLM Agent Evaluation Metrics}
+Key metrics for evaluating LLM agent performance:
+\begin{align}
+    \text{Task\_Success\_Rate} &= \frac{\text{Completed\_Tasks}}{\text{Total\_Tasks}} \\
+    \text{Response\_Quality} &= \text{Human\_Rating}(\text{outputs}) \\
+    \text{Tool\_Usage\_Accuracy} &= \frac{\text{Correct\_Tool\_Calls}}{\text{Total\_Tool\_Calls}} \\
+    \text{Context\_Retention} &= \frac{\text{Relevant\_Responses}}{\text{Total\_Responses}}
+\end{align}
+\end{frame}
+
+\begin{frame}{Benchmarking LLM Agents}
+Standard benchmarks for evaluating LLM agents:
+\begin{itemize}
+    \item \textbf{WebArena}: Web-based task automation
+    \item \textbf{AgentBench}: Multi-domain agent evaluation
+    \item \textbf{ALFWorld}: Interactive household tasks
+    \item \textbf{ScienceQA}: Scientific reasoning tasks
+    \item \textbf{HotpotQA}: Multi-hop reasoning
+\end{itemize}
+\end{frame}
+
+\section{Challenges and Future Directions}
+
+\begin{frame}{Current Challenges in LLM Agents}
+\begin{enumerate}
+    \item \textbf{Hallucination}: Generating factually incorrect information
+    \item \textbf{Context Limits}: Managing long conversations within token limits
+    \item \textbf{Tool Reliability}: Ensuring consistent external API usage
+    \item \textbf{Safety}: Preventing harmful or biased outputs
+    \item \textbf{Cost}: Managing computational expenses for large-scale deployment
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{Future Research Directions}
+\begin{itemize}
+    \item \textbf{Multimodal Agents}: Integration of text, vision, and audio
+    \item \textbf{Longer Context Windows}: Handling extended conversations
+    \item \textbf{Specialized Agents}: Domain-specific expertise
+    \item \textbf{Agent Swarms}: Large-scale collaborative systems
+    \item \textbf{Constitutional AI}: Built-in ethical guidelines
+\end{itemize}
+\end{frame}
+
+\section{Implementation Considerations}
+
+\begin{frame}{LLM Agent System Architecture}
+Key components for deploying LLM agents:
+\begin{enumerate}
+    \item \textbf{LLM Backend}: Core language model (GPT, Claude, etc.)
+    \item \textbf{Function Registry}: Available tools and APIs
+    \item \textbf{Context Manager}: Conversation history and memory
+    \item \textbf{Orchestrator}: Task planning and execution
+    \item \textbf{Monitoring}: Performance tracking and logging
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{LLM Agent Development Best Practices}
+\begin{itemize}
+    \item \textbf{Prompt Engineering}: Clear, specific instructions
+    \item \textbf{Function Design}: Well-defined tool interfaces
+    \item \textbf{Error Handling}: Graceful failure recovery
+    \item \textbf{Testing}: Comprehensive evaluation on diverse tasks
+    \item \textbf{Safety}: Built-in safeguards and monitoring
+\end{itemize}
+\end{frame}
+
+\section{Conclusion}
+
+\begin{frame}{Key Takeaways}
+LLM agents represent a paradigm shift in AI capabilities:
+\begin{enumerate}
+    \item \textbf{Natural Language Interface}: Human-like communication
+    \item \textbf{Tool Integration}: Seamless external system interaction
+    \item \textbf{Reasoning}: Chain-of-thought problem solving
+    \item \textbf{Planning}: Multi-step task execution
+    \item \textbf{Adaptability}: Few-shot learning and context awareness
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{The Future of LLM Agents}
+As we look forward:
+\begin{itemize}
+    \item \textbf{Multimodal Capabilities}: Text, image, and audio integration
+    \item \textbf{Longer Context}: Extended conversation memory
+    \item \textbf{Specialized Agents}: Domain-specific expertise
+    \item \textbf{Agent Ecosystems}: Large-scale collaborative networks
+    \item \textbf{Ethical AI}: Built-in safety and alignment
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Questions and Discussion}
+\begin{center}
+\textbf{Key Questions for Further Research:}
+\begin{enumerate}
+    \item How can we reduce hallucination in LLM agents?
+    \item What are the optimal prompt engineering strategies?
+    \item How can we improve tool usage reliability?
+    \item What metrics best evaluate LLM agent performance?
+    \item How can we ensure safety in autonomous LLM agents?
+\end{enumerate}
+\end{center}
+\end{frame}
+
+% Thank you slide  
+\begin{frame}{Welcome inputs}  
+  \centering  
+  Any comments?
+  \\[2em]
+  Welcome your inputs!  
+\end{frame}  
+  
+\end{document}  
