@@ -148,7 +148,7 @@ CS25_Large_Foundation_model/
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/your-username/CS25_Large_Foundation_model.git
+   git clone https://github.com/cam1681/CS25_Large_Foundation_model.git
    cd CS25_Large_Foundation_model
    ```
 
@@ -213,7 +213,7 @@ If you use this course material in your research or teaching, please cite it as 
   author={Pipi Hu},
   year={2025},
   institution={Beijing Institute of Mathematical Sciences and Applications (BIMSA)},
-  url={https://github.com/your-username/CS25_Large_Foundation_model},
+  url={https://github.com/cam1681/CS25_Large_Foundation_model},
   note={CS25 Course - Autumn 2025}
 }
 ```
@@ -225,7 +225,7 @@ If you use this course material in your research or teaching, please cite it as 
   author={Pipi Hu},
   year={2025},
   institution={Beijing Institute of Mathematical Sciences and Applications (BIMSA)},
-  url={https://github.com/your-username/CS25_Large_Foundation_model},
+  url={https://github.com/cam1681/CS25_Large_Foundation_model},
   note={CS25 Course - Autumn 2025}
 }
 ```
