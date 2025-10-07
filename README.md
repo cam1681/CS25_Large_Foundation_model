@@ -239,7 +239,7 @@ This course material is provided for educational purposes. Please respect the in
 
 ---
 
-## 📞 Contact
+## 📧 Contact
 
 For questions about the course content or materials:
 
