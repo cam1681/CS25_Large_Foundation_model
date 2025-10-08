@@ -1,4 +1,4 @@
-# 🚀 Large Foundation Models: Mathematics, Algorithms, and Applications
+# Large Foundation Models: Mathematics, Algorithms, and Applications
 
 <div align="center">
 
@@ -13,45 +13,45 @@
 
 ---
 
-## 📚 Course Overview
+## Course Overview
 
 This comprehensive course explores the mathematical foundations, algorithmic implementations, and practical applications of **Large Foundation Models**. Students will gain deep understanding of modern generative AI through rigorous mathematical treatment and hands-on implementations.
 
-### 🎯 Learning Objectives
+### Learning Objectives
 
 By the end of this course, you will be able to:
 
-- **📊 Explain** what it means to learn a data distribution $p_\theta(\mathbf{x})$ or conditional $p_\theta(\mathbf{x}\mid\mathbf{c})$
-- **🔄 Compare** the five major families: Autoregressive, VAE, GAN, Normalizing Flows, Diffusion/Flow Matching
-- **🎯 Relate** training objectives to a unifying divergence/likelihood view
-- **⚡ Distinguish** training vs. sampling costs and typical latency/quality trade-offs
-- **🛠️ Choose** appropriate model families for specific tasks
-- **🤖 Understand** how reinforcement learning works in the context of foundation models
-- **🏗️ Construct** your own models from scratch
+- **Explain** what it means to learn a data distribution $p_\theta(\mathbf{x})$ or conditional $p_\theta(\mathbf{x}\mid\mathbf{c})$
+- **Compare** the five major families: Autoregressive, VAE, GAN, Normalizing Flows, Diffusion/Flow Matching
+- **Relate** training objectives to a unifying divergence/likelihood view
+- **Distinguish** training vs. sampling costs and typical latency/quality trade-offs
+- **Choose** appropriate model families for specific tasks
+- **Understand** how reinforcement learning works in the context of foundation models
+- **Construct** your own models from scratch
 
 ---
 
-## 📖 Course Materials
+## Course Materials
 
-### 🎥 Lecture Slides
+### Lecture Slides
 
 All lecture slides are available in the [`lectures/`](lectures/) directory:
 
-- **📚 Source Files**: LaTeX source files in [`lectures/source/`](lectures/source/)
-- **🖼️ Figures**: All course figures in [`lectures/figures/`](lectures/figures/)
-- **📄 Compiled PDFs**: Ready-to-use PDF slides in [`lectures/source/compiled_pdfs/`](lectures/source/compiled_pdfs/)
-- **🎯 Individual Lectures**: Each lecture has its own slide deck
-- **📝 Introduction**: [`lecture0_introduction.pdf`](lectures/source/compiled_pdfs/lecture0_introduction.pdf) - Course overview and objectives
+- **Source Files**: LaTeX source files in [`lectures/source/`](lectures/source/)
+- **Figures**: All course figures in [`lectures/figures/`](lectures/figures/)
+- **Compiled PDFs**: Ready-to-use PDF slides in [`lectures/source/compiled_pdfs/`](lectures/source/compiled_pdfs/)
+- **Individual Lectures**: Each lecture has its own slide deck
+- **Introduction**: [`lecture0_introduction.pdf`](lectures/source/compiled_pdfs/lecture0_introduction.pdf) - Course overview and objectives
 
-### 📖 Course Book
+### Course Book
 
 Comprehensive course materials are available in the [`book/`](book/) directory:
 
-- **📚 Main Book**: [`book.pdf`](book/compiled_pdfs/book.pdf) - course textbook under construction
-- **📄 Individual Chapters**: Source files in [`book/chapters/`](book/chapters/)
+- **Main Book**: [`book.pdf`](book/compiled_pdfs/book.pdf) - course textbook under construction
+- **Individual Chapters**: Source files in [`book/chapters/`](book/chapters/)
 
 
-### 📋 Course Content
+### Course Content
 
 The course covers 13 comprehensive lectures on Large Foundation Models:
 
@@ -73,42 +73,42 @@ The course covers 13 comprehensive lectures on Large Foundation Models:
 
 ---
 
-## 🏛️ Course Information
+## Course Information
 
-### 📍 Location & Schedule
+### Location & Schedule
 
-- **🌐 Online Access**: [Course Website](https://bimsa.net/activity/LarFouModMatAlgandApp/)
-- **🏢 In-Person**: Room C546, Shuangqing Complex Building A, Tsinghua University （校外，清华大学双清综合楼A座C546）
-- **📅 Semester**: Autumn 2025
-- **🏫 Institution**: [Beijing Institute of Mathematical Sciences and Applications (BIMSA)](https://www.bimsa.cn/)
+- **Online Access**: [Course Website](https://bimsa.net/activity/LarFouModMatAlgandApp/)
+- **In-Person**: Room C546, Shuangqing Complex Building A, Tsinghua University （校外，清华大学双清综合楼A座C546）
+- **Semester**: Autumn 2025
+- **Institution**: [Beijing Institute of Mathematical Sciences and Applications (BIMSA)](https://www.bimsa.cn/)
 
-### 👨‍🏫 Instructor
+### Instructor
 
 **[Pipi Hu](https://bimsa.net/people/pipihu/)**  
 *Beijing Institute of Mathematical Sciences and Applications*
 
 ---
 
-## 🛠️ Technical Prerequisites
+## Technical Prerequisites
 
-### 📚 Mathematical Background
+### Mathematical Background
 - Linear Algebra
 - Probability Theory
 - Calculus and Optimization
 - Basic Machine Learning concepts
 
-### 💻 Programming Skills
+### Programming Skills
 - Python programming
 - PyTorch experience
 - Basic understanding of neural networks
 
 ---
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```
 CS25_Large_Foundation_model/
-├── 📚 lectures/                   # Lecture materials and slides
+├── lectures/                      # Lecture materials and slides
 │   ├── source/                    # Source LaTeX files
 │   │   ├── lecture0_introduction.tex
 │   │   ├── lecture1_diffusion_model.tex
@@ -127,13 +127,13 @@ CS25_Large_Foundation_model/
 │   │   └── README.md             # Lecture documentation
 │   ├── figures/                   # Course figures and diagrams
 │   └── README.md                  # Lecture documentation
-├── 📖 book/                       # Course book and comprehensive materials
+├── book/                          # Course book and comprehensive materials
 │   ├── book.tex                   # Main book source
 │   ├── compiled_pdfs/            # Compiled book PDF
 │   ├── chapters/                  # Individual book chapters
 │   ├── figures/                   # Book figures and diagrams
 │   └── README.md                  # Book documentation
-└── 💻 examples/                   # Code examples and implementations
+└── examples/                      # Code examples and implementations
     ├── notebooks/                 # Jupyter notebooks
     ├── scripts/                   # Python scripts
     ├── datasets/                  # Sample datasets
@@ -143,9 +143,9 @@ CS25_Large_Foundation_model/
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
-### 📥 Accessing Materials
+### Accessing Materials
 
 1. **Clone the repository**:
    ```bash
@@ -159,52 +159,52 @@ CS25_Large_Foundation_model/
    - **Examples**: Explore the [`examples/`](examples/) directory for code implementations
 
 
-### 🎯 Current Status
+### Current Status
 
-- **✅ 13 Complete Lectures**: All lecture materials are ready
-- **✅ Reference Resolution**: All cross-references working correctly
-- **✅ Figure Integration**: All figures properly linked and accessible
-- **✅ PDF Generation**: All lectures compile to high-quality PDFs
-- **📚 Course Book**: Comprehensive textbook in development
-- **💻 Code Examples**: Implementation examples and datasets available
+- **13 Complete Lectures**: All lecture materials are ready
+- **Reference Resolution**: All cross-references working correctly
+- **Figure Integration**: All figures properly linked and accessible
+- **PDF Generation**: All lectures compile to high-quality PDFs
+- **Course Book**: Comprehensive textbook in development
+- **Code Examples**: Implementation examples and datasets available
 
-### 🚀 Key Features
+### Key Features
 
-- **📊 Mathematical Rigor**: Deep mathematical treatment of all topics
-- **🔄 Practical Implementation**: Hands-on code examples and implementations
-- **📈 Comprehensive Coverage**: From basic concepts to advanced applications
-- **📚 Multiple Formats**: Both lecture slides and comprehensive book
-- **🎯 Real-world Applications**: Focus on practical applications and use cases
+- **Mathematical Rigor**: Deep mathematical treatment of all topics
+- **Practical Implementation**: Hands-on code examples and implementations
+- **Comprehensive Coverage**: From basic concepts to advanced applications
+- **Multiple Formats**: Both lecture slides and comprehensive book
+- **Real-world Applications**: Focus on practical applications and use cases
 
 ---
 
-## 🎓 Course Philosophy
+## Course Philosophy
 
 > **"The Bitter Lesson"** - *Rich Sutton*
 > 
 > Hand-crafted domain knowledge scales poorly; progress comes from **general-purpose** methods that learn directly from data with lots of compute. Design **mathematical learning algorithms** so models **acquire** the distribution, rather than hard-coding it.
 
-### 🔑 Key Principles
+### Key Principles
 
-- **📈 Scalable Objectives**: Maximize $\log p_\theta(\mathbf{x})$ or minimize divergence $D(p_{\text{data}} \Vert p_\theta)$
-- **🔄 Generic Representations**: Use data-driven architectures (Transformers, CNNs, U-Nets)
-- **📊 Scale Data/Compute**: Reduce bespoke heuristics and narrow domain rules
-- **🎯 Self-Supervision**: Leverage generic, data-driven representations
+- **Scalable Objectives**: Maximize $\log p_\theta(\mathbf{x})$ or minimize divergence $D(p_{\text{data}} \Vert p_\theta)$
+- **Generic Representations**: Use data-driven architectures (Transformers, CNNs, U-Nets)
+- **Scale Data/Compute**: Reduce bespoke heuristics and narrow domain rules
+- **Self-Supervision**: Leverage generic, data-driven representations
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 This course material is actively maintained. Contributions are welcome for:
 
-- 📝 Content improvements
-- 🐛 Bug fixes
-- 🎨 Visual enhancements
-- 📚 Additional examples
+- Content improvements
+- Bug fixes
+- Visual enhancements
+- Additional examples
 
 ---
 
-## 📄 Citation
+## Citation
 
 If you use this course material in your research or teaching, please cite it as follows:
 
@@ -233,25 +233,25 @@ If you use this course material in your research or teaching, please cite it as 
 
 ---
 
-## 📄 License
+## License
 
 This course material is provided for educational purposes. Please respect the intellectual property rights and cite appropriately when using these materials.
 
 ---
 
-## 📧 Contact
+## Contact
 
 For questions about the course content or materials:
 
-- **🌐 Course Website**: [BIMSA Course Page](https://bimsa.net/activity/LarFouModMatAlgandApp/)
-- **📧 Instructor**: [Pipi Hu](https://bimsa.net/people/pipihu/)
-- **🏫 Institution**: [Beijing Institute of Mathematical Sciences and Applications](https://www.bimsa.cn/)
+- **Course Website**: [BIMSA Course Page](https://bimsa.net/activity/LarFouModMatAlgandApp/)
+- **Instructor**: [Pipi Hu](https://bimsa.net/people/pipihu/)
+- **Institution**: [Beijing Institute of Mathematical Sciences and Applications](https://www.bimsa.cn/)
 
 ---
 
 <div align="center">
 
-**🌟 Happy Learning! 🌟**
+**Happy Learning!**
 
 *Building the future of AI, one foundation model at a time.*
 
