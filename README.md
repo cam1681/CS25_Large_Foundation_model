@@ -7,7 +7,7 @@
 
 [![Course Status](https://img.shields.io/badge/Status-Course_Info-brightgreen)](https://bimsa.net/activity/LarFouModMatAlgandApp/)
 [![Instructor](https://img.shields.io/badge/Instructor-Pipi%20Hu-blue)](https://bimsa.net/people/pipihu/)
-[![Format](https://img.shields.io/badge/Format-Online%20%7C%20In--Person-orange)](#-location--schedule)
+[![Format](https://img.shields.io/badge/Format-Online%20%7C%20In--Person-orange)](#location--schedule)
 
 </div>
 
