@@ -58,18 +58,18 @@ The course covers 13 comprehensive lectures on Large Foundation Models:
 | Lecture | Topic | Description |
 |---------|-------|-------------|
 | **Lecture 0** | Introduction | Course overview and objectives |
-| **Lecture 1** | Diffusion Models | Mathematical foundations of diffusion processes |
-| **Lecture 2** | Flow Matching | Continuous normalizing flows and flow matching |
+| **Lecture 1** | Diffusion Models | Mathematical foundations of diffusion models and the algorithms |
+| **Lecture 2** | Flow Matching | flow matching and its relation with Diffusion|
 | **Lecture 3** | Variational Autoencoders | VAE theory and implementation |
-| **Lecture 4** | Normalizing Flows | Normalizing flow architectures |
+| **Lecture 4** | Normalizing Flows | Normalizing flow architectures and conditional normalizing flow |
 | **Lecture 5** | Generative Adversarial Networks | GAN theory and training |
 | **Lecture 6** | Autoregressive Models | Transformer architectures and autoregressive generation |
-| **Lecture 7** | Discrete Diffusion | Discrete diffusion models and categorical data |
+| **Lecture 7** | Discrete Diffusion | Discrete diffusion models and language generation by diffusion |
 | **Lecture 8** | World Models | World models in machine learning and AGI |
 | **Lecture 9** | Reinforcement Learning | RL in the context of foundation models |
 | **Lecture 10** | Reasoning | Large foundation models and reasoning capabilities |
 | **Lecture 11** | Agent Technologies | LLM agents and intelligent systems |
-| **Lecture 12** | AI for Science | Bridging machine learning and scientific discovery |
+| **Lecture 12** | AI for Science | Modern machine learning algorithms for the important scientific problems |
 
 ---
 
@@ -93,13 +93,12 @@ The course covers 13 comprehensive lectures on Large Foundation Models:
 
 ### Mathematical Background
 - Linear Algebra
-- Probability Theory
-- Calculus and Optimization
-- Basic Machine Learning concepts
+- Probability Theory I with basic concepts of conditional probability
+- Calculus I/II with basic understanding of multivariable calculus
+- Basic Machine Learning concepts such as MLP, nonlinear activations, and backpropagation
 
 ### Programming Skills
-- Python programming
-- PyTorch experience
+- Basic Python and PyTorch programming skills
 - Basic understanding of neural networks
 
 ---
@@ -162,18 +161,17 @@ CS25_Large_Foundation_model/
 ### Current Status
 
 - **13 Complete Lectures**: All lecture materials are ready
-- **Reference Resolution**: All cross-references working correctly
-- **Figure Integration**: All figures properly linked and accessible
+- **Figure Integration**: All figures are properly linked and accessible
 - **PDF Generation**: All lectures compile to high-quality PDFs
-- **Course Book**: Comprehensive textbook in development
-- **Code Examples**: Implementation examples and datasets available
+- **Course Book**: Comprehensive textbook is under construction
+- **Code Examples**: Implementation examples and datasets are under construction
 
 ### Key Features
 
-- **Mathematical Rigor**: Deep mathematical treatment of all topics
+- **Mathematical Foundation**: Deep mathematical understanding of all topics
 - **Practical Implementation**: Hands-on code examples and implementations
 - **Comprehensive Coverage**: From basic concepts to advanced applications
-- **Multiple Formats**: Both lecture slides and comprehensive book
+- **Multiple Formats**: Both lecture slides and comprehensive book (under construction)
 - **Real-world Applications**: Focus on practical applications and use cases
 
 ---
@@ -201,6 +199,20 @@ This course material is actively maintained. Contributions are welcome for:
 - Bug fixes
 - Visual enhancements
 - Additional examples
+
+---
+## Acknowledgement
+
+This course material is built with the help of Large Foundation Models through Cursor Editor, including:
+
+- Summarizing the initial several slides from published papers
+- Generating illustrations of the figures
+- Converting the lecture slides to the initial backbone of the book
+- Reorganizing the structure of the repo and helping to modify the README.md file
+- Providing the initial structure of the example codes
+- Correcting grammer errors.
+
+This course on Large Foundation Models and the construction of the course materials also benefits from Large Foundation Models. In my experience, they really accelerate the process of spreading knowledge and summarizing ideas without redundant dirty work. One can focus more on high-level abstract ideas and have the repeated dirty work done by LLMs with human guidance and monitoring.  
 
 ---
 
