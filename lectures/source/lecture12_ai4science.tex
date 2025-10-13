@@ -125,7 +125,7 @@ with boundary conditions $u(x,0) = g(x)$ and $u(\partial\Omega,t) = h(x,t)$.
 
 The physics loss becomes:
 \begin{equation}
-    \mathcal{L}_{physics} = \left\|\frac{\partial u_{NN}}{\partial t} - \alpha \nabla^2 u_{NN} - f\right\|^2
+    \mathcal{L}_{physics} = \left\|\frac{\partial u_{NN}}{\partial t} - \alpha \nabla^2 u_{NN} - f\right\|^2 + \lambda_1 \left\|u_{NN}(x,0) - g(x)\right\|^2 + \lambda_2 \left\|u_{NN}(\partial\Omega,t) - h(x,t)\right\|^2
 \end{equation}
 where $u_{NN}(x,t;\theta)$ is the neural network approximation.
 \end{frame}
@@ -183,9 +183,9 @@ where $L$ is the number of message passing layers.
 
 \textbf{Key datasets:}
 \begin{itemize}
-    \item QM9: 134k small organic molecules
+    \item QM9: 134k small organic molecules; GEOM-Drugs
     \item ChEMBL: Large-scale bioactivity data
-    \item PDB: Protein structures
+    \item PDB: Protein structures; AlphaFoldDB
 \end{itemize}
 \end{frame}
 
@@ -206,7 +206,7 @@ where $\mathbf{u}$ is velocity, $p$ is pressure, and $\mathbf{F}$ represents ext
 \begin{itemize}
     \item \textbf{ConvLSTM}: Spatiotemporal weather prediction
     \item \textbf{Graph neural networks}: Modeling atmospheric dynamics
-    \item \textbf{Transformer models}: Long-range dependencies in weather patterns
+    \item \textbf{Transformer models}: Long-range dependencies in weather patterns; ViT; Swin Transformer;
 \end{itemize}
 
 \textbf{Hybrid approach:} Combining AI with traditional NWP for improved accuracy.
@@ -329,7 +329,7 @@ Predicting material properties from composition and structure:
 \begin{frame}{Accelerating Scientific Simulations}
 AI can accelerate traditional scientific computing:
 \begin{itemize}
-    \item \textbf{Surrogate models}: Fast approximations of expensive simulations
+    \item \textbf{Surrogate models}: Fast approximations of expensive simulations, fast and efficient such as in nuclear fusion
     \item \textbf{Multiscale modeling}: Bridging different length and time scales
     \item \textbf{Parameter optimization}: Finding optimal simulation parameters
     \item \textbf{Uncertainty quantification}: Propagating uncertainties through simulations
@@ -398,49 +398,14 @@ where $\mathcal{U}$ and $\mathcal{V}$ are function spaces.
 \end{itemize}
 \end{frame}
 
-\section{Case Studies and Applications}
+\section{Selected papers}
+\subsection{AlphaFold 3}
 
-\begin{frame}{Case Study 1: Drug Discovery}
-\textbf{Problem:} Discovering new drugs for COVID-19 treatment.
+\subsection{UniGenX}
 
-\textbf{AI approach:}
-\begin{itemize}
-    \item Molecular property prediction
-    \item Virtual screening of compound libraries
-    \item Drug-target interaction prediction
-    \item Synthesis route planning
-\end{itemize}
+\subsection{RFDiffusion}
 
-\textbf{Results:} Several AI-discovered compounds entered clinical trials.
-\end{frame}
-
-\begin{frame}{Case Study 2: Climate Modeling}
-\textbf{Problem:} Improving climate change predictions.
-
-\textbf{AI approach:}
-\begin{itemize}
-    \item Hybrid physics-AI models
-    \item Downscaling global climate models
-    \item Extreme weather event prediction
-    \item Climate change attribution
-\end{itemize}
-
-\textbf{Impact:} Better understanding of climate change impacts and adaptation strategies.
-\end{frame}
-
-\begin{frame}{Case Study 3: Materials Discovery}
-\textbf{Problem:} Finding new materials for renewable energy applications.
-
-\textbf{AI approach:}
-\begin{itemize}
-    \item High-throughput computational screening
-    \item Property prediction models
-    \item Structure-property relationships
-    \item Synthesis pathway optimization
-\end{itemize}
-
-\textbf{Results:} Discovery of new photovoltaic and battery materials.
-\end{frame}
+\subsection{MPNN}
 
 \section{Conclusion}
 

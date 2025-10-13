@@ -265,6 +265,6 @@ For questions about the course content or materials:
 
 **Happy Learning!**
 
-*Building the future of AI, one foundation model at a time.*
+*Man is born to a better life with the AI Copilot*
 
 </div>
