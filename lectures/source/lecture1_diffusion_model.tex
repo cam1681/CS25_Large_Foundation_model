@@ -1149,41 +1149,41 @@ Train $D_\theta$ over a range of $\sigma$ to match the optimal denoiser; use it 
 \end{frame}
 
 
-\begin{frame}{Fast Deterministic Sampling}
-\textbf{Integrator:} Heun’s 2nd order (improved Euler) for better truncation error vs. Euler.
-\[
-\text{Predict: }\;\bm{x}_{i+1}^{(E)}=\bm{x}_i + \Delta t_i\, f(t_i,\bm{x}_i)
-\quad
-\text{Correct: }\;\bm{x}_{i+1}=\bm{x}_i + \Delta t_i\,
-\frac{f(t_i,\bm{x}_i) + f(t_{i+1},\bm{x}_{i+1}^{(E)})}{2}
-\]
-\textbf{Noise levels / time steps:}
-\[
-\sigma_i
-=
-\Big(\sigma_{\max}^{1/\rho} + \tfrac{i}{N-1}\big(\sigma_{\min}^{1/\rho}-\sigma_{\max}^{1/\rho}\big)\Big)^{\rho},
-\quad
-t_i=\sigma_i,\quad \rho\approx 7.
-\]
-\textbf{Effect:} reach strong FID with far fewer NFEs (e.g., \(\sim\)35 for CIFAR-10).
-\end{frame}
+% \begin{frame}{Fast Deterministic Sampling}
+% \textbf{Integrator:} Heun’s 2nd order (improved Euler) for better truncation error vs. Euler.
+% \[
+% \text{Predict: }\;\bm{x}_{i+1}^{(E)}=\bm{x}_i + \Delta t_i\, f(t_i,\bm{x}_i)
+% \quad
+% \text{Correct: }\;\bm{x}_{i+1}=\bm{x}_i + \Delta t_i\,
+% \frac{f(t_i,\bm{x}_i) + f(t_{i+1},\bm{x}_{i+1}^{(E)})}{2}
+% \]
+% \textbf{Noise levels / time steps:}
+% \[
+% \sigma_i
+% =
+% \Big(\sigma_{\max}^{1/\rho} + \tfrac{i}{N-1}\big(\sigma_{\min}^{1/\rho}-\sigma_{\max}^{1/\rho}\big)\Big)^{\rho},
+% \quad
+% t_i=\sigma_i,\quad \rho\approx 7.
+% \]
+% \textbf{Effect:} reach strong FID with far fewer NFEs (e.g., \(\sim\)35 for CIFAR-10).
+% \end{frame}
 
-%------------------------------------------------------------
-\begin{frame}{Stochastic Sampling (``Churn'')}
-At step $i$ (noise $t_i$), temporarily \textbf{increase} noise:
-\[
-\hat{t}_i = t_i(1+\gamma_i), \quad \hat{\bm{x}}_i = \bm{x}_i + \sqrt{\hat{t}_i^2 - t_i^2}\;\bm{\varepsilon},\; \bm{\varepsilon}\sim\mathcal{N}(0,S_{\text{noise}}^2 I),
-\]
-then \textbf{one Heun step} from $\hat{t}_i$ to $t_{i+1}$ using $D_\theta$ evaluated at the \emph{post-churn} state $(\hat{\bm{x}}_i,\hat{t}_i)$.
-\medskip
+% %------------------------------------------------------------
+% \begin{frame}{Stochastic Sampling (``Churn'')}
+% At step $i$ (noise $t_i$), temporarily \textbf{increase} noise:
+% \[
+% \hat{t}_i = t_i(1+\gamma_i), \quad \hat{\bm{x}}_i = \bm{x}_i + \sqrt{\hat{t}_i^2 - t_i^2}\;\bm{\varepsilon},\; \bm{\varepsilon}\sim\mathcal{N}(0,S_{\text{noise}}^2 I),
+% \]
+% then \textbf{one Heun step} from $\hat{t}_i$ to $t_{i+1}$ using $D_\theta$ evaluated at the \emph{post-churn} state $(\hat{\bm{x}}_i,\hat{t}_i)$.
+% \medskip
 
-\textbf{Heuristics:}
-\begin{itemize}
-  \item Apply churn only for $t_i\!\in\![t_{\min}^{\star},t_{\max}^{\star}]$; set $\gamma_i\!=\!\text{Schurn}/N$, clamp to avoid excessive re-noising.
-  \item Slightly inflate $S_{\text{noise}}\!>\!1$ to counter over-denoising bias.
-\end{itemize}
-\textbf{Use:} helpful on more diverse data; may be unnecessary (even harmful) once training is improved.
-\end{frame}
+% \textbf{Heuristics:}
+% \begin{itemize}
+%   \item Apply churn only for $t_i\!\in\![t_{\min}^{\star},t_{\max}^{\star}]$; set $\gamma_i\!=\!\text{Schurn}/N$, clamp to avoid excessive re-noising.
+%   \item Slightly inflate $S_{\text{noise}}\!>\!1$ to counter over-denoising bias.
+% \end{itemize}
+% \textbf{Use:} helpful on more diverse data; may be unnecessary (even harmful) once training is improved.
+% \end{frame}
 
 \begin{frame}{Network Preconditioning}
 Represent denoiser with \textbf{preconditioned} skip connection:
