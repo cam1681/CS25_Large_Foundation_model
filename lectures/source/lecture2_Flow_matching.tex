@@ -112,13 +112,75 @@
     \partial_t p(\vx,t) + \grad\cdot\big(p(\vx,t)\,\mathbf{v}(\vx,t)\big) = 0.
 \end{equation}
 
-\textbf{Proof sketch}: For any test function \(\phi(\vx)\), we have:
+\textbf{Key insight}: This equation ensures probability conservation as particles flow according to the velocity field.
+
+\textbf{Physical meaning}:
+\begin{itemize}
+    \item \(\partial_t p(\vx,t)\): Rate of change of probability density
+    \item \(\grad\cdot\big(p(\vx,t)\,\mathbf{v}(\vx,t)\big)\): Divergence of probability flux
+    \item The equation states: "Change in density = Net flow in/out"
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Proof of continuity equation: Step 1}
+\textbf{Setup}: For any test function \(\phi(\vx)\), we have:
 \begin{align}
-    \frac{d}{dt}\int \phi(\vx) p(\vx,t) d\vx &= \int \phi(\vx) \partial_t p(\vx,t) d\vx \\
-    &= \int \phi(\vx) \mathbf{v}(\vx,t) \cdot \grad p(\vx,t) d\vx \\
-    &= -\int \grad\phi(\vx) \cdot \mathbf{v}(\vx,t) p(\vx,t) d\vx
+    \frac{d}{dt}\int \phi(\vx) p(\vx,t) d\vx &= \int \phi(\vx) \partial_t p(\vx,t) d\vx \label{eq:step1}
 \end{align}
-The last equality follows from integration by parts and the chain rule.
+
+\textbf{Key insight}: This is just the definition of the time derivative of the expectation.
+
+\textbf{Next step}: We need to relate this to the particle motion governed by the ODE \(\dot{\vx} = \mathbf{v}(\vx,t)\).
+\end{frame}
+
+\begin{frame}{Proof of continuity equation: Step 2}
+\textbf{Key insight}: We need to relate the time derivative to the particle motion.
+
+\textbf{Direct approach}: Since particles follow \(\dot{\vx} = \mathbf{v}(\vx,t)\), we can use the fact that:
+\begin{align}
+    \frac{d}{dt}\int \phi(\vx) p(\vx,t) d\vx &= \int \phi(\vx) \frac{\partial p(\vx,t)}{\partial t} d\vx
+\end{align}
+
+\textbf{The crucial step}: We need to show that the density evolution satisfies:
+\begin{align}
+    \frac{\partial p(\vx,t)}{\partial t} = -\grad \cdot (p(\vx,t) \mathbf{v}(\vx,t))
+\end{align}
+
+This follows from the fact that probability is conserved as particles flow according to the velocity field.
+\end{frame}
+
+\begin{frame}{Proof of continuity equation: Step 2 (continued)}
+\textbf{Conservation of probability}: For any region \(R\), the rate of change of probability in \(R\) equals the flux through the boundary:
+\begin{align}
+    \frac{d}{dt}\int_R p(\vx,t) d\vx &= -\int_{\partial R} p(\vx,t) \mathbf{v}(\vx,t) \cdot \mathbf{n} dS
+\end{align}
+
+\textbf{Divergence theorem}: Converting surface integral to volume integral:
+\begin{align}
+    \frac{d}{dt}\int_R p(\vx,t) d\vx &= -\int_R \grad \cdot (p(\vx,t) \mathbf{v}(\vx,t)) d\vx
+\end{align}
+
+\textbf{Since this holds for any region \(R\)}:
+\begin{align}
+    \frac{\partial p(\vx,t)}{\partial t} = -\grad \cdot (p(\vx,t) \mathbf{v}(\vx,t))
+\end{align}
+\end{frame}
+
+\begin{frame}{Proof of continuity equation: Conclusion}
+\textbf{Combining results}: From Step 1 and the conservation of probability:
+\begin{align}
+    \int \phi(\vx) \partial_t p(\vx,t) d\vx &= \int \phi(\vx) [-\grad \cdot (p(\vx,t) \mathbf{v}(\vx,t))] d\vx \\
+    &= -\int \phi(\vx) \grad \cdot (p(\vx,t) \mathbf{v}(\vx,t)) d\vx
+\end{align}
+
+\textbf{Final step}: Since this holds for any test function \(\phi(\vx)\), we must have:
+\begin{equation}
+    \boxed{\partial_t p(\vx,t) + \grad\cdot\big(p(\vx,t)\,\mathbf{v}(\vx,t)\big) = 0}
+\end{equation}
+
+\textbf{Conclusion}: Any velocity field that transports particles via an ODE automatically satisfies the continuity equation!
+
+\textbf{Key insight}: The continuity equation is a direct consequence of probability conservation in the flow.
 \end{frame}
 
 \begin{frame}{Derivation: target velocity for Gaussian path}
