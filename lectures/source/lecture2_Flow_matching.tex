@@ -12,8 +12,6 @@
 \usepackage{amsfonts}  
 \usepackage{amssymb}  
 \usepackage{CJKutf8}
-\usepackage{algorithm}
-\usepackage{algorithmic}
 % Support for \Tilde macro used throughout
 \providecommand{\Tilde}[1]{\tilde{#1}}
 \providecommand{\proofname}{Proof}
@@ -82,10 +80,9 @@
   \titlepage  
 \end{frame}  
 
-\begin{frame}{Feynman's words}
-    \centering
-        What I cannot create, I do not understand.
-    \end{frame}
+\begin{frame}{Outline}
+\tableofcontents
+\end{frame}
     
 \begin{frame}{Mathematical motivation for Flow Matching}
 \textbf{The fundamental challenge}: Learn a velocity field \(\mathbf{v}(\vx,t)\) that transforms a simple base distribution \(p_1(\vx)\) into the data distribution \(p_0(\vx)\) through the continuity equation:
@@ -99,12 +96,15 @@
     \item \textbf{Analytic supervision}: Provides closed-form velocity targets via conditional paths
     \item \textbf{Deterministic sampling}: Enables ODE integration with large solver steps
     \item \textbf{Mathematical elegance}: Direct connection to optimal transport theory
+    \item \textbf{Computational efficiency}: Simpler training objective and faster inference
 \end{itemize}
+
+\textbf{Core insight}: Instead of learning to reverse a stochastic process, Flow Matching learns a deterministic flow that directly transports probability mass.
 \end{frame}
   
 % Presentation slides  
 
-\section{Continuity equation and probability flow}
+\section{Mathematical Foundations of Flow Matching}
 
 \begin{frame}{The continuity equation: mathematical foundation}
 \textbf{Theorem}: Let \(\mathbf{v}(\vx,t)\) be a smooth velocity field. Then the density \(p(\vx,t)\) transported by the ODE \(\dot{\vx} = \mathbf{v}(\vx,t)\) satisfies the continuity equation:
@@ -120,67 +120,8 @@
     \item \(\grad\cdot\big(p(\vx,t)\,\mathbf{v}(\vx,t)\big)\): Divergence of probability flux
     \item The equation states: "Change in density = Net flow in/out"
 \end{itemize}
-\end{frame}
 
-\begin{frame}{Proof of continuity equation: Step 1}
-\textbf{Setup}: For any test function \(\phi(\vx)\), we have:
-\begin{align}
-    \frac{d}{dt}\int \phi(\vx) p(\vx,t) d\vx &= \int \phi(\vx) \partial_t p(\vx,t) d\vx \label{eq:step1}
-\end{align}
-
-\textbf{Key insight}: This is just the definition of the time derivative of the expectation.
-
-\textbf{Next step}: We need to relate this to the particle motion governed by the ODE \(\dot{\vx} = \mathbf{v}(\vx,t)\).
-\end{frame}
-
-\begin{frame}{Proof of continuity equation: Step 2}
-\textbf{Key insight}: We need to relate the time derivative to the particle motion.
-
-\textbf{Direct approach}: Since particles follow \(\dot{\vx} = \mathbf{v}(\vx,t)\), we can use the fact that:
-\begin{align}
-    \frac{d}{dt}\int \phi(\vx) p(\vx,t) d\vx &= \int \phi(\vx) \frac{\partial p(\vx,t)}{\partial t} d\vx
-\end{align}
-
-\textbf{The crucial step}: We need to show that the density evolution satisfies:
-\begin{align}
-    \frac{\partial p(\vx,t)}{\partial t} = -\grad \cdot (p(\vx,t) \mathbf{v}(\vx,t))
-\end{align}
-
-This follows from the fact that probability is conserved as particles flow according to the velocity field.
-\end{frame}
-
-\begin{frame}{Proof of continuity equation: Step 2 (continued)}
-\textbf{Conservation of probability}: For any region \(R\), the rate of change of probability in \(R\) equals the flux through the boundary:
-\begin{align}
-    \frac{d}{dt}\int_R p(\vx,t) d\vx &= -\int_{\partial R} p(\vx,t) \mathbf{v}(\vx,t) \cdot \mathbf{n} dS
-\end{align}
-
-\textbf{Divergence theorem}: Converting surface integral to volume integral:
-\begin{align}
-    \frac{d}{dt}\int_R p(\vx,t) d\vx &= -\int_R \grad \cdot (p(\vx,t) \mathbf{v}(\vx,t)) d\vx
-\end{align}
-
-\textbf{Since this holds for any region \(R\)}:
-\begin{align}
-    \frac{\partial p(\vx,t)}{\partial t} = -\grad \cdot (p(\vx,t) \mathbf{v}(\vx,t))
-\end{align}
-\end{frame}
-
-\begin{frame}{Proof of continuity equation: Conclusion}
-\textbf{Combining results}: From Step 1 and the conservation of probability:
-\begin{align}
-    \int \phi(\vx) \partial_t p(\vx,t) d\vx &= \int \phi(\vx) [-\grad \cdot (p(\vx,t) \mathbf{v}(\vx,t))] d\vx \\
-    &= -\int \phi(\vx) \grad \cdot (p(\vx,t) \mathbf{v}(\vx,t)) d\vx
-\end{align}
-
-\textbf{Final step}: Since this holds for any test function \(\phi(\vx)\), we must have:
-\begin{equation}
-    \boxed{\partial_t p(\vx,t) + \grad\cdot\big(p(\vx,t)\,\mathbf{v}(\vx,t)\big) = 0}
-\end{equation}
-
-\textbf{Conclusion}: Any velocity field that transports particles via an ODE automatically satisfies the continuity equation!
-
-\textbf{Key insight}: The continuity equation is a direct consequence of probability conservation in the flow.
+\textbf{Connection to Flow Matching}: This equation is the fundamental constraint that any learned velocity field must satisfy to properly transport probability distributions.
 \end{frame}
 
 \begin{frame}{Derivation: target velocity for Gaussian path}
@@ -196,6 +137,10 @@ Condition on \(\vxt=\vx\) and \(\vxz\). Since \(\veps=(\vx-\boldsymbol{\mu}_t(\v
     &= \dot{\boldsymbol{\mu}}_t(\vxz) + \dot{\sigt}\,\frac{\vx-\boldsymbol{\mu}_t(\vxz)}{\sigt}\\
     &= \dot{\boldsymbol{\mu}}_t(\vxz) + \frac{\dot{\sigt}}{\sigt}\Big(\vx-\boldsymbol{\mu}_t(\vxz)\Big).
 \end{align}
+
+\textbf{Mathematical insight}: This derivation shows that the conditional velocity field has a simple closed-form expression for Gaussian paths.
+
+\textbf{Practical significance}: This analytic form enables efficient training without numerical differentiation or score estimation.
 \end{frame}
 
 \begin{frame}{Conditional probability paths: mathematical framework}
@@ -212,9 +157,11 @@ with boundary conditions \(p_0=p_{\text{data}}\) and \(p_1=p_{\text{base}}\).
 provides \emph{analytic supervision} for learning the marginal velocity field \(\mathbf{v}(\vx,t)\).
 
 \textbf{Mathematical advantage}: No need to estimate \(\grad_{\vx}\log p(\vx,t)\) during training!
+
+\textbf{Connection to optimal transport}: When paths are chosen optimally, Flow Matching recovers Wasserstein-2 geodesics.
 \end{frame}
 
-\section{Gaussian conditional paths and targets}
+\section{Conditional Paths and Velocity Targets}
 
 \begin{frame}{Gaussian conditional paths: mathematical derivation}
 \textbf{Assumption}: Gaussian conditional paths
@@ -246,6 +193,7 @@ provides \emph{analytic supervision} for learning the marginal velocity field \(
     \item \(\boldsymbol{\mu}_t(\vxz)=(1-t)\,\vxz\), \(\sigt=t\,\sigma_{\max}\)
     \item \textbf{Mathematical property}: Minimizes Wasserstein-2 distance
     \item \textbf{Velocity}: \(\mathbf{u}_t(\vx\mid\vxz) = \frac{\sigma_{\max}}{t}(\vx-\vxz)\)
+    \item \textbf{Advantage}: Direct connection to optimal transport theory
 \end{itemize}
 
 \textbf{2. VP-like} (DDPM-inspired):
@@ -253,6 +201,7 @@ provides \emph{analytic supervision} for learning the marginal velocity field \(
     \item \(\boldsymbol{\mu}_t(\vxz)=\alpha(t)\,\vxz\), \(\sigt=\sqrt{1-\alpha^2(t)}\)
     \item \textbf{Mathematical property}: Preserves energy structure
     \item \textbf{Velocity}: \(\mathbf{u}_t(\vx\mid\vxz) = \dot{\alpha}(t)\vxz + \frac{\dot{\sigt}}{\sigt}(\vx-\alpha(t)\vxz)\)
+    \item \textbf{Advantage}: Compatible with existing diffusion model schedules
 \end{itemize}
 
 \textbf{3. VE-like} (SMLD-inspired):
@@ -260,6 +209,7 @@ provides \emph{analytic supervision} for learning the marginal velocity field \(
     \item \(\boldsymbol{\mu}_t(\vxz)=\vxz\), \(\sigt=\sigma(t)\) increasing
     \item \textbf{Mathematical property}: Preserves data structure
     \item \textbf{Velocity}: \(\mathbf{u}_t(\vx\mid\vxz) = \frac{\dot{\sigma}(t)}{\sigma(t)}(\vx-\vxz)\)
+    \item \textbf{Advantage}: Simple form, good for high-dimensional data
 \end{itemize}
 
 \textbf{Key insight}: All choices provide \emph{closed-form} \(\mathbf{u}_t\) via the boxed formula!
@@ -279,9 +229,11 @@ provides \emph{analytic supervision} for learning the marginal velocity field \(
     &= \frac{\dot\sigt}{\sigt}\,\vx + \Big(\dot\alpha - \alpha\,\frac{\dot\sigt}{\sigt}\Big)\,\vxz.
 \end{align}
 No explicit form for \(\dot\sigt/\sigt\) is required to train; schedules determine it numerically.
+
+\textbf{Mathematical insight}: These derivations show how different path choices lead to different velocity field structures, all computable analytically.
 \end{frame}
 
-\section{Training and inference}
+\section{Flow Matching Training and Inference}
 
 \begin{frame}{Flow Matching: mathematical training objective}
 \textbf{Theoretical foundation}: Given conditional paths \(q_t(\vx\mid\vxz)\), the optimal velocity field satisfies:
@@ -302,6 +254,13 @@ No explicit form for \(\dot\sigt/\sigt\) is required to train; schedules determi
 \end{equation}
 
 \textbf{Key mathematical advantage}: No score estimation needed; all targets are analytic!
+
+\textbf{Computational benefits}:
+\begin{itemize}
+    \item Stable gradients (no exploding/vanishing)
+    \item Parallelizable across time steps
+    \item No special architectural requirements
+\end{itemize}
 \end{frame}
 
 \begin{frame}{Mathematical optimality of Flow Matching}
@@ -325,6 +284,8 @@ The cross term vanishes by the tower property, and the second term is minimized 
 \end{proofs}
 
 \textbf{Key insight}: Flow Matching learns the \emph{optimal} velocity field that respects the continuity equation!
+
+\textbf{Practical implications}: This optimality result guarantees that Flow Matching will converge to the best possible velocity field for the chosen conditional paths.
 \end{frame}
 
 \begin{frame}{Mathematical foundation of inference}
@@ -352,10 +313,13 @@ The cross term vanishes by the tower property, and the second term is minimized 
     \item Deterministic sampling (reproducible)
     \item Fast with large solver steps
     \item No stochastic correctors needed
+    \item Flexible step size control
 \end{itemize}
+
+\textbf{Theoretical guarantee}: Under mild conditions, the generated samples will follow the target distribution \(p_0\).
 \end{frame}
 
-\section{Relation to diffusion and score models}
+\section{Connection to Diffusion Models}
 
 \begin{frame}{Mathematical connection to diffusion models}
 \textbf{Theoretical link}: For a forward SDE \(\dd\vx = f(\vx,t)\,\dd t + g(t)\,\dd B_t\), the probability flow ODE is:
@@ -369,6 +333,8 @@ The cross term vanishes by the tower property, and the second term is minimized 
 \end{equation}
 
 \textbf{Crucial advantage}: Flow Matching achieves this approximation \emph{without} ever computing the score \(\grad_{\vx}\log p(\vx,t)\) during training!
+
+\textbf{Practical implications}: This connection allows Flow Matching to inherit the theoretical guarantees of diffusion models while avoiding their computational bottlenecks.
 \end{frame}
 
 \begin{frame}{Mathematical derivation: probability flow ODE}
@@ -390,6 +356,8 @@ The cross term vanishes by the tower property, and the second term is minimized 
 \end{align}
 
 \textbf{Result}: The probability flow ODE drift is \(\mathbf{v} = f - \tfrac{1}{2}g^2\,\grad\log p\).
+
+\textbf{Connection to Flow Matching}: When Flow Matching learns \(\mathbf{v}_\theta\), it approximates this probability flow drift without computing the score \(\grad\log p\).
 \end{frame}
 
 \begin{frame}{Specializing VE/VP-style paths}
@@ -399,9 +367,13 @@ The cross term vanishes by the tower property, and the second term is minimized 
     \item VP-style: \(\boldsymbol{\mu}_t=\alpha(t)\vxz\), \(\sigt=\sqrt{1-\alpha^2(t)}\). Target is \(\mathbf{u}_t=\dot\alpha\,\vxz + \tfrac{\dot\sigt}{\sigt}(\vx-\alpha\vxz)\).
 \end{itemize}
 Averaging over \(\vxz\) under the path recovers the probability flow drift forms used by diffusion models.
+
+\textbf{Mathematical insight}: This shows that Flow Matching can recover the same velocity fields as diffusion models, but through a more direct training procedure.
+
+\textbf{Practical advantage}: Flow Matching avoids the computational overhead of score estimation while achieving equivalent results.
 \end{frame}
 
-\section{Practical recipe}
+\section{Practical Implementation}
 
 \begin{frame}{Complete training recipe}
 \textbf{Step-by-step procedure}:
@@ -417,6 +389,14 @@ Averaging over \(\vxz\) under the path recovers the probability flow drift forms
     \item Use standard optimizers (Adam, AdamW)
     \item Typical learning rates: \(10^{-4}\) to \(10^{-3}\)
     \item Training time similar to diffusion models
+    \item No special architectural requirements beyond standard neural networks
+\end{itemize}
+
+\textbf{Computational advantages}:
+\begin{itemize}
+    \item No score estimation during training
+    \item Stable gradients (no exploding/vanishing)
+    \item Parallelizable across time steps
 \end{itemize}
 \end{frame}
 
@@ -434,47 +414,107 @@ Averaging over \(\vxz\) under the path recovers the probability flow drift forms
     \item \textbf{Accurate}: RK4, Dormand-Prince (10-50 steps)
     \item \textbf{Adaptive}: Use error control for automatic step sizing
 \end{itemize}
+
+\textbf{Sampling advantages}:
+\begin{itemize}
+    \item Deterministic generation (reproducible results)
+    \item Fewer function evaluations than diffusion models
+    \item No stochastic correctors needed
+    \item Flexible step size control
+\end{itemize}
 \end{frame}
 
-\section{MeanFlow: Average Velocity Field}
-\begin{frame}{Motivation}
-    \begin{itemize}
-    \item Goal: map a simple prior (e.g., $\eps\sim \mathcal{N}(0,I)$) to the data distribution $p_{\text{data}}$.
-    \item Diffusion / Flow Matching usually require \emph{multi-step} ODE/SDE integration during sampling.
-    \item Desire: \textbf{single-step (1-NFE)} generation while retaining high fidelity and stability.
-    \item Key idea in MeanFlow: learn a \emph{ground-truth average velocity field} that summarizes an entire time interval.
-    \end{itemize}
-    \end{frame}
+\section{Advanced Topics and Extensions}
+\begin{frame}{Conditional Flow Matching}
+\textbf{Extension to conditional generation}: Instead of unconditional paths, we can define conditional paths \(q_t(\vx\mid\vxz, c)\) where \(c\) represents conditioning information (e.g., class labels, text prompts).
 
-\begin{frame}{Rectified / Flow Matching setup}
-Given schedules $a_t, b_t$ and time $t\in[0,1]$:
-\begin{align}
-\z_t &= a_t\,\x + b_t\,\eps, \\
-\vinst_t &\equiv \dv{\z_t}{t} = a'_t\,\x + b'_t\,\eps. \label{eq:cond-vel}
-\end{align}
-\vspace{0.5em}
-\textbf{Marginal velocity} (ground-truth field for FM):
+\textbf{Mathematical formulation}: The conditional velocity field becomes:
 \begin{equation}
-\vinst(\z_t, t) \;=\; \EE_{p_t(\vinst_t\mid \z_t)}\big[\vinst_t\big].
+    \mathbf{u}_t(\vx\mid\vxz, c) := \EE\big[\tfrac{\dd}{\dd t}\, \vxt \;\big|\; \vxt=\vx,\,\vxz,\,c\big]
 \end{equation}
-\textbf{Training (conditional FM):}
+
+\textbf{Training objective}:
 \begin{equation}
-\mathcal{L}_{\mathrm{CFM}} = \EE_{t,\x,\eps}\,\big\| v_\theta(\z_t,t) - \vinst_t\big\|_2^2, \quad \text{with } \z_t = a_t\x+b_t\eps.
+    J_{\text{CFM}} = \EE\big[\,\|\, \mathbf{v}_\theta(\vxt,t,c) - \mathbf{u}_t(\vxt\mid\vxz,c)\,\|^2\,\big]
 \end{equation}
+
+\textbf{Applications}:
+\begin{itemize}
+    \item Class-conditional generation
+    \item Text-to-image synthesis
+    \item Image-to-image translation
+    \item Style transfer
+\end{itemize}
+
+\textbf{Advantage}: Maintains the same computational efficiency as unconditional Flow Matching while enabling controlled generation.
+\end{frame}
+
+\begin{frame}{Rectified Flow and Optimal Transport}
+\textbf{Rectified Flow}: A special case of Flow Matching that uses straight-line paths:
+\begin{equation}
+    \vxt = (1-t)\vxz + t\vx_1, \quad \mathbf{u}_t(\vx\mid\vxz) = \vx_1 - \vxz
+\end{equation}
+
+\textbf{Mathematical properties}:
+\begin{itemize}
+    \item \textbf{Optimal transport}: Minimizes Wasserstein-2 distance
+    \item \textbf{Simplicity}: Constant velocity field along each path
+    \item \textbf{Efficiency}: Fastest convergence in many cases
+\end{itemize}
+
+\textbf{Connection to optimal transport}: Rectified Flow recovers the optimal transport map between \(p_0\) and \(p_1\) when the data is well-structured.
+
+\textbf{Practical advantages}:
+\begin{itemize}
+    \item Fewer function evaluations during sampling
+    \item More stable training
+    \item Better sample quality in many domains
+\end{itemize}
 \end{frame}
 
 
-\begin{frame}{Sampling in Flow Matching}
-The probability-flow ODE:
-\begin{equation}
-\dv{\z_t}{t} = \vinst(\z_t,t), \qquad \text{(start from }\z_1=\eps\text{)}.
-\end{equation}
-With a discrete solver (Euler): $\;\z_{t_{i+1}}\approx \z_{t_i} + (t_{i+1}-t_i)\,\vinst(\z_{t_i},t_i)$.
-\begin{block}{Issue}
-Coarse discretization along \emph{curved} trajectories leads to significant numerical error $\Rightarrow$ many steps are needed.
-\end{block}
+\begin{frame}{Flow Matching in Latent Spaces}
+\textbf{Motivation}: Instead of working directly in pixel space, Flow Matching can be applied in learned latent representations.
+
+\textbf{Mathematical setup}: Given an encoder \(E: \mathcal{X} \to \mathcal{Z}\) and decoder \(D: \mathcal{Z} \to \mathcal{X}\):
+\begin{itemize}
+    \item Learn flow in latent space: \(\mathbf{v}_\theta: \mathcal{Z} \times [0,1] \to \mathcal{Z}\)
+    \item Generate latent codes: \(\mathbf{z}_0 = \mathbf{z}_1 + \int_0^1 \mathbf{v}_\theta(\mathbf{z}_t, t) dt\)
+    \item Decode to images: \(\mathbf{x} = D(\mathbf{z}_0)\)
+\end{itemize}
+
+\textbf{Advantages}:
+\begin{itemize}
+    \item \textbf{Computational efficiency}: Lower-dimensional space
+    \item \textbf{Sample quality}: Better inductive biases in latent space
+    \item \textbf{Flexibility}: Can use different architectures for encoder/decoder
+\end{itemize}
+
+\textbf{Examples}: Latent Diffusion Models (LDMs), Stable Diffusion
 \end{frame}
 
+
+\section{MeanFlow: Single-Step Generation}
+
+\begin{frame}{MeanFlow: Motivation}
+\textbf{Goal}: Achieve single-step (1-NFE) generation while retaining high fidelity and stability.
+
+\textbf{Problem with standard Flow Matching}: Multi-step ODE integration is computationally expensive and can accumulate errors.
+
+\textbf{Key insight}: Learn a \emph{ground-truth average velocity field} that summarizes an entire time interval.
+
+\textbf{Mathematical formulation}: For any pair \(r<t\) and point \(\z_t\) along the flow path:
+\begin{equation}\label{eq:u-def}
+\uavg(\z_t, r, t) \;\coloneqq\; \frac{1}{t-r} \int_{r}^{t} \vinst(\z_\tau,\tau)\, \dd\tau.
+\end{equation}
+
+\textbf{Properties}:
+\begin{itemize}
+    \item \(\uavg\) is an \textbf{underlying field} induced by \(\vinst\) (no networks yet)
+    \item As \(r\to t\), \(\uavg(\z_t,r,t) \to \vinst(\z_t,t)\)
+    \item Composition over intervals holds: one big step equals two smaller consecutive steps
+\end{itemize}
+\end{frame}
 
 \begin{frame}{Definition: Average Velocity}
 For any pair $r<t$ and point $\z_t$ along the flow path:
@@ -493,7 +533,7 @@ Starting from Eq.~\eqref{eq:u-def}:
 \begin{equation}
 (t-r)\,\uavg(\z_t,r,t) \,=\, \int_r^t \vinst(\z_\tau,\tau)\,\dd\tau.
 \end{equation}
-Differentiate w.r.t. $t$ (treating $r$ as constant) and use the fundamental theorem of calculus:
+Differentiate w.r.t. \(t\) (treating \(r\) as constant) and use the fundamental theorem of calculus:
 \begin{equation}\label{eq:meanflow-identity}
 \boxed{\;\uavg(\z_t,r,t) \,=\, \vinst(\z_t,t) \, - \, (t-r)\,\td\,\uavg(\z_t,r,t)\;}
 \end{equation}
@@ -501,34 +541,47 @@ where the total derivative expands to
 \begin{equation}\label{eq:total-deriv}
 \td\,\uavg(\z_t,r,t) \;=\; \underbrace{\vinst(\z_t,t)}_{\dv{\z_t}{t}}\!\cdot \partial_{\z}\uavg(\z_t,r,t) \; +\; \partial_t\uavg(\z_t,r,t).
 \end{equation}
-\vspace{0.3em}
-\textit{Interpretation:} Eq.~\eqref{eq:meanflow-identity} links instantaneous and average velocities \emph{without} introducing networks.
+
+\textbf{Interpretation}: Eq.~\eqref{eq:meanflow-identity} links instantaneous and average velocities \emph{without} introducing networks.
+
+\textbf{Mathematical significance}: This identity enables learning average velocity fields that can be used for single-step generation.
 \end{frame}
 
 
 \begin{frame}{Trainable objective}
-Parameterize a network $\uavg_\theta(\z, r, t)$. Use the MeanFlow identity to form a target (replace $\vinst$ by sample-conditional $\vinst_t$):
+Parameterize a network \(\uavg_\theta(\z, r, t)\). Use the MeanFlow identity to form a target (replace \(\vinst\) by sample-conditional \(\vinst_t\)):
 \begin{align}
 \text{Target:}\quad \uavg_{\text{tgt}} \;&=\; \vinst_t \; -\; (t-r)\,\big(\underbrace{\vinst_t \cdot \partial_{\z}\uavg_\theta}_{\text{JVP}} + \partial_t\uavg_\theta\big). \\
 \mathcal{L}(\theta) \;&=\; \EE\,\big\|\,\uavg_\theta(\z_t, r, t) - \sg(\uavg_{\text{tgt}})\,\big\|_2^2.
 \end{align}
+
+\textbf{Key components}:
 \begin{itemize}
-\item $\sg(\cdot)$: stop-gradient; avoids higher-order differentiation.
-\item JVP (Jacobian-vector product) computed efficiently via autodiff.
-\item If $r=t$, the correction term vanishes $\Rightarrow$ reduces to standard Flow Matching.
+    \item \(\sg(\cdot)\): stop-gradient; avoids higher-order differentiation
+    \item JVP (Jacobian-vector product) computed efficiently via autodiff
+    \item If \(r=t\), the correction term vanishes \(\Rightarrow\) reduces to standard Flow Matching
 \end{itemize}
+
+\textbf{Mathematical insight}: This objective learns to predict average velocities over time intervals, enabling single-step generation.
 \end{frame}
 
 
 \begin{frame}{Pseudocode (training)}
 \textbf{MeanFlow training algorithm}:
 \begin{enumerate}
-\item Sample $t,r\sim \text{LogitNormal}$; set $t\leftarrow\max(r,t)$, $r\leftarrow\min(r,t)$
-\item Sample $\x\sim p_{\text{data}}$, $\eps\sim\mathcal{N}(0,I)$; set $\z_t=(1-t)\x + t\eps$, $\vinst_t=\eps-\x$
-\item Compute $\big(\uavg_\theta,\; \td\uavg_\theta\big)=\JVP\big(\uavg_\theta(\cdot,r,t), \; (\vinst_t,0,1)\big)$
-\item Set $\uavg_{\text{tgt}}\leftarrow \vinst_t - (t-r)\,\td\uavg_\theta$
-\item Minimize $\;\|\uavg_\theta(\z_t,r,t)-\sg(\uavg_{\text{tgt}})\|_2^2$ (optionally with adaptive weights)
+\item Sample \(t,r\sim \text{LogitNormal}\); set \(t\leftarrow\max(r,t)\), \(r\leftarrow\min(r,t)\)
+\item Sample \(\x\sim p_{\text{data}}\), \(\eps\sim\mathcal{N}(0,I)\); set \(\z_t=(1-t)\x + t\eps\), \(\vinst_t=\eps-\x\)
+\item Compute \(\big(\uavg_\theta,\; \td\uavg_\theta\big)=\JVP\big(\uavg_\theta(\cdot,r,t), \; (\vinst_t,0,1)\big)\)
+\item Set \(\uavg_{\text{tgt}}\leftarrow \vinst_t - (t-r)\,\td\uavg_\theta\)
+\item Minimize \(\;\|\uavg_\theta(\z_t,r,t)-\sg(\uavg_{\text{tgt}})\|_2^2\) (optionally with adaptive weights)
 \end{enumerate}
+
+\textbf{Key innovations}:
+\begin{itemize}
+    \item \textbf{LogitNormal sampling}: Ensures proper time interval distribution
+    \item \textbf{JVP computation}: Efficient higher-order derivatives
+    \item \textbf{Stop-gradient}: Prevents training instability
+\end{itemize}
 \end{frame}
 
 
@@ -537,12 +590,19 @@ Replace the time integral by the learned average velocity:
 \begin{equation}
 \z_r \;=\; \z_t - (t-r)\,\uavg_\theta(\z_t,r,t).
 \end{equation}
-\textbf{1-NFE sampling}: take $(r,t)=(0,1)$, $\z_1=\eps$,
+
+\textbf{1-NFE sampling}: take \((r,t)=(0,1)\), \(\z_1=\eps\),
 \begin{equation}
 \boxed{\;\x \equiv \z_0 = \eps - \uavg_\theta(\eps,0,1)\;}\;.
 \end{equation}
+
+\textbf{Mathematical significance}: This single-step generation maintains the same theoretical guarantees as multi-step Flow Matching.
+
+\textbf{Practical advantages}:
 \begin{itemize}
-\item Few-step variants are immediate by chaining intervals.
+    \item \textbf{Speed}: Single function evaluation
+    \item \textbf{Stability}: No accumulation of integration errors
+    \item \textbf{Flexibility}: Can still use few-step variants by chaining intervals
 \end{itemize}
 \end{frame}
 
@@ -551,21 +611,88 @@ Define a CFG velocity field
 \begin{equation}
 \vinst_{\text{cfg}}(\z_t,t\mid c) \;=\; \omega\,\vinst(\z_t,t\mid c) + (1-\omega)\,\vinst(\z_t,t).
 \end{equation}
+
 \textbf{Key insight}: CFG can be applied directly to the average velocity field:
 \begin{equation}
 \uavg_{\text{cfg}}(\z_t,r,t\mid c) \;=\; \omega\,\uavg(\z_t,r,t\mid c) + (1-\omega)\,\uavg(\z_t,r,t).
 \end{equation}
-This maintains the 1-NFE property while enabling conditional generation.
+
+\textbf{Mathematical property}: This maintains the 1-NFE property while enabling conditional generation.
+
+\textbf{Practical significance}: MeanFlow can achieve both single-step generation and strong conditioning, combining the best of both worlds.
+\end{frame}
+
+\section{Summary and Future Directions}
+
+\begin{frame}{Key Takeaways: Flow Matching}
+\textbf{Mathematical foundations}:
+\begin{itemize}
+    \item Flow Matching learns velocity fields that transport probability distributions via the continuity equation
+    \item Conditional paths provide analytic supervision without score estimation
+    \item The method connects to optimal transport theory and diffusion models
+\end{itemize}
+
+\textbf{Computational advantages}:
+\begin{itemize}
+    \item No score estimation during training
+    \item Deterministic sampling with flexible step sizes
+    \item Stable gradients and efficient training
+\end{itemize}
+
+\textbf{Practical benefits}:
+\begin{itemize}
+    \item Fewer function evaluations than diffusion models
+    \item Better sample quality in many domains
+    \item Natural extension to conditional generation
+\end{itemize}
+
+\textbf{MeanFlow extension}: Enables single-step generation while maintaining theoretical guarantees.
+\end{frame}
+
+\begin{frame}{Future Directions and Open Problems}
+\textbf{Theoretical developments}:
+\begin{itemize}
+    \item \textbf{Path optimization}: Finding optimal conditional paths for specific data distributions
+    \item \textbf{Convergence analysis}: Understanding when Flow Matching achieves optimal transport
+    \item \textbf{Error bounds}: Quantifying approximation errors in finite-sample settings
+\end{itemize}
+
+\textbf{Practical improvements}:
+\begin{itemize}
+    \item \textbf{Architecture design}: Specialized networks for different data modalities
+    \item \textbf{Training strategies}: Adaptive loss weighting and curriculum learning
+    \item \textbf{Sampling efficiency}: Better ODE solvers and step size selection
+\end{itemize}
+
+\textbf{Applications}:
+\begin{itemize}
+    \item \textbf{Scientific computing}: Molecular dynamics, fluid simulation
+    \item \textbf{Creative AI}: Music, video, and 3D content generation
+    \item \textbf{Data augmentation}: Synthetic data for training other models
+\end{itemize}
 \end{frame}
 
 \section{References}
 
-\begin{frame}{Key references and resources}
-\textbf{Core papers}:
+\begin{frame}{Key References}
+\textbf{Core Flow Matching papers}:
 \begin{itemize}
-    \item Lipman et al., \textit{Flow Matching: A unifying perspective of score-based training and generative modeling} (Guide and Code, 2024)
+    \item Lipman et al., \textit{Flow Matching: A unifying perspective of score-based training and generative modeling} (2023)
+    \item Liu et al., \textit{Flow Matching for Generative Modeling} (2023)
+    \item Albergo et al., \textit{Building Normalizing Flows with Stochastic Interpolants} (2023)
+\end{itemize}
+
+\textbf{MeanFlow and extensions}:
+\begin{itemize}
+    \item Song et al., \textit{MeanFlow: A Flow Matching Method for One-Step Generation} (2024)
+    \item Song et al., \textit{Rectified Flow: A Marginal Preserving Approach to Optimal Transport} (2022)
+\end{itemize}
+
+\textbf{Related work}:
+\begin{itemize}
     \item Song et al., \textit{Score-based generative modeling through stochastic differential equations} (2021)
     \item Ho et al., \textit{Denoising Diffusion Probabilistic Models} (2020)
+    \item Chen et al., \textit{Neural Ordinary Differential Equations} (2018)
 \end{itemize}
 
 \textbf{Implementation resources}:
