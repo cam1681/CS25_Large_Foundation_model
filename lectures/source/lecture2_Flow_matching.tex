@@ -106,43 +106,51 @@
 
 \section{Mathematical Foundations of Flow Matching}
 
-\begin{frame}{The continuity equation: mathematical foundation}
-\textbf{Theorem}: Let \(\mathbf{v}(\vx,t)\) be a smooth velocity field. Then the density \(p(\vx,t)\) transported by the ODE \(\dot{\vx} = \mathbf{v}(\vx,t)\) satisfies the continuity equation:
-\begin{equation}
-    \partial_t p(\vx,t) + \grad\cdot\big(p(\vx,t)\,\mathbf{v}(\vx,t)\big) = 0.
-\end{equation}
-
-\textbf{Key insight}: This equation ensures probability conservation as particles flow according to the velocity field.
-
-\textbf{Physical meaning}:
-\begin{itemize}
-    \item \(\partial_t p(\vx,t)\): Rate of change of probability density
-    \item \(\grad\cdot\big(p(\vx,t)\,\mathbf{v}(\vx,t)\big)\): Divergence of probability flux
-    \item The equation states: "Change in density = Net flow in/out"
-\end{itemize}
-
-\textbf{Connection to Flow Matching}: This equation is the fundamental constraint that any learned velocity field must satisfy to properly transport probability distributions.
+\begin{frame}{Fokker--Planck / Forward Kolmogorov}
+\begin{theorem}[Fokker--Planck / Forward Kolmogorov]
+Let $(X_t)_{t\ge 0}\in\mathbb{R}^N$ solve the It\^o SDE
+\[
+dX_t=\mu(X_t,t)\,dt+\boldsymbol{\sigma}(X_t,t)\,dW_t,
+\]
+where $\mu:\mathbb{R}^N\times[0,\infty)\!\to\!\mathbb{R}^N$ is the drift,
+$\boldsymbol{\sigma}:\mathbb{R}^N\times[0,\infty)\!\to\!\mathbb{R}^{N\times M}$ the diffusion, and
+$W_t$ an $M$-dimensional standard Wiener process. 
+Define the diffusion tensor
+\[
+D(x,t)\coloneqq \frac{1}{2}\,\boldsymbol{\sigma}(x,t)\,\boldsymbol{\sigma}(x,t)^{\!\top}\in\mathbb{R}^{N\times N}.
+\]
+Then the (smooth) density $p(x,t)$ satisfies the Fokker--Planck equation
+\[
+\boxed{\;
+\partial_t p(x,t)
+= -\sum_{i=1}^N \frac{\partial}{\partial x_i}\big[\mu_i(x,t)\,p(x,t)\big]
+\;+\;\sum_{i,j=1}^N 
+\frac{\partial^2}{\partial x_i\,\partial x_j}\big[D_{ij}(x,t)\,p(x,t)\big]
+\;}
+\]
+for $t>0$, with $p(x,0)=p_0(x)$.
+\end{theorem}
 \end{frame}
 
-\begin{frame}{Derivation: target velocity for Gaussian path}
-Given \(\vxt=\boldsymbol{\mu}_t(\vxz)+\sigt\veps\) with \(\veps\sim\mathcal{N}(0,\mathbf{I})\),
-\begin{equation}
-    \frac{\dd}{\dd t}\,\vxt = \dot{\boldsymbol{\mu}}_t(\vxz) + \dot{\sigt}\,\veps.
-\end{equation}
-Condition on \(\vxt=\vx\) and \(\vxz\). Since \(\veps=(\vx-\boldsymbol{\mu}_t(\vxz))/\sigt\),
-\begin{align}
-    \mathbf{u}_t(\vx\mid\vxz)
-    &= \EE\big[\tfrac{\dd}{\dd t}\,\vxt\mid \vxt=\vx,\,\vxz\big]\\
-    &= \dot{\boldsymbol{\mu}}_t(\vxz) + \dot{\sigt}\, \EE[\veps\mid\vxt=\vx,\,\vxz]\\
-    &= \dot{\boldsymbol{\mu}}_t(\vxz) + \dot{\sigt}\,\frac{\vx-\boldsymbol{\mu}_t(\vxz)}{\sigt}\\
-    &= \dot{\boldsymbol{\mu}}_t(\vxz) + \frac{\dot{\sigt}}{\sigt}\Big(\vx-\boldsymbol{\mu}_t(\vxz)\Big).
-\end{align}
-
-\textbf{Mathematical insight}: This derivation shows that the conditional velocity field has a simple closed-form expression for Gaussian paths.
-
-\textbf{Practical significance}: This analytic form enables efficient training without numerical differentiation or score estimation.
+\begin{frame}{Isotropic diffusion: $\boldsymbol{\sigma}(x,t)=\sigma(t)\,\mathbf{I}_N$}
+When $\boldsymbol{\sigma}(x,t)=\sigma(t)\,\mathbf{I}_N$, the diffusion tensor becomes
+\[
+D(x,t)=\tfrac{1}{2}\,\sigma(t)^2\,\mathbf{I}_N,
+\qquad
+D_{ij}(x,t)=\tfrac{1}{2}\,\sigma(t)^2\,\delta_{ij}.
+\]
+Hence the Fokker--Planck equation simplifies to the drift--diffusion form
+\[
+\boxed{\;
+\partial_t p(x,t)
+= -\nabla\!\cdot\!\big(\mu(x,t)\,p(x,t)\big)
+\;+\;\frac{\sigma(t)^2}{2}\,\Delta p(x,t)
+\;}
+\]
+where $\nabla\!\cdot(\mu p)=\sum_{i=1}^N \partial_{x_i}\!\big(\mu_i p\big)$ and $\Delta=\sum_{i=1}^N \partial_{x_i}^2$ is the Laplacian.
 \end{frame}
 
+ 
 \begin{frame}{Conditional probability paths: mathematical framework}
 \textbf{Definition}: Given a data distribution \(p_{\text{data}}(\vxz)\) and base distribution \(p_{\text{base}}(\vx)\), we define conditional paths \(q_t(\vx\mid\vxz)\) such that:
 \begin{equation}
@@ -263,31 +271,6 @@ No explicit form for \(\dot\sigt/\sigt\) is required to train; schedules determi
 \end{itemize}
 \end{frame}
 
-\begin{frame}{Mathematical optimality of Flow Matching}
-\textbf{Theorem}: The population minimizer of the Flow Matching objective
-\begin{equation}
-    J_{\text{FM}}(\theta)=\EE\big[\|\mathbf{v}_\theta(\vxt,t)-\mathbf{u}_t(\vxt\mid\vxz)\|^2\big]
-\end{equation}
-is the posterior-averaged velocity field:
-\begin{equation}
-    \mathbf{v}^*(\vx,t)=\EE\big[\,\mathbf{u}_t(\vxt\mid\vxz)\,\big|\,\vxt=\vx,\,t\big].
-\end{equation}
-
-\textbf{Mathematical proof}:
-\begin{proofs}
-Let \(Y=\mathbf{u}_t(\vxt\mid\vxz)\), \(X=(\vxt,t)\). For any predictor \(g(X)\),
-\begin{align}
-\EE[\|Y-g(X)\|^2]&=\EE[\|Y-\EE[Y\mid X]\|^2]+\EE[\|g(X)-\EE[Y\mid X]\|^2] \\
-&\quad + 2\EE[(Y-\EE[Y\mid X])\cdot(g(X)-\EE[Y\mid X])]
-\end{align}
-The cross term vanishes by the tower property, and the second term is minimized when \(g(X)=\EE[Y\mid X]\).
-\end{proofs}
-
-\textbf{Key insight}: Flow Matching learns the \emph{optimal} velocity field that respects the continuity equation!
-
-\textbf{Practical implications}: This optimality result guarantees that Flow Matching will converge to the best possible velocity field for the chosen conditional paths.
-\end{frame}
-
 \begin{frame}{Mathematical foundation of inference}
 \textbf{Theoretical basis}: The learned velocity field \(\mathbf{v}_\theta(\vx,t)\) defines a deterministic ODE:
 \begin{equation}
@@ -313,10 +296,7 @@ The cross term vanishes by the tower property, and the second term is minimized 
     \item Deterministic sampling (reproducible)
     \item Fast with large solver steps
     \item No stochastic correctors needed
-    \item Flexible step size control
 \end{itemize}
-
-\textbf{Theoretical guarantee}: Under mild conditions, the generated samples will follow the target distribution \(p_0\).
 \end{frame}
 
 \section{Connection to Diffusion Models}
