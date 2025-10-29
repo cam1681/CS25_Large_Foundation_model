@@ -11,6 +11,7 @@
 \usepackage{amsmath}  
 \usepackage{amsfonts}  
 \usepackage{amssymb}  
+\usepackage{bbm}
 \usepackage{CJKutf8}
 % Support for \Tilde macro used throughout
 \providecommand{\Tilde}[1]{\tilde{#1}}
@@ -46,6 +47,22 @@
 \newcommand{\sigt}{\sigma_t}
 \newcommand{\veps}{\boldsymbol{\epsilon}}
 \newcommand{\vF}{\mathbf{F}}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Var}{\mathrm{Var}}
+\newcommand{\Cov}{\mathrm{Cov}}
+\newcommand{\1}{\mathbbm{1}}
+\renewcommand{\dd}{\,\mathrm{d}}
+\newcommand{\pd}{\partial}
+\newcommand{\given}{\,|\,}
+\newcommand{\vt}{v(x,t)}
+\newcommand{\vstar}{v^\star}
+\newcommand{\xt}{x_t}
+\newcommand{\xdot}{\dot x_t}
+\newcommand{\ph}{\varphi}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\newtheorem{remark}{Remark}
 
 % Title page details:   
 \title[Understanding Flow Matching]{Understanding Flow Matching from a mathematical view}  
@@ -83,28 +100,113 @@
 \begin{frame}{Outline}
 \tableofcontents
 \end{frame}
-    
-\begin{frame}{Mathematical motivation for Flow Matching}
-\textbf{The fundamental challenge}: Learn a velocity field \(\mathbf{v}(\vx,t)\) that transforms a simple base distribution \(p_1(\vx)\) into the data distribution \(p_0(\vx)\) through the continuity equation:
-\begin{equation}
-    \partial_t p(\vx,t) + \grad\cdot\big(p(\vx,t)\,\mathbf{v}(\vx,t)\big) = 0.
-\end{equation}
 
-\textbf{Key advantages over score-based methods}:
+
+\section{Mathematical motivation for Flow Matching}
+
+\begin{frame}{Probability Path and Coupling}
 \begin{itemize}
-    \item \textbf{No score estimation}: Avoids computing \(\grad_{\vx}\log p(\vx,t)\) during training
-    \item \textbf{Analytic supervision}: Provides closed-form velocity targets via conditional paths
-    \item \textbf{Deterministic sampling}: Enables ODE integration with large solver steps
-    \item \textbf{Mathematical elegance}: Direct connection to optimal transport theory
-    \item \textbf{Computational efficiency}: Simpler training objective and faster inference
+  \item Let $\{p_t\}_{t\in[0,1]}$ be a prescribed path of marginals on $\R^d$ with $p_0$ simple and $p_1$ the data.
+  \item A \emph{coupling} induces random trajectories $t\mapsto \xt$ with instantaneous velocity $\xdot = \frac{\dd}{\dd t} \xt$ (may be stochastic given $\xt$).
+  \item Goal: learn a \emph{deterministic} vector field $v:\R^d\times[0,1]\to\R^d$ such that the ODE
+  \[
+    \frac{\dd}{\dd t} x_t = v( x_t,t),\qquad  x_0\sim p_0,
+  \]
+  yields marginals $ x_t\sim p_t$ for all $t$.
 \end{itemize}
-
-\textbf{Core insight}: Instead of learning to reverse a stochastic process, Flow Matching learns a deterministic flow that directly transports probability mass.
 \end{frame}
-  
-% Presentation slides  
 
-\section{Mathematical Foundations of Flow Matching}
+% \begin{frame}{Distributions and Notation}
+% \begin{itemize}
+%   \item Denote the density of $\xt$ by $p_t(x)$, and the joint law of $(\xt,\xdot)$ by $\mu_t(\dd x,\dd \dot x)$ with conditional density $p(\dot x\given x,t)$.
+%   \item Define the \emph{conditional-mean velocity}
+%   \[
+%     \vstar(x,t) \;:=\; \E[\xdot \mid \xt=x,\,t] \;=\; \int_{\R^d} \dot x \, p(\dot x\given x,t)\,\dd \dot x.
+%   \]
+% \end{itemize}
+% \end{frame}
+
+\begin{frame}{Strong and\ Weak Continuity}
+
+From the Fokker--Planck equation, for $\frac{\dd x}{\dd t} = v(x,t)$, we have
+\[
+\pd_t p_t(x) + \nabla\!\cdot\!\big(p_t(x)\, v(x,t)\big)=0.
+\]
+
+The corresponding weak form of above strong form is
+
+\begin{block}{Weak form (for any test functions $\ph\in C_c^\infty(\R^d)$)}
+\[
+\frac{\dd}{\dd t}\int_{\R^d} \ph(x)\,p_t(x)\,\dd x
+\;=\; \int_{\R^d} \nabla \ph(x)\!\cdot\! v(x,t)\,p_t(x)\,\dd x,
+\]
+i.e., 
+\[\frac{\dd}{\dd t}\,\E[\ph(\xt)]
+= \E[\nabla \ph(\xt)\!\cdot\! \xdot].\]
+\end{block}
+\end{frame}
+
+\begin{frame}{Weak Form from Random Trajectories}
+Let $x_t$ be the coupled trajectory (not necessarily deterministic). For any test function $\ph$,
+\[
+\frac{\dd}{\dd t}\,\E[\ph(\xt)]
+= \E[\nabla \ph(\xt)\!\cdot\! \xdot].
+\]
+Expanding the expectation into integrals at a fixed $t$:
+\begin{align*}
+\E[\nabla \ph(\xt)\!\cdot\! \xdot]
+&= \iint_{\R^d\times \R^d} \nabla\ph(x)\!\cdot\!\dot x \; \mu_t(\dd x,\dd \dot x) \\
+&= \int_{\R^d} \nabla\ph(x)\!\cdot\!\Big(\int \dot x\, p(\dot x\given x,t)\,\dd \dot x\Big)\, p_t(x)\,\dd x \\
+&= \int_{\R^d} \nabla\ph(x)\!\cdot\! \vstar(x,t)\, p_t(x)\,\dd x = \E[\nabla \ph(\xt)\!\cdot\! \vstar(x,t)].
+\end{align*}
+where $\vstar(x,t)\equiv\E[\xdot \mid \xt=x,\,t] = \int_{\R^d} \dot x\, p(\dot x\given x,t)\,\dd \dot x$.
+Thus the random path induces the weak identity with $v=\vstar$.
+\end{frame}
+
+\begin{frame}{Theoretical Support: Conditional Expectation}
+\begin{theorem}
+\label{thm:conditional_expect}
+    Let $X$ be an integrable random variable. Then for each $\sigma$-algebra $\mathcal{V}$ and $Z \in \mathcal{V}$, $Z^* = \mathbb{E}(X| \mathcal{V})$ solves the least square problem %\cite{evans2012introduction}
+    $$\text{argmin}_{Z\in \mathcal{V}} \| Z - X\|\,,$$
+    where $\| Z\| = \left( \int Z^2 dP \right)^{\frac{1}{2}}$.
+\end{theorem}
+
+\begin{figure}
+    \includegraphics[width=0.3\textwidth]{../figures/conditional_expectation.png}
+\end{figure}
+Hence we have $L=\E\|v_\theta(\xt,t)-\xdot\|^2$.
+\end{frame}
+
+\begin{frame}{Practical Training Recipe (Per-Iteration)}
+\begin{enumerate}
+  \item Sample $t\sim w(t)$ (typically uniform on $[0,1]$).
+  \item Sample $(\xt,\xdot)$ from the chosen path coupling.
+  \item Regress $\xdot$ on $(\xt,t)$ via the MSE:
+  \[
+  \mathcal{L} = \big\| v_\theta(\xt,t) - \xdot \big\|^2.
+  \]
+  \item Update $\theta$ by SGD; no density estimation, no reverse simulation is needed during training.
+\end{enumerate}
+\begin{remark}
+Different path/coupling choices change $\vstar$ and the irreducible variance $\E\|\xdot-\vstar\|^2$, affecting sample efficiency and optimization, but the optimal target remains the conditional mean.
+\end{remark}
+\end{frame}
+
+\begin{frame}{Key Takeaways}
+\begin{itemize}
+  \item The correct notion of ``matching the path'' is the \textbf{weak continuity} identity for all test functions.
+  \item The only deterministic field depending on $(x,t)$ that preserves this identity is the \textbf{conditional mean velocity}
+  \[
+  \boxed{\ \vstar(x,t)=\E[\dot x_t\mid x_t=x,\,t]\ }.
+  \]
+  \item The \textbf{flow-matching MSE} is precisely the $L^2$ projection selecting $\vstar$:
+  \[
+  v_\theta \;\xrightarrow[\text{minimize}]{\ \E\|v_\theta(\xt,t)-\xdot\|^2\ }\ \vstar.
+  \]
+\end{itemize}
+\end{frame}
+
+\section{Connection with Diffusion Models}
 
 \begin{frame}{Fokker--Planck / Forward Kolmogorov}
 \begin{theorem}[Fokker--Planck / Forward Kolmogorov]
@@ -150,156 +252,6 @@ Hence the Fokker--Planck equation simplifies to the drift--diffusion form
 where $\nabla\!\cdot(\mu p)=\sum_{i=1}^N \partial_{x_i}\!\big(\mu_i p\big)$ and $\Delta=\sum_{i=1}^N \partial_{x_i}^2$ is the Laplacian.
 \end{frame}
 
- 
-\begin{frame}{Conditional probability paths: mathematical framework}
-\textbf{Definition}: Given a data distribution \(p_{\text{data}}(\vxz)\) and base distribution \(p_{\text{base}}(\vx)\), we define conditional paths \(q_t(\vx\mid\vxz)\) such that:
-\begin{equation}
-    p_t(\vx) = \int p_{\text{data}}(\vxz)\; q_t(\vx\mid\vxz)\, \dd\vxz, \quad t\in[0,1],
-\end{equation}
-with boundary conditions \(p_0=p_{\text{data}}\) and \(p_1=p_{\text{base}}\).
-
-\textbf{Key insight}: The conditional velocity field
-\begin{equation}
-    \mathbf{u}_t(\vx\mid\vxz) := \EE\big[\tfrac{\dd}{\dd t}\, \vxt \;\big|\; \vxt=\vx,\,\vxz\big]
-\end{equation}
-provides \emph{analytic supervision} for learning the marginal velocity field \(\mathbf{v}(\vx,t)\).
-
-\textbf{Mathematical advantage}: No need to estimate \(\grad_{\vx}\log p(\vx,t)\) during training!
-
-\textbf{Connection to optimal transport}: When paths are chosen optimally, Flow Matching recovers Wasserstein-2 geodesics.
-\end{frame}
-
-\section{Conditional Paths and Velocity Targets}
-
-\begin{frame}{Gaussian conditional paths: mathematical derivation}
-\textbf{Assumption}: Gaussian conditional paths
-\begin{equation}
-    q_t(\vx\mid\vxz) = \mathcal{N}\big(\vx;\; \boldsymbol{\mu}_t(\vxz),\, \sigma_t^2\mathbf{I}\big),\quad \vxt = \boldsymbol{\mu}_t(\vxz) + \sigt\veps.
-\end{equation}
-
-\textbf{Mathematical derivation}: Taking the time derivative of the path:
-\begin{equation}
-    \frac{\dd}{\dd t}\,\vxt = \dot{\boldsymbol{\mu}}_t(\vxz) + \dot{\sigt}\,\veps,\quad \veps=\frac{\vxt-\boldsymbol{\mu}_t(\vxz)}{\sigt}.
-\end{equation}
-
-\textbf{Conditional expectation}: Since \(\veps\) is independent of \(\vxt\) given \(\vxz\), we have:
-\begin{align}
-    \mathbf{u}_t(\vx\mid\vxz) &= \EE\big[\tfrac{\dd}{\dd t}\,\vxt \;\big|\; \vxt=\vx,\,\vxz\big] \\
-    &= \dot{\boldsymbol{\mu}}_t(\vxz) + \dot{\sigt}\,\EE[\veps\mid\vxt=\vx,\,\vxz] \\
-    &= \dot{\boldsymbol{\mu}}_t(\vxz) + \dot{\sigt}\,\frac{\vx-\boldsymbol{\mu}_t(\vxz)}{\sigt}
-\end{align}
-
-\textbf{Final result}:
-\begin{equation}
-    \boxed{\;\mathbf{u}_t(\vx\mid\vxz) = \dot{\boldsymbol{\mu}}_t(\vxz) + \frac{\dot{\sigt}}{\sigt}\Big(\vx-\boldsymbol{\mu}_t(\vxz)\Big).\;}
-\end{equation}
-\end{frame}
-
-\begin{frame}{Mathematical analysis of path choices}
-\textbf{1. Linear bridge} (optimal transport):
-\begin{itemize}
-    \item \(\boldsymbol{\mu}_t(\vxz)=(1-t)\,\vxz\), \(\sigt=t\,\sigma_{\max}\)
-    \item \textbf{Mathematical property}: Minimizes Wasserstein-2 distance
-    \item \textbf{Velocity}: \(\mathbf{u}_t(\vx\mid\vxz) = \frac{\sigma_{\max}}{t}(\vx-\vxz)\)
-    \item \textbf{Advantage}: Direct connection to optimal transport theory
-\end{itemize}
-
-\textbf{2. VP-like} (DDPM-inspired):
-\begin{itemize}
-    \item \(\boldsymbol{\mu}_t(\vxz)=\alpha(t)\,\vxz\), \(\sigt=\sqrt{1-\alpha^2(t)}\)
-    \item \textbf{Mathematical property}: Preserves energy structure
-    \item \textbf{Velocity}: \(\mathbf{u}_t(\vx\mid\vxz) = \dot{\alpha}(t)\vxz + \frac{\dot{\sigt}}{\sigt}(\vx-\alpha(t)\vxz)\)
-    \item \textbf{Advantage}: Compatible with existing diffusion model schedules
-\end{itemize}
-
-\textbf{3. VE-like} (SMLD-inspired):
-\begin{itemize}
-    \item \(\boldsymbol{\mu}_t(\vxz)=\vxz\), \(\sigt=\sigma(t)\) increasing
-    \item \textbf{Mathematical property}: Preserves data structure
-    \item \textbf{Velocity}: \(\mathbf{u}_t(\vx\mid\vxz) = \frac{\dot{\sigma}(t)}{\sigma(t)}(\vx-\vxz)\)
-    \item \textbf{Advantage}: Simple form, good for high-dimensional data
-\end{itemize}
-
-\textbf{Key insight}: All choices provide \emph{closed-form} \(\mathbf{u}_t\) via the boxed formula!
-\end{frame}
-
-\begin{frame}{Derivation: VE/VP target forms}
-\small
-\textbf{VE-like.} \(\boldsymbol{\mu}_t(\vxz)=\vxz\), \(\sigt=\sigma(t)\). Then
-\begin{equation}
-    \mathbf{u}_t = 0 + \frac{\dot\sigt}{\sigt}\,(\vx-\vxz).
-\end{equation}
-\textbf{VP-like.} \(\boldsymbol{\mu}_t(\vxz)=\alpha(t)\,\vxz\), \(\sigt=\sqrt{1-\alpha^2(t)}\). Using
-\(\mathbf{u}_t=\dot{\boldsymbol{\mu}}_t + (\dot\sigt/\sigt)(\vx-\boldsymbol{\mu}_t)\), we get
-\begin{align}
-    \mathbf{u}_t(\vx\mid\vxz)
-    &= \dot\alpha\,\vxz + \frac{\dot\sigt}{\sigt}\,\vx - \frac{\dot\sigt}{\sigt}\,\alpha\,\vxz\\
-    &= \frac{\dot\sigt}{\sigt}\,\vx + \Big(\dot\alpha - \alpha\,\frac{\dot\sigt}{\sigt}\Big)\,\vxz.
-\end{align}
-No explicit form for \(\dot\sigt/\sigt\) is required to train; schedules determine it numerically.
-
-\textbf{Mathematical insight}: These derivations show how different path choices lead to different velocity field structures, all computable analytically.
-\end{frame}
-
-\section{Flow Matching Training and Inference}
-
-\begin{frame}{Flow Matching: mathematical training objective}
-\textbf{Theoretical foundation}: Given conditional paths \(q_t(\vx\mid\vxz)\), the optimal velocity field satisfies:
-\begin{equation}
-    \mathbf{v}^*(\vx,t) = \EE_{\vxz\mid\vxt=\vx}\big[\mathbf{u}_t(\vx\mid\vxz)\big]
-\end{equation}
-
-\textbf{Training procedure}:
-\begin{enumerate}
-    \item Sample \(t\sim\mathcal{U}[0,1]\), \(\vxz\sim p_{\text{data}}\), \(\vxt\sim q_t(\cdot\mid\vxz)\)
-    \item Compute analytic target \(\mathbf{u}_t(\vxt\mid\vxz)\) from chosen path
-    \item Minimize regression loss
-\end{enumerate}
-
-\textbf{Mathematical objective}:
-\begin{equation}
-    J_{\text{FM}} = \EE\big[\,\|\, \mathbf{v}_\theta(\vxt,t) - \mathbf{u}_t(\vxt\mid\vxz)\,\|^2\,\big].
-\end{equation}
-
-\textbf{Key mathematical advantage}: No score estimation needed; all targets are analytic!
-
-\textbf{Computational benefits}:
-\begin{itemize}
-    \item Stable gradients (no exploding/vanishing)
-    \item Parallelizable across time steps
-    \item No special architectural requirements
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Mathematical foundation of inference}
-\textbf{Theoretical basis}: The learned velocity field \(\mathbf{v}_\theta(\vx,t)\) defines a deterministic ODE:
-\begin{equation}
-    \frac{\dd}{\dd t}\,\vx = \mathbf{v}_\theta(\vx,t), \quad t\in[0,1]
-\end{equation}
-
-\textbf{Mathematical properties}:
-\begin{itemize}
-    \item \textbf{Existence}: Under Lipschitz conditions, solutions exist and are unique
-    \item \textbf{Consistency}: The ODE preserves the continuity equation
-    \item \textbf{Stability}: Deterministic integration avoids accumulation of stochastic errors
-\end{itemize}
-
-\textbf{Generation process}:
-\begin{enumerate}
-    \item Initialize \(\vx(1)\sim p_1\) (e.g., \(\mathcal{N}(0,\mathbf{I})\))
-    \item Integrate ODE backwards: \(\frac{\dd}{\dd t}\,\vx = \mathbf{v}_\theta(\vx,t)\), \(t:1\to 0\)
-    \item Use standard ODE solvers (Euler, RK4, Dormand-Prince, etc.)
-\end{enumerate}
-
-\textbf{Mathematical advantages}:
-\begin{itemize}
-    \item Deterministic sampling (reproducible)
-    \item Fast with large solver steps
-    \item No stochastic correctors needed
-\end{itemize}
-\end{frame}
-
-\section{Connection to Diffusion Models}
 
 \begin{frame}{Mathematical connection to diffusion models}
 \textbf{Theoretical link}: For a forward SDE \(\dd\vx = f(\vx,t)\,\dd t + g(t)\,\dd B_t\), the probability flow ODE is:
@@ -340,69 +292,131 @@ No explicit form for \(\dot\sigt/\sigt\) is required to train; schedules determi
 \textbf{Connection to Flow Matching}: When Flow Matching learns \(\mathbf{v}_\theta\), it approximates this probability flow drift without computing the score \(\grad\log p\).
 \end{frame}
 
-\begin{frame}{Specializing VE/VP-style paths}
-\small
-\begin{itemize}
-    \item VE-style: \(\boldsymbol{\mu}_t(\vxz)=\vxz\). Target becomes \(\mathbf{u}_t=\tfrac{\dot\sigt}{\sigt}(\vx-\vxz)\).
-    \item VP-style: \(\boldsymbol{\mu}_t=\alpha(t)\vxz\), \(\sigt=\sqrt{1-\alpha^2(t)}\). Target is \(\mathbf{u}_t=\dot\alpha\,\vxz + \tfrac{\dot\sigt}{\sigt}(\vx-\alpha\vxz)\).
-\end{itemize}
-Averaging over \(\vxz\) under the path recovers the probability flow drift forms used by diffusion models.
 
-\textbf{Mathematical insight}: This shows that Flow Matching can recover the same velocity fields as diffusion models, but through a more direct training procedure.
+\section{Conditional Paths and Velocity Targets}
 
-\textbf{Practical advantage}: Flow Matching avoids the computational overhead of score estimation while achieving equivalent results.
+\begin{frame}{Gaussian conditional paths: mathematical derivation}
+\textbf{Assumption}: Gaussian conditional paths
+\begin{equation}
+    q_t(\vx\mid\vxz) = \mathcal{N}\big(\vx;\; \boldsymbol{\mu}_t(\vxz),\, \sigma_t^2\mathbf{I}\big),\quad \vxt = \boldsymbol{\mu}_t(\vxz) + \sigt\veps.
+\end{equation}
+
+\textbf{Mathematical derivation}: Taking the time derivative of the path:
+\begin{equation}
+    \frac{\dd}{\dd t}\,\vxt = \dot{\boldsymbol{\mu}}_t(\vxz) + \dot{\sigt}\,\veps,\quad \veps=\frac{\vxt-\boldsymbol{\mu}_t(\vxz)}{\sigt}.
+\end{equation}
+
+\textbf{Conditional expectation}: Since \(\veps\) is independent of \(\vxt\) given \(\vxz\), we have:
+
+\begin{equation}
+    \boxed{\;v = \dot{\boldsymbol{\mu}}_t(\vxz) + \frac{\dot{\sigt}}{\sigt}\Big(\vx-\boldsymbol{\mu}_t(\vxz)\Big).\;}
+\end{equation}
 \end{frame}
 
-\section{Practical Implementation}
-
-\begin{frame}{Complete training recipe}
-\textbf{Step-by-step procedure}:
-\begin{enumerate}
-    \item \textbf{Sample data}: \(\vxz\sim p_{\text{data}}\), \(t\sim\mathcal{U}[0,1]\), \(\veps\sim \mathcal{N}(0,\mathbf{I})\)
-    \item \textbf{Forward pass}: \(\vxt = \boldsymbol{\mu}_t(\vxz) + \sigt\veps\)
-    \item \textbf{Compute target}: \(\mathbf{u}_t(\vxt\mid\vxz) = \dot{\boldsymbol{\mu}}_t(\vxz) + (\dot\sigt/\sigt)(\vxt-\boldsymbol{\mu}_t(\vxz))\)
-    \item \textbf{Regression loss}: \(\|\mathbf{v}_\theta(\vxt,t)-\mathbf{u}_t(\vxt\mid\vxz)\|^2\)
-\end{enumerate}
-
-\textbf{Implementation notes}:
+\begin{frame}{Mathematical analysis of path choices}
+\textbf{1. Linear bridge} (optimal transport):
 \begin{itemize}
-    \item Use standard optimizers (Adam, AdamW)
-    \item Typical learning rates: \(10^{-4}\) to \(10^{-3}\)
-    \item Training time similar to diffusion models
-    \item No special architectural requirements beyond standard neural networks
+    \item \(\boldsymbol{\mu}_t(\vxz)=(1-t)\,\vxz\), \(\sigt=t\,\sigma_{\max}\)
+    \item \textbf{Mathematical property}: Minimizes Wasserstein-2 distance
+    \item \textbf{Velocity}: \(v = \frac{\sigma_{\max}}{t}(\vx-\vxz)\)
+    \item \textbf{Advantage}: Direct connection to optimal transport theory
 \end{itemize}
 
-\textbf{Computational advantages}:
+\textbf{2. VP-like} (DDPM-inspired):
 \begin{itemize}
-    \item No score estimation during training
+    \item \(\boldsymbol{\mu}_t(\vxz)=\alpha(t)\,\vxz\), \(\sigt=\sqrt{1-\alpha^2(t)}\)
+    \item \textbf{Mathematical property}: Preserves energy structure
+    \item \textbf{Velocity}: \(v = \dot{\alpha}(t)\vxz + \frac{\dot{\sigt}}{\sigt}(\vx-\alpha(t)\vxz)\)
+    \item \textbf{Advantage}: Compatible with existing diffusion model schedules
+\end{itemize}
+
+\textbf{3. VE-like} (SMLD-inspired):
+\begin{itemize}
+    \item \(\boldsymbol{\mu}_t(\vxz)=\vxz\), \(\sigt=\sigma(t)\) increasing
+    \item \textbf{Mathematical property}: Preserves data structure
+    \item \textbf{Velocity}: \(v = \frac{\dot{\sigma}(t)}{\sigma(t)}(\vx-\vxz)\)
+    \item \textbf{Advantage}: Simple form, good for high-dimensional data
+\end{itemize}
+
+\textbf{Key insight}: All choices provide \emph{closed-form} \(\mathbf{u}_t\) via the boxed formula!
+\end{frame}
+
+\begin{frame}{Derivation: VE/VP target forms}
+\small
+\textbf{VE-like.} \(\boldsymbol{\mu}_t(\vxz)=\vxz\), \(\sigt=\sigma(t)\). Then
+\begin{equation}
+    v = 0 + \frac{\dot\sigt}{\sigt}\,(\vx-\vxz).
+\end{equation}
+\textbf{VP-like.} \(\boldsymbol{\mu}_t(\vxz)=\alpha(t)\,\vxz\), \(\sigt=\sqrt{1-\alpha^2(t)}\). Using
+\(\mathbf{u}_t=\dot{\boldsymbol{\mu}}_t + (\dot\sigt/\sigt)(\vx-\boldsymbol{\mu}_t)\), we get
+\begin{align}
+    v
+    &= \dot\alpha\,\vxz + \frac{\dot\sigt}{\sigt}\,\vx - \frac{\dot\sigt}{\sigt}\,\alpha\,\vxz\\
+    &= \frac{\dot\sigt}{\sigt}\,\vx + \Big(\dot\alpha - \alpha\,\frac{\dot\sigt}{\sigt}\Big)\,\vxz.
+\end{align}
+No explicit form for \(\dot\sigt/\sigt\) is required to train; schedules determine it numerically.
+
+\textbf{Mathematical insight}: These derivations show how different path choices lead to different velocity field structures, all computable analytically.
+\end{frame}
+
+\section{Flow Matching Training and Inference}
+
+\begin{frame}{Flow Matching: mathematical training objective}
+\textbf{Theoretical foundation}: Given conditional paths \(q_t(\vx\mid\vxz)\), the optimal velocity field satisfies:
+\begin{equation}
+    \vstar(x,t)=\E[\dot x_t\mid x_t=x,\,t]
+\end{equation}
+
+\textbf{Training procedure}:
+\begin{enumerate}
+    \item Sample \(t\sim\mathcal{U}[0,1]\), \(\vxz\sim p_{\text{data}}\), \(\vxt\sim q_t(\cdot\mid\vxz)\)
+    \item Compute analytic target \(\mathbf{u}_t(\vxt\mid\vxz)\) from chosen path
+    \item Minimize regression loss
+\end{enumerate}
+
+\textbf{Mathematical objective}:
+\begin{equation}
+    J_{\text{FM}} = \EE\big[\,\|\, \mathbf{v}_\theta(\vxt,t) - v\,\|^2\,\big].
+\end{equation}
+
+\textbf{Key mathematical advantage}: No score estimation needed; all targets are analytic!
+
+\textbf{Computational benefits}:
+\begin{itemize}
     \item Stable gradients (no exploding/vanishing)
     \item Parallelizable across time steps
+    \item No special architectural requirements
 \end{itemize}
 \end{frame}
 
-\begin{frame}{Complete inference recipe}
-\textbf{Generation procedure}:
+\begin{frame}{Mathematical foundation of inference}
+\textbf{Theoretical basis}: The learned velocity field \(\mathbf{v}_\theta(\vx,t)\) defines a deterministic ODE:
+\begin{equation}
+    \frac{\dd}{\dd t}\,\vx = \mathbf{v}_\theta(\vx,t), \quad t\in[0,1]
+\end{equation}
+
+\textbf{Mathematical properties}:
+\begin{itemize}
+    \item \textbf{Existence}: Under Lipschitz conditions, solutions exist and are unique
+    \item \textbf{Consistency}: The ODE preserves the continuity equation
+    \item \textbf{Stability}: Deterministic integration avoids accumulation of stochastic errors
+\end{itemize}
+
+\textbf{Generation process}:
 \begin{enumerate}
-    \item \textbf{Initialize}: \(\vx(1)\sim p_1\) (e.g., \(\mathcal{N}(0,\mathbf{I})\))
-    \item \textbf{ODE integration}: \(\dot{\vx}=\mathbf{v}_\theta(\vx,t)\) from \(t=1\) to \(t=0\)
-    \item \textbf{Optional}: Add predictor-corrector steps for higher quality
+    \item Initialize \(\vx(1)\sim p_1\) (e.g., \(\mathcal{N}(0,\mathbf{I})\))
+    \item Integrate ODE backwards: \(\frac{\dd}{\dd t}\,\vx = \mathbf{v}_\theta(\vx,t)\), \(t:1\to 0\)
+    \item Use standard ODE solvers (Euler, RK4, Dormand-Prince, etc.)
 \end{enumerate}
 
-\textbf{Solver recommendations}:
+\textbf{Mathematical advantages}:
 \begin{itemize}
-    \item \textbf{Fast}: Euler method (1-10 steps)
-    \item \textbf{Accurate}: RK4, Dormand-Prince (10-50 steps)
-    \item \textbf{Adaptive}: Use error control for automatic step sizing
-\end{itemize}
-
-\textbf{Sampling advantages}:
-\begin{itemize}
-    \item Deterministic generation (reproducible results)
-    \item Fewer function evaluations than diffusion models
+    \item Deterministic sampling (reproducible)
+    \item Fast with large solver steps
     \item No stochastic correctors needed
-    \item Flexible step size control
 \end{itemize}
 \end{frame}
+
 
 \section{Advanced Topics and Extensions}
 \begin{frame}{Conditional Flow Matching}
@@ -415,7 +429,7 @@ Averaging over \(\vxz\) under the path recovers the probability flow drift forms
 
 \textbf{Training objective}:
 \begin{equation}
-    J_{\text{CFM}} = \EE\big[\,\|\, \mathbf{v}_\theta(\vxt,t,c) - \mathbf{u}_t(\vxt\mid\vxz,c)\,\|^2\,\big]
+    J_{\text{CFM}} = \EE\big[\,\|\, \mathbf{v}_\theta(\vxt,t,c) - v\,\|^2\,\big]
 \end{equation}
 
 \textbf{Applications}:
@@ -432,7 +446,7 @@ Averaging over \(\vxz\) under the path recovers the probability flow drift forms
 \begin{frame}{Rectified Flow and Optimal Transport}
 \textbf{Rectified Flow}: A special case of Flow Matching that uses straight-line paths:
 \begin{equation}
-    \vxt = (1-t)\vxz + t\vx_1, \quad \mathbf{u}_t(\vx\mid\vxz) = \vx_1 - \vxz
+    \vxt = (1-t)\vxz + t\vx_1, \quad v = \vx_1 - \vxz
 \end{equation}
 
 \textbf{Mathematical properties}:
