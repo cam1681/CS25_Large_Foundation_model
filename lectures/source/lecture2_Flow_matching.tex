@@ -293,6 +293,27 @@ where $\nabla\!\cdot(\mu p)=\sum_{i=1}^N \partial_{x_i}\!\big(\mu_i p\big)$ and 
 \end{frame}
 
 
+\begin{frame}{Questions}
+    From 
+        \begin{enumerate}
+            \item Score model $s_\theta(x_t)\to s_{\theta^*}(x_t)\equiv\mathbb{E}[\nabla \log p(x_t|x_0)\mid x_t]$
+            \item $X$ prediction model ( denoising model, $x0$ model) $x_\theta(x_t) \to x_{\theta^*}(x_t)\equiv \mathbb{E}[x_0\mid x_t]$;
+            \item $\epsilon$ prediction model $\epsilon_\theta(x_t)\to\epsilon_{\theta^*}(x_t)\equiv\mathbb{E}[\epsilon\mid x_t]$.
+        \end{enumerate}
+    and 
+    \[\vstar(x_t)=\E[\dot x_t\mid x_t]\],
+    what is the relationship between optimal $v_\theta(x,t)$ and the above models?
+    Hints:
+    \begin{equation}
+        v_{\theta^*}(x_t) = \E[\dot x_t\mid x_t] = \E[\dot{\alpha}(t)x_t + \dot{\sigma}(t)\epsilon\mid x_t].
+    \end{equation}
+    and 
+    \begin{equation}
+        s(x_t) = \mathbb{E}_x[\nabla_{x_t} \log p(x_t|x_0)| x_t]=\mathbb{E}_x[-\frac{x_t-\alpha x_0}{\sigma^2}| x_t] = -\frac{x_t-\alpha \mathbb{E}[x_0|x_t]}{\sigma^2}.
+    \end{equation}
+        
+\end{frame}
+
 \section{Conditional Paths and Velocity Targets}
 
 \begin{frame}{Gaussian conditional paths: mathematical derivation}
