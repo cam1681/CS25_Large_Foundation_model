@@ -142,16 +142,19 @@ The corresponding weak form of above strong form is
 \]
 i.e., 
 \[\frac{\dd}{\dd t}\,\E[\ph(\xt)]
-= \E[\nabla \ph(\xt)\!\cdot\! \xdot].\]
+= \E[\nabla \ph(\xt)\!\cdot\! v(x,t)].\]
 \end{block}
 \end{frame}
 
 \begin{frame}{Weak Form from Random Trajectories}
-Let $x_t$ be the coupled trajectory (not necessarily deterministic). For any test function $\ph$,
+Let $x_t$ be the coupled trajectory (not necessarily deterministic). For any test function $\phi\in C_c^\infty(\R^d)$,
+we have
 \[
 \frac{\dd}{\dd t}\,\E[\ph(\xt)]
-= \E[\nabla \ph(\xt)\!\cdot\! \xdot].
-\]
+= \E[\nabla \ph(\xt)\!\cdot\! \xdot],
+\] 
+by the expectation of the derivative of the test function.
+
 Expanding the expectation into integrals at a fixed $t$:
 \begin{align*}
 \E[\nabla \ph(\xt)\!\cdot\! \xdot]
