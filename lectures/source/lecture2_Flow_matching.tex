@@ -11,7 +11,9 @@
 \usepackage{amsmath}  
 \usepackage{amsfonts}  
 \usepackage{amssymb}  
-\usepackage{bbm}
+% Define \mathbbm{1} manually (replaces bbm package)
+% bbm provides bold indicator function
+\newcommand{\mathbbm}[1]{\boldsymbol{#1}}
 \usepackage{CJKutf8}
 % Support for \Tilde macro used throughout
 \providecommand{\Tilde}[1]{\tilde{#1}}
@@ -114,6 +116,11 @@
   \]
   yields marginals $ x_t\sim p_t$ for all $t$.
 \end{itemize}
+
+\begin{remark}
+    We can depict the flow matching and diffusion through the probability transition v.s. the trajectories. And also, we can connect the Neural ODE with the Flow matching.
+\end{remark}
+
 \end{frame}
 
 % \begin{frame}{Distributions and Notation}
@@ -536,7 +543,7 @@ No explicit form for \(\dot\sigt/\sigt\) is required to train; schedules determi
 
 \begin{frame}{Definition: Average Velocity}
 For any pair $r<t$ and point $\z_t$ along the flow path:
-\begin{equation}\label{eq:u-def}
+\begin{equation}\label{eq:avg-vel-def}
 \uavg(\z_t, r, t) \;\coloneqq\; \frac{1}{t-r} \int_{r}^{t} \vinst(\z_\tau,\tau)\, \dd\tau.
 \end{equation}
 \begin{itemize}
@@ -695,28 +702,17 @@ Define a CFG velocity field
 \begin{frame}{Key References}
 \textbf{Core Flow Matching papers}:
 \begin{itemize}
-    \item Lipman et al., \textit{Flow Matching: A unifying perspective of score-based training and generative modeling} (2023)
-    \item Liu et al., \textit{Flow Matching for Generative Modeling} (2023)
-    \item Albergo et al., \textit{Building Normalizing Flows with Stochastic Interpolants} (2023)
-\end{itemize}
-
-\textbf{MeanFlow and extensions}:
-\begin{itemize}
-    \item Song et al., \textit{MeanFlow: A Flow Matching Method for One-Step Generation} (2024)
-    \item Song et al., \textit{Rectified Flow: A Marginal Preserving Approach to Optimal Transport} (2022)
-\end{itemize}
-
-\textbf{Related work}:
-\begin{itemize}
-    \item Song et al., \textit{Score-based generative modeling through stochastic differential equations} (2021)
-    \item Ho et al., \textit{Denoising Diffusion Probabilistic Models} (2020)
-    \item Chen et al., \textit{Neural Ordinary Differential Equations} (2018)
+    \item Lipman et al., \textit{Flow Matching for Generative Modeling} (2022)
+    \item Geng et al., \textit{MeanFlow: A Flow Matching Method for One-Step Generation} (2025)
+    \item Liu et al., \textit{Learning to Generate and Transfer Data with Rectified Flow} (2022)
+    \item Song et al., \textit{Score-based generative modeling through stochastic differential equations} (2020)
+    \item Albergo et al., \textit{stochastic interpolants: a unifying framework for flows and diffusions} (2023)
 \end{itemize}
 
 \textbf{Implementation resources}:
 \begin{itemize}
     \item Flow Matching Guide and Code (GitHub)
-    \item Open source libraries: diffusers, torchdyn
+    \item Open source libraries: diffusers
     \item Tutorial notebooks and examples
 \end{itemize}
 \end{frame}
