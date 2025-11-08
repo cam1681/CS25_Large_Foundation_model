@@ -30,6 +30,7 @@
 \newcommand{\dd}{\mathrm{d}}
 \newcommand{\kbT}{k_B T}
 \newcommand{\vx}{\mathbf{x}}
+\newcommand{\Stiefel}[2]{\mathrm{St}(#1,#2)}
 
 % Bold vector/time-indexed variables
 \newcommand{\vxz}{\mathbf{x}_0}
@@ -132,7 +133,7 @@ The physics loss becomes:
 where $u_{NN}(x,t;\theta)$ is the neural network approximation.
 \end{frame}
 
-\begin{frame}{Advantages of PINNs}
+\begin{frame}{Advantages and limitations of PINNs}
 \begin{itemize}
     \item \textbf{No mesh required}: Unlike traditional numerical methods
     \item \textbf{Unified framework}: Handle forward and inverse problems
@@ -147,6 +148,158 @@ where $u_{NN}(x,t;\theta)$ is the neural network approximation.
     \item May struggle with complex geometries
 \end{itemize}
 \end{frame}
+
+\begin{frame}{Make PINN great again?}
+    \begin{itemize}
+        \item \textbf{Regularization}: Add regularization to the loss function
+        \item \textbf{Transfer learning}: Use a pre-trained model as a starting point
+        \item \textbf{Ensemble learning}: Use multiple models to make a prediction
+        \item \textbf{Active learning}: Select the most informative data points to label
+        \item \textbf{Optimizer}: New Optimizers on Stiefel manifold.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Stiefel Manifold: Setting}
+  \textbf{Motivation}
+  \begin{itemize}
+    \item Control the Lipschitz behavior of linear layers by constraining weight matrices.
+    \item Prefer matrices whose singular values are all $1$ (unit conditioning).
+  \end{itemize}
+
+  \vspace{0.5em}
+  \textbf{Definition}
+  \[
+    \Stiefel{m}{n}
+    := \{ W \in \mathbb{R}^{m \times n} \mid W^\top W = I_n \},
+    \quad m \ge n.
+  \]
+
+  \begin{itemize}
+    \item Columns of $W$ are orthonormal.
+    \item Generalizes the unit sphere constraint $\|w\|_2 = 1$ to matrices.
+  \end{itemize}
+\end{frame}
+%------------------------------------------------
+\begin{frame}{Tangent Space on the Stiefel Manifold}
+  For $W \in \Stiefel{m}{n}$, a matrix $A \in \mathbb{R}^{m \times n}$ is
+  tangent at $W$ iff
+  \[
+    A^\top W + W^\top A = 0.
+  \]
+
+  \begin{itemize}
+    \item This is the matrix analogue of $a^\top w = 0$ on the sphere.
+    \item Any valid update direction must satisfy this tangent constraint
+          to remain (locally) feasible.
+  \end{itemize}
+
+  \vspace{0.5em}
+  \textbf{Manifold optimization recipe}
+  \begin{enumerate}
+    \item Project gradient onto tangent space.
+    \item Take a constrained step.
+    \item Retract back to the manifold.
+  \end{enumerate}
+\end{frame}
+%------------------------------------------------
+\begin{frame}{From Spectral Norm Control to Manifold Muon}
+  Let $G = \nabla_W L(W)$ be the Euclidean gradient.
+
+  We seek a steepest descent step $A$ that:
+  \begin{itemize}
+    \item Aligns with $-G$ (reduces loss),
+    \item Has bounded size in spectral norm,
+    \item Respects the Stiefel tangent constraint.
+  \end{itemize}
+
+  \vspace{0.5em}
+  This leads to the \textbf{manifold Muon} subproblem:
+  \[
+    \min_{A \in \mathbb{R}^{m \times n}}
+      \mathrm{trace}(G^\top A)
+    \quad \text{s.t.} \quad
+    \|A\|_{\mathrm{spectral}} \le \eta,
+    \quad
+    A^\top W + W^\top A = 0.
+  \]
+
+  \begin{itemize}
+    \item Convex problem combining:
+      \begin{itemize}
+        \item size constraint (spectral norm ball),
+        \item geometric constraint (tangent space).
+      \end{itemize}
+  \end{itemize}
+\end{frame}
+%------------------------------------------------
+\begin{frame}{Dual Ascent Solution Sketch}
+  Introduce a matrix Lagrange multiplier $\Lambda \in \mathbb{R}^{n \times n}$ 
+  for the tangent constraint.
+
+  \vspace{0.5em}
+  The dual problem can be solved numerically via \textbf{dual ascent}:
+  \begin{enumerate}
+    \item Update dual variable:
+      \[
+        \Lambda \leftarrow \Lambda + \alpha \, H(\Lambda),
+      \]
+      where $H(\Lambda)$ encodes the optimality condition
+      (fixed-point / gradient ascent on the dual).
+    \item Form effective gradient:
+      \[
+        \tilde{G}(\Lambda) = G + 2 W (\Lambda + \Lambda^\top).
+      \]
+    \item Optimal constrained step:
+      \[
+        A_{\mathrm{opt}}
+          = - \eta \, \mathrm{msign}\!\big(\tilde{G}(\Lambda_{\mathrm{opt}})\big),
+      \]
+      where $\mathrm{msign}(\cdot)$ is the matrix sign operator
+      (spectral-norm analogue of $\mathrm{sign}$).
+  \end{enumerate}
+\end{frame}
+%------------------------------------------------
+\begin{frame}{Update \& Retraction on the Stiefel Manifold}
+  Given $A_{\mathrm{opt}}$ from the dual ascent procedure:
+  \begin{enumerate}
+    \item \textbf{Weight update}:
+      \[
+        W' = W + A_{\mathrm{opt}}.
+      \]
+    \item \textbf{Retraction back to Stiefel}:
+      \[
+        W_{\mathrm{new}} = \mathrm{msign}(W'),
+      \]
+      i.e.\ project $W'$ to the nearest (in spectral sense)
+      Stiefel point using the matrix sign operator.
+  \end{enumerate}
+
+  \vspace{0.5em}
+  \textbf{Key properties}
+  \begin{itemize}
+    \item Preserves $W_{\mathrm{new}}^\top W_{\mathrm{new}} = I_n$.
+    \item Controls the Lipschitz constant of the linear map
+          $x \mapsto W x$ via spectral norm budgeting.
+    \item Fits into a modular framework:
+          \texttt{StiefelLinear} = (forward $Wx$, Stiefel manifold, spectral norm).
+  \end{itemize}
+\end{frame}
+%------------------------------------------------
+\begin{frame}{Conceptual Summary}
+  \begin{itemize}
+    \item Stiefel manifold: orthonormal-column weight matrices with unit conditioning.
+    \item Optimization: solve a convex ``best descent direction'' problem
+          under spectral norm and tangent constraints (manifold Muon).
+    \item Algorithm: dual ascent on Lagrange multipliers
+          $\Rightarrow$ constrained update $A_{\mathrm{opt}}$
+          $\Rightarrow$ matrix-sign retraction to stay on the manifold.
+    \item Outcome: principled, geometry-aware updates with controlled sensitivity,
+          composable in larger modular-manifold architectures.
+  \end{itemize}
+\end{frame}
+%--------------
+
+
 
 \section{Molecular Property Prediction}
 
