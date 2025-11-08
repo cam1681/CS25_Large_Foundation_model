@@ -277,14 +277,14 @@ H_i &= \attn(X W_i^Q,\, X W_i^K,\, X W_i^V),\quad i=1,\dots,h.
 \begin{frame}{Understanding the Transformer architecture from a mathematical view}
 \begin{itemize}
     \item Input embedding: $X \in \R^{n\times d}$;
-    \item Query, key, value projections: $Q = X W_Q$, $K = X W_K$, $V = X W_V$;
+    \item Query, key, value projections: $Q = X W_Q$, $K = X W_K$, $V = X W_V$; (Notatiion slightly different from the original paper)
     \item Attention: $A = \softmax(QK^\top / \sqrt{d_k}) + M$;
     \item Output: $O = AV$;
 \end{itemize}
 
 \vspace{-0.5em}
 \begin{center}
-\begin{tikzpicture}[scale=0.8, every node/.style={scale=0.8}, node distance=0.3cm]
+\begin{tikzpicture}[scale=0.7, every node/.style={scale=0.7}, node distance=0.21cm]
     % Input X
     \node[draw, rectangle, minimum width=1.5cm, minimum height=2cm, fill=blue!20] (X) at (0,0) {$X$};
     \node[below=of X] {$n \times d$};
@@ -499,7 +499,7 @@ If you are interested in these questions, please feel free to write an email to 
 
 \begin{enumerate}[(1.)]
     \item How can we design better non-autoregressive models that maintain quality while enabling parallel generation?
-    \item What are the fundamental limits of autoregressive modeling? Can we prove lower bounds on the required model size for certain tasks?
+    \item Could we use auto-regressive models to model the joint distribution of images and text naturally?
     \item How do we balance the trade-off between generation speed and quality in practical applications?
     \item What role do autoregressive models play in the broader landscape of generative AI, and how do they compare to diffusion models and other approaches?
     \item Can we develop theoretical frameworks to understand when autoregressive models will succeed or fail?
