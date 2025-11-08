@@ -23,6 +23,8 @@
   {\usebeamertemplate{proof end}}
 \makeatother
 
+\newtheorem{remark}{Remark}
+
 % Math shorthand and vector symbols
 \newcommand{\grad}{\nabla}
 \newcommand{\EE}{\mathbb{E}}
@@ -115,7 +117,7 @@ Given a dataset $\mathcal{D} = \{x^{(i)}\}_{i=1}^N$ sampled from an unknown dist
     \item \textbf{Problem:} Direct likelihood computation often intractable
     \item \textbf{Latent Variable Models:}
     \begin{equation}
-        p_\theta(x) = \int p_\theta(x|z) p_\theta(z) dz
+        p_\theta(x) = \int p_\theta(x|z) p(z) dz
     \end{equation}
     \item \textbf{Problem:} Integration over latent space $z$ is typically intractable
 \end{itemize}
@@ -126,7 +128,7 @@ Given a dataset $\mathcal{D} = \{x^{(i)}\}_{i=1}^N$ sampled from an unknown dist
 \section{Variational Inference: The Foundation}
 
 \begin{frame}{Variational Inference Framework}
-Given a latent variable model $p_\theta(x,z) = p_\theta(x|z)p_\theta(z)$, we want to:
+Given a latent variable model $p_\theta(x,z) = p_\theta(x|z)p(z)$, we want to:
 \begin{itemize}
     \item Approximate the intractable posterior $p_\theta(z|x)$
     \item Maximize the marginal likelihood $p_\theta(x)$
@@ -147,7 +149,7 @@ The KL divergence can be decomposed as:
 
 where the \textcolor{red}{Evidence Lower Bound} is:
 \begin{equation}
-\ELBO(x; \theta, \phi) = \EE_{q_\phi(z|x)}[\log p_\theta(x|z)] - \KL(q_\phi(z|x) \| p_\theta(z))
+\ELBO(x; \theta, \phi) = \EE_{q_\phi(z|x)}[\log p_\theta(x|z)] - \KL(q_\phi(z|x) \| p(z))
 \end{equation}
 
 \textbf{Key insight:} Since $\KL \geq 0$, we have:
@@ -161,7 +163,7 @@ Maximizing ELBO $\Leftrightarrow$ Minimizing KL divergence $\Leftrightarrow$ App
 \begin{frame}{ELBO Interpretation}
 The ELBO can be rewritten as:
 \begin{equation}
-\ELBO(x; \theta, \phi) = \EE_{q_\phi(z|x)}[\log p_\theta(x|z)] - \KL(q_\phi(z|x) \| p_\theta(z))
+\ELBO(x; \theta, \phi) = \EE_{q_\phi(z|x)}[\log p_\theta(x|z)] - \KL(q_\phi(z|x) \| p(z))
 \end{equation}
 
 \textbf{Two components:}
@@ -171,9 +173,9 @@ The ELBO can be rewritten as:
         \item Encourages $q_\phi(z|x)$ to encode information about $x$
         \item Maximizes likelihood of reconstructing $x$ from $z$
     \end{itemize}
-    \item \textcolor{red}{Regularization term:} $-\KL(q_\phi(z|x) \| p_\theta(z))$
+    \item \textcolor{red}{Regularization term:} $-\KL(q_\phi(z|x) \| p(z))$
     \begin{itemize}
-        \item Encourages $q_\phi(z|x)$ to be close to prior $p_\theta(z)$
+        \item Encourages $q_\phi(z|x)$ to be close to prior $p(z)$
         \item Prevents overfitting to training data
     \end{itemize}
 \end{enumerate}
@@ -229,7 +231,7 @@ At fixed \(\theta\), the \(\mathcal L\)-maximizer is the true posterior.
         \item Reconstructs data $x$ from latent $z$
         \item Typically: $p_\theta(x|z) = \mathcal{N}(x; \mu_\theta(z), \sigma_\theta^2 I)$ or Bernoulli
     \end{itemize}
-    \item \textbf{Prior:} $p_\theta(z) = \mathcal{N}(z; 0, I)$
+    \item \textbf{Prior:} $p(z) = \mathcal{N}(z; 0, I)$
 \end{itemize}
 \end{frame}
 
@@ -243,16 +245,15 @@ z = \mu_\phi(x) + \sigma_\phi(x) \odot \epsilon, \quad \epsilon \sim \mathcal{N}
 
 \textbf{Benefits:}
 \begin{itemize}
-    \item Gradient flows through deterministic path: $x \to \mu_\phi(x), \sigma_\phi(x) \to z$
+    \item Gradient flows through deterministic path: $x \to \{\mu_\phi(x), \sigma_\phi(x)\} \to z$
     \item Stochasticity moved to $\epsilon$ (independent of parameters)
     \item Enables end-to-end training with backpropagation
 \end{itemize}
 
-\textbf{Alternative approaches:}
-\begin{itemize}
-    \item Score function estimator (higher variance)
-    \item Control variates
-\end{itemize}
+\begin{remark}
+    The reparameterization trick also leans the lights on the diffusion model.
+\end{remark}
+
 \end{frame}
 
 \begin{frame}{VAE Training Objective}
@@ -263,7 +264,7 @@ For a dataset $\mathcal{D} = \{x^{(i)}\}_{i=1}^N$, the VAE loss is:
 
 Expanding the ELBO:
 \begin{equation}
-\mathcal{L}(\theta, \phi) = \sum_{i=1}^N \left[ \EE_{q_\phi(z|x^{(i)})}[\log p_\theta(x^{(i)}|z)] - \KL(q_\phi(z|x^{(i)}) \| p_\theta(z)) \right]
+\mathcal{L}(\theta, \phi) = \sum_{i=1}^N \left[ \EE_{q_\phi(z|x^{(i)})}[\log p_\theta(x^{(i)}|z)] - \KL(q_\phi(z|x^{(i)}) \| p(z)) \right]
 \end{equation}
 
 \textbf{Training procedure:}
@@ -272,7 +273,7 @@ Expanding the ELBO:
     \item Sample $\epsilon \sim \mathcal{N}(0, I)$
     \item Compute $z^{(i)} = \mu_\phi(x^{(i)}) + \sigma_\phi(x^{(i)}) \odot \epsilon$
     \item Compute reconstruction loss: $\log p_\theta(x^{(i)}|z^{(i)})$
-    \item Compute KL divergence: $\KL(q_\phi(z|x^{(i)}) \| p_\theta(z))$
+    \item Compute KL divergence: $\KL(q_\phi(z|x^{(i)}) \| p(z))$
     \item Backpropagate gradients
 \end{enumerate}
 \end{frame}
@@ -300,6 +301,39 @@ where $J$ is the dimension of the latent space.
 \end{itemize}
 \end{frame}
 
+\begin{frame}{Simplified Loss: Unit Variance Case}
+Setting $\sigma_{\text{encoder}} = 1$ and $\sigma_{\text{decoder}} = 1$:
+
+\textbf{Encoder:} $q_\phi(z|x) = \mathcal{N}(\mu_\phi(x), I)$
+\textbf{Decoder:} $p_\theta(x|z) = \mathcal{N}(\mu_\theta(z), I)$
+
+\textbf{Simplified KL term:}
+\begin{equation}
+\KL(q_\phi(z|x) \| p(z)) = \frac{1}{2} \|\mu_\phi(x)\|^2
+\end{equation}
+(since $\sigma_j = 1$ for all $j$, we have $\sigma_j^2 - \log \sigma_j^2 - 1 = 0$)
+
+\textbf{Simplified reconstruction term:}
+\begin{equation}
+\EE_{q_\phi(z|x)}[\log p_\theta(x|z)] = -\frac{1}{2} \EE_{q_\phi(z|x)}[\|x - \mu_\theta(z)\|^2] + \text{const}
+\end{equation}
+
+\textbf{Total loss:}
+\begin{equation}
+\mathcal{L}(\theta, \phi) = \frac{1}{2} \EE_{q_\phi(z|x)}[\|x - \mu_\theta(z)\|^2] + \frac{1}{2} \|\mu_\phi(x)\|^2
+\end{equation}
+
+\textbf{Interpretation:}
+\begin{itemize}
+    \item First term: Reconstruction error (MSE)
+    \item Second term: Regularization on encoder mean
+    \item Simple, interpretable loss function
+\end{itemize}
+\end{frame}
+
+
+
+
 \section{VAE Variants and Extensions}
 
 \begin{frame}{$\beta$-VAE: Controlling the Regularization}
@@ -307,7 +341,7 @@ where $J$ is the dimension of the latent space.
 
 \textbf{$\beta$-VAE objective:}
 \begin{equation}
-\mathcal{L}(\theta, \phi) = \EE_{q_\phi(z|x)}[\log p_\theta(x|z)] - \beta \KL(q_\phi(z|x) \| p_\theta(z))
+\mathcal{L}(\theta, \phi) = \EE_{q_\phi(z|x)}[\log p_\theta(x|z)] - \beta \KL(q_\phi(z|x) \| p(z))
 \end{equation}
 
 \textbf{Effect of $\beta$:}
@@ -446,7 +480,7 @@ q_\phi(z_{1:L}|x) = \prod_{l=1}^L q_\phi(z_l|z_{<l}, x)
 
 \textbf{Model:}
 \begin{equation}
-p_\theta(x, z|c) = p_\theta(x|z, c) p_\theta(z)
+p_\theta(x, z|c) = p_\theta(x|z, c) p(z)
 \end{equation}
 
 \textbf{Inference:}
@@ -463,7 +497,7 @@ q_\phi(z|x, c) = \mathcal{N}(z; \mu_\phi(x, c), \sigma_\phi^2(x, c))
 
 \textbf{Training:}
 \begin{equation}
-\mathcal{L} = \EE_{q_\phi(z|x,c)}[\log p_\theta(x|z,c)] - \KL(q_\phi(z|x,c) \| p_\theta(z))
+\mathcal{L} = \EE_{q_\phi(z|x,c)}[\log p_\theta(x|z,c)] - \KL(q_\phi(z|x,c) \| p(z))
 \end{equation}
 \end{frame}
 
@@ -490,29 +524,13 @@ q_\phi(z|x, c) = \mathcal{N}(z; \mu_\phi(x, c), \sigma_\phi^2(x, c))
 \end{itemize}
 \end{frame}
 
-\section{Implementation and Practical Considerations}
+\section{Practical Considerations}
 
-\begin{frame}{VAE Implementation Details}
-\textbf{Network architectures:}
-\begin{itemize}
-    \item \textbf{Encoder:} $x \to \mu_\phi(x), \log \sigma_\phi^2(x)$
-    \item \textbf{Decoder:} $z \to \mu_\theta(z)$ (for Gaussian) or logits (for Bernoulli)
-    \item \textbf{Activation:} ReLU, ELU, or Swish
-    \item \textbf{Normalization:} BatchNorm or LayerNorm
-\end{itemize}
-
-\textbf{Training tricks:}
-\begin{itemize}
-    \item \textbf{KL annealing:} Gradually increase KL weight
-    \item \textbf{Free bits:} Prevent posterior collapse
-    \item \textbf{Warm-up:} Start with reconstruction only
-\end{itemize}
-\end{frame}
 
 \begin{frame}{Common Issues and Solutions}
 \textbf{Posterior collapse:}
 \begin{itemize}
-    \item \textbf{Symptom:} $q_\phi(z|x) \approx p_\theta(z)$ (no information in latent)
+    \item \textbf{Symptom:} $q_\phi(z|x) \approx p(z)$ (no information in latent)
     \item \textbf{Causes:} Strong decoder, weak encoder
     \item \textbf{Solutions:} KL annealing, free bits, stronger encoder
 \end{itemize}
@@ -630,7 +648,7 @@ q_\phi(z|x, c) = \mathcal{N}(z; \mu_\phi(x, c), \sigma_\phi^2(x, c))
 \begin{frame}{Questions}
 If you are interested in the questions, please feel free to write an email to me {\color{red}(\href{mailto:hpp@bimsa.cn}{hpp@bimsa.cn})} with your comments. 
 \begin{enumerate}[(1.)]
-    \item How does the choice of prior $p_\theta(z)$ affect VAE performance? What are the trade-offs between different priors?
+    \item How does the choice of prior $p(z)$ affect VAE performance? What are the trade-offs between different priors?
     \item Can you derive the gradient of the ELBO with respect to the encoder parameters $\phi$? How does the reparameterization trick make this tractable?
     \item What are the theoretical guarantees of VAE? Under what conditions does the ELBO provide a good approximation to the true log-likelihood?
     \item How would you extend VAE to handle sequential data (like in language modeling)? What are the key challenges?
