@@ -23,6 +23,7 @@
     \usebeamertemplate{proof begin}#2}
   {\usebeamertemplate{proof end}}
 \makeatother
+\newtheorem{remark}{Remark}
 
 % Math shorthand and vector symbols
 \newcommand{\grad}{\nabla}
@@ -270,6 +271,70 @@ H_i &= \attn(X W_i^Q,\, X W_i^K,\, X W_i^V),\quad i=1,\dots,h.
     \centering
     \includegraphics[width=0.75\textwidth]{../figures/transformer.pdf}
 \end{figure}
+\end{frame}
+
+
+\begin{frame}{Understanding the Transformer architecture from a mathematical view}
+\begin{itemize}
+    \item Input embedding: $X \in \R^{n\times d}$;
+    \item Query, key, value projections: $Q = X W_Q$, $K = X W_K$, $V = X W_V$;
+    \item Attention: $A = \softmax(QK^\top / \sqrt{d_k}) + M$;
+    \item Output: $O = AV$;
+\end{itemize}
+
+\vspace{-0.5em}
+\begin{center}
+\begin{tikzpicture}[scale=0.8, every node/.style={scale=0.8}, node distance=0.3cm]
+    % Input X
+    \node[draw, rectangle, minimum width=1.5cm, minimum height=2cm, fill=blue!20] (X) at (0,0) {$X$};
+    \node[below=of X] {$n \times d$};
+    
+    % Projections
+    \node[draw, rectangle, minimum width=1cm, minimum height=1.5cm, fill=green!20] (WQ) at (2.5,0.5) {$W_Q$};
+    \node[below=of WQ] {$d \times d_k$};
+    \node[draw, rectangle, minimum width=1cm, minimum height=1.5cm, fill=green!20] (WK) at (2.5,-0.5) {$W_K$};
+    \node[below=of WK] {$d \times d_k$};
+    \node[draw, rectangle, minimum width=1cm, minimum height=1.5cm, fill=green!20] (WV) at (2.5,-1.5) {$W_V$};
+    \node[below=of WV] {$d \times d_v$};
+    
+    % Q, K, V
+    \node[draw, rectangle, minimum width=1.5cm, minimum height=1.5cm, fill=orange!20] (Q) at (5,0.5) {$Q$};
+    \node[below=of Q] {$n \times d_k$};
+    \node[draw, rectangle, minimum width=1.5cm, minimum height=1.5cm, fill=orange!20] (K) at (5,-0.5) {$K$};
+    \node[below=of K] {$n \times d_k$};
+    \node[draw, rectangle, minimum width=1.5cm, minimum height=1.5cm, fill=orange!20] (V) at (5,-1.5) {$V$};
+    \node[below=of V] {$n \times d_v$};
+    
+    % QK^T
+    \node[draw, rectangle, minimum width=1.5cm, minimum height=1.5cm, fill=yellow!20] (QKT) at (7.5,0) {$QK^\top$};
+    \node[below=of QKT] {$n \times n$};
+    \node[above=of QKT, node distance=0.4cm] {$\div \sqrt{d_k}$};
+    
+    % Attention matrix A
+    \node[draw, rectangle, minimum width=1.5cm, minimum height=1.5cm, fill=red!20] (A) at (10,0) {$A$};
+    \node[below=of A] {$n \times n$};
+    
+    % Output O
+    \node[draw, rectangle, minimum width=1.5cm, minimum height=2cm, fill=purple!20] (O) at (12.5,0) {$O$};
+    \node[below=of O] {$n \times d_v$};
+    
+    % Arrows
+    \draw[->, thick] (X) -- (WQ);
+    \draw[->, thick] (X) -- (WK);
+    \draw[->, thick] (X) -- (WV);
+    \draw[->, thick] (WQ) -- (Q);
+    \draw[->, thick] (WK) -- (K);
+    \draw[->, thick] (WV) -- (V);
+    \draw[->, thick] (Q) -- (QKT);
+    \draw[->, thick] (K) -- (QKT) node[midway, above, sloped, font=\scriptsize] {$\top$};
+    \draw[->, thick] (QKT) -- (A) node[midway, above, font=\scriptsize] {$\softmax$};
+    \draw[->, thick] (A) -- (O);
+    \draw[->, thick] (V) -- (O);
+\end{tikzpicture}
+\end{center}
+\begin{remark}
+    Understand the Transformer architecture by block matrix, e.g., $(AB)_k = \sum_{k}A_{ki}B_i$.
+\end{remark}
 \end{frame}
 
 \section{Sampling and Generation Strategies}
