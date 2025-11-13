@@ -8,6 +8,8 @@
 
 
 % Packages for mathematics  
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
 \usepackage{amsmath}  
 \usepackage{amsfonts}  
 \usepackage{amssymb}  
@@ -106,6 +108,17 @@
   \titlepage  
 \end{frame}  
 
+\begin{frame}{Introduction}
+This lecture is a compact form of the course ``Large Foundation Models: Mathematics, Algorithms, and Applications" on the generative modeling and AI for science. 
+\vspace{1em}
+
+The course materials are available by
+\begin{itemize}
+    \item Slides: \href{https://github.com/cam1681/CS25_Large_Foundation_model}{https://github.com/cam1681/CS25\_Large\_Foundation\_model}
+    \item Videos: \href{https://bimsa.net/activity/LarFouModMatAlgandApp/}{https://bimsa.net/activity/LarFouModMatAlgandApp/}
+\end{itemize}
+\end{frame}
+
 \begin{frame}{Feynman's words}
 \centering
     What I cannot create, I do not understand.
@@ -115,9 +128,9 @@
 \tableofcontents
 \end{frame}
 
-\section{Core Principles \& Unified View}
+\section{Understand diffusion models from a mathematical perspective}
 
-\begin{frame}{Generate samples from given distribution}
+\begin{frame}{Preliminary: Generate samples from given distribution}
 Given a distribution $p(x)$, how to sample from the distribution?
 \begin{itemize}
     \item Uniform distribution \& Gaussian distribution: easy sampling 
@@ -150,7 +163,7 @@ Define the score function
 \end{equation}
 \end{frame}
 
-\begin{frame}{More about Langevin MCMC and the score function}
+\begin{frame}{Molecular Dynamics (MD) and Langevin MCMC}
 Continuous form of the Langevin MCMC
 \begin{itemize}
     \item $\Delta t\to 0$
@@ -177,7 +190,7 @@ Langevin MCMC is  overdamped Langevin dynamics
 \end{itemize}
 \end{frame}
 
-\subsection{Score Matching: From Explicit to Denoising}
+\subsection{Score Matching: From Explicit Score Matching to Denoising Score Matching}
 \begin{frame}{Matching the score by neural networks}
 Recall the definition 
 \begin{equation}
@@ -197,30 +210,26 @@ Implicit Score Matching loss (Aapo, 2005) was developed to make a tractable scor
 \begin{equation}
     J_{ISM} \equiv \mathbb{E}_p\left[\frac{1}{2}\|s(x;\theta)\|^2+\nabla\cdot s(x;\theta)\right]=J_{ESM}-C.
 \end{equation}
+
+\begin{remark}
+    The ISM loss is not very stable to optimize, with two reasons
+    \begin{enumerate}
+        \item Expectation is performed on the whole distribution;
+        \item The loss is negative decreasing to $-C$ with a great quantity, e.g. $-1e5$.
+    \end{enumerate}
+\end{remark}
 \end{frame}
 
 
-\begin{frame}{Denoising Score Matching (DSM) loss}
-However, the ISM score is not very stable to optimize, with two reasons
-\begin{enumerate}
-    \item Expectation is performed on the whole distribution;
-    \item The loss is negative decreasing to $-C$ with a great quantity, e.g. $-1e5$.
-\end{enumerate}
-
-Denoising Score Matching (DSM) loss (Vincent, 2011) is developed to solve this problem
-\begin{equation}
-    J_{DSM} = \frac{1}{2}\mathbb{E}_{p(x,\Tilde{x})}\left[\|s(\Tilde{x};\theta)-\nabla_{\Tilde{x}}\log p(\Tilde{x}|x)\|^2\right].
-\end{equation}
-And we can prove that $J_{DSM} = J_{ESM}+C$.
-\end{frame}
-
-
-\begin{frame}{Key Insight: Denoising Score Matching}
+\begin{frame}{Denoising Score Matching}
 Denoising Score Matching (DSM) loss (Vincent, 2011) solves the optimization stability problem:
 \begin{equation}
     J_{DSM} = \frac{1}{2}\mathbb{E}_{p(x,\Tilde{x})}\left[\|s(\Tilde{x};\theta)-\nabla_{\Tilde{x}}\log p(\Tilde{x}|x)\|^2\right].
 \end{equation}
+\vspace{1em}
+
 \textbf{Key insight:} $J_{DSM} = J_{ESM} + C$ where $C$ is a constant, making it tractable without computing the true score.
+\vspace{1em}
 
 \textbf{Challenge:} When $\Tilde{x}\to x$ (low noise), $J_{DSM}\to \infty$. This motivates the need for \textcolor{red}{multi-scale noise schedules} in diffusion models.
 \end{frame}
@@ -286,59 +295,23 @@ s(\Tilde{x}) = \frac{\int_x \nabla_{\Tilde{x}} \log p(\Tilde{x}|x)p(\Tilde{x}|x)
 \end{equation}
 leading to
 \begin{equation}
-s(\Tilde{x}) = \mathbb{E}_x[\nabla_{\Tilde{x}} \log p(\Tilde{x}|x)| \Tilde{x}]=\mathbb{E}_x[-\frac{\Tilde{x}-\alpha x}{\sigma^2}| \Tilde{x}] = -\frac{\Tilde{x}-\alpha \mathbb{E}[x|\Tilde{x}]}{\sigma^2}.
+s(\Tilde{x}) = \mathbb{E}_x[\nabla_{\Tilde{x}} \log p(\Tilde{x}|x)\given \Tilde{x}]=\mathbb{E}_x[-\frac{\Tilde{x}-\alpha x}{\sigma^2}\given \Tilde{x}] = -\frac{\Tilde{x}-\alpha \mathbb{E}[x\given\Tilde{x}]}{\sigma^2}.
 \end{equation}
 \end{frame}
 
 \begin{frame}{Theoretical Support: Conditional Expectation}
 \begin{theorem}
 \label{thm:conditional_expect}
-    Let $X$ be an integrable random variable. Then for each $\sigma$-algebra $\mathcal{V}$ and $Z \in \mathcal{V}$, $Z^* = \mathbb{E}(X| \mathcal{V})$ solves the least square problem %\cite{evans2012introduction}
+    Let $X$ be an integrable random variable. Then for any $Z \in \mathcal{V}$, $Z^* = \mathbb{E}(X\given Z)$ 
+    is the optimal solution of the least square problem %\cite{evans2012introduction}
     $$\text{argmin}_{Z\in \mathcal{V}} \| Z - X\|\,,$$
     where $\| Z\| = \left( \int Z^2 dP \right)^{\frac{1}{2}}$.
 \end{theorem}
 
 \begin{figure}
-    \includegraphics[width=0.4\textwidth]{../figures/conditional_expectation.png}
+    \includegraphics[width=0.38\textwidth]{../figures/conditional_expectation.png}
 \end{figure}
 \end{frame}
-
-\begin{frame}{Setting}
-    Let $(\Omega,\mathcal F,\mathbb P)$ be a probability space and $L^2:=L^2(\Omega,\mathcal F,\mathbb P)$ with
-    $\langle U,V\rangle=\mathbb E[UV]$.  
-    Fix a sub-$\sigma$-field $\mathcal G\subset\mathcal F$ and denote the closed subspace
-    \[
-    \mathcal V:=L^2(\mathcal G)=\{Z\in L^2: Z \text{ is }\mathcal G\text{-measurable}\}.
-    \]
-    \textbf{Claim.} For $X\in L^2$,
-    \[
-    Z^*:=\mathbb E[X\mid\mathcal G]\in\mathcal V
-    \quad\text{and}\quad
-    Z^*=\arg\min_{Z\in\mathcal V}\ \mathbb E[(Z-X)^2].
-    \]
-    \end{frame}
-
-    \begin{frame}{Proof of the claim}
-    For any $Z\in\mathcal V$,
-    \[
-    \langle X-Z^*, Z\rangle
-    =\mathbb E\!\left[(X-Z^*)Z\right]
-    =\mathbb E\!\left(\mathbb E[(X-Z^*)Z\mid\mathcal G]\right)
-    =\mathbb E\!\left(Z\,\mathbb E[X-Z^*\mid\mathcal G]\right)=0.
-    \]
-    Hence $X-Z^*\perp\mathcal V$.
-    \vspace{1em}
- 
-    Let any $Z\in\mathcal V$ be written as $Z=Z^*+W$ with $W\in\mathcal V$. Then
-    \[
-    \|X-Z\|_2^2=\|X-(Z^*+W)\|_2^2
-    =\|X-Z^*\|_2^2+\|W\|_2^2
-    \ge \|X-Z^*\|_2^2,
-    \]
-    because $\langle X-Z^*,W\rangle=0$.  
-    Equality $\Leftrightarrow W=0 \Leftrightarrow Z=Z^*$, proving uniqueness and the minimizer claim.
-\end{frame}
-
 
 \begin{frame}{Revisit several models}
 \begin{enumerate}
@@ -366,22 +339,6 @@ s(\Tilde{x}) = \mathbb{E}_x[\nabla_{\Tilde{x}} \log p(\Tilde{x}|x)| \Tilde{x}]=\
     where $\epsilon_\theta(\Tilde{x})\to\epsilon_{\theta^*}(\Tilde{x})\equiv\mathbb{E}[\epsilon|\Tilde{x}]$.
 \end{enumerate}
 \end{frame}
-
-\begin{frame}{The consistency of the three modeling}
-
-As stated before, we have the following connection in the optimal $(\theta^*)$ case
-\begin{equation}
-    s_{\theta^{*}}(\Tilde{x}) = -\frac{\Tilde{x}-\alpha x_{\theta^*} (\Tilde{x})}{\sigma^2} =  -\frac{\epsilon_{\theta^*}(\Tilde{x})}{\sigma},
-\end{equation}
-by the above conditional expectation. 
-
-Hence, in the real modeling of designing the loss, we use the connection of three models without reaching the optimal parameter
-\begin{equation}
-    s_\theta(\Tilde{x}) = -\frac{\Tilde{x}-\alpha x_{\theta} (\Tilde{x})}{\sigma^2} =  -\frac{\epsilon_{\theta}(\Tilde{x})}{\sigma},
-\end{equation}
-and substitute each other form to the loss definition above, we can recover all of the losses given by different models.
-\end{frame}
-
 
 \subsection{Potential Score Matching}
 % ============================================================
@@ -617,158 +574,6 @@ Training DSM object
 \end{equation}
 \end{frame}
 
-
-\begin{frame}{VE \& VP adding noise}
-To training the Denoising Score Match loss $J_{DSM}$ above, the key is to add noise by the transition kernel
-\begin{equation}
-    p(\Tilde{x}|x) \equiv p(x(t)|x(0)) = N(x(t); \Tilde{\alpha}_t x(0), \Tilde{\sigma}_t^2),
-\end{equation}
-from which we can obtain the noised data 
-\begin{equation}
-    x(t) = \Tilde{\alpha}_t x(0) + \Tilde{\sigma}_t\epsilon, \quad \epsilon\sim N(0,1).
-\end{equation}
-
-\textcolor{red}{The question becomes}: Given VE \& VP 
-\begin{equation}
-    dx = \sqrt{\frac{d[\sigma^2]}{dt}} dB_t,\quad 
-    dx = -\frac{1}{2}\Tilde{\beta_t} x d t + \sqrt{\Tilde{\beta_t}}d B_t.
-\end{equation}
-how to derive $p(x(t)|x(0))$, i.e., $p(\Tilde{x}|x)$ for adding noise?
-\end{frame}
-
-\begin{frame}{VE \& VP Transition kernel}
-The summarizing form of VE \& VP is 
-\begin{equation}
-    dx = h(t)xdt+ g(t)dB_t,
-\end{equation}
-where $h(t)=0$ for VE and $h(t)=-\frac{1}{2}\Tilde{\beta}(t)$ for VP. 
-
-\begin{lemma}
-Let $\mu(t) =\mathbb{E}[x(t)]$ and $\Sigma(t)=\mathbb{E}\left[(x-\mu(t))(x-\mu(t))^T\right]$, we have the following formula
-\begin{equation}
-\begin{aligned}
-    \frac{d\mu(t)}{dt} = h(t)\mu(t),\quad
-    \frac{d\Sigma(t)}{dt} = 2h(t)\Sigma(t)+g^2(t)I.
-\end{aligned} 
-\end{equation}
-\end{lemma}
-The proof of the Lemma can be found in a stochastic differential equation textbook such as Applied Stochastic Differential Equations, S\"{a}rkk\"{a} and Solin, 2019.
-\end{frame}
-
-\begin{frame}{VE \& VP Transition kernel}
-
-\begin{lemma}
-    For VE, the transition kernel is given by the following formula
-\begin{equation}\label{eq:tranve}
-    P(x(t)|x(0)) = N(x(t); x(0), \sigma^2(t)-\sigma^2(0)).
-\end{equation}
-For VE, 
-\begin{equation}
-    \Tilde{\alpha}_t \equiv  1, \quad \Tilde{\sigma}^2_t \equiv \sigma^2(t)-\sigma^2(0)\approx \sigma^2(t).
-\end{equation}
-\end{lemma}
-
-\begin{lemma}
-    For VP, the transition kernel is given the following formula
-\begin{equation}\label{eq:tranvp}
-    p(x(t)|x(0)) = N\left(x(t); x(0)e^{-\frac{1}{2}\int_0^t \Tilde{\beta}(s)ds},1-e^{-\int_0^t \Tilde{\beta}(s)ds}\right).
-\end{equation}
-For VP, 
-\begin{equation}
-    \Tilde{\alpha}_t \equiv  e^{-\frac{1}{2}\int_0^t \Tilde{\beta}(s)ds}, \quad \Tilde{\sigma}^2_t \equiv 1-e^{-\int_0^t \Tilde{\beta}(s)ds}.
-\end{equation}
-\end{lemma}
-\end{frame}
-
-
-\begin{frame}{Proof of VE transition kernel}
-\begin{proof}
-For VE, by a simple calculation we have
-
-\begin{equation}
-        \frac{d\mu(t)}{dt} = 0,\quad \frac{d\Sigma(t)}{dt} = \frac{d[\sigma^2(t)]}{dt},
-\end{equation}
-Hence, it is easy to obtain the following form 
-\begin{equation}
-        \mu(t) = \mu(0) = x(0),\quad \Sigma(t) = \sigma^2(t)-\sigma^2(0).
-\end{equation}
-Here we have used the fact  
-\begin{equation}
-    \mu(0) = x(0), \quad \Sigma(0)=0
-\end{equation}
-as $x(0)$ is taken as a constant, not a random variable.
-And we obtain 
-\begin{equation}
-    P(x(t)|x(0)) = N(x(t); x(0), \sigma^2(t)-\sigma^2(0)).
-\end{equation}
-\end{proof}
-\end{frame}
-
-\begin{frame}{VP Proof: Differential Equations}
-\begin{proof}
-For VP, we have the differential equations:
-\begin{equation}
-    \frac{d\mu(t)}{dt} = -\frac{1}{2}\beta(t)\mu(t)
-\end{equation}
-\begin{equation}
-    \frac{d\Sigma(t)}{dt} = -\beta(t)\Sigma(t)+\beta(t)
-\end{equation}
-We solve these using integrating factors.
-\end{proof}
-\end{frame}
-
-\begin{frame}{VP Proof: Integrating Factors}
-\begin{proofs}[\proofname\ (Cont)]
-For the mean equation, multiply by $e^{\int_0^t\frac{1}{2}\beta(s)ds}$:
-\begin{equation}
-    \frac{d\mu(t)}{dt}e^{\int_0^t\frac{1}{2}\beta(s)ds} + \frac{1}{2}\beta(t)\mu(t) e^{\int_0^t\frac{1}{2}\beta(s)ds} =0
-\end{equation}
-For the variance equation, multiply by $e^{\int_0^t\beta(s)ds}$:
-\begin{equation}
-    \frac{d\Sigma(t)}{dt}e^{\int_0^t\beta(s)ds} +\beta(t)\Sigma(t)e^{\int_0^t\beta(s)ds} = \beta(t)e^{\int_0^t\beta(s)ds}
-\end{equation}
-\end{proofs}
-\end{frame}
-
-\begin{frame}{VP Proof: Solution}
-\begin{proofs}[\proofname\ (Cont)]
-This gives us:
-\begin{equation}
-    \frac{d}{dt} (\mu(t)e^{\int_0^t\frac{1}{2}\beta(s)ds}) = 0
-\end{equation}
-\begin{equation}
-    \frac{d}{dt} (\Sigma(t)e^{\int_0^t\beta(s)ds}) = \frac{d}{dt} e^{\int_0^t\beta(s)ds}
-\end{equation}
-Solving with initial conditions $\mu(0) = x(0)$, $\Sigma(0) = 0$:
-\begin{equation}
-    p(x(t)|x(0)) = N\left(x(t); x(0)e^{-\frac{1}{2}\int_0^t \beta(s)ds},1-e^{-\int_0^t \beta(s)ds}\right)
-\end{equation}
-\end{proofs}
-\end{frame}
-
-\begin{frame}{Revisit adding noise}
-The \textbf{equivalence} of the adding noise
-\begin{enumerate}
-    \item From the stochastic process, denote the variable $x_t$, we have 
-    \begin{equation}
-        d x_t = f(x,t)dt + g(t)dB_t, 
-    \end{equation}
-    with corresponding discrete form (Euler-Maruyama scheme)
-    \begin{equation}
-        x_{t+\Delta t} = x_{t} + f(x_t, t)\Delta t + g(t)\sqrt{\Delta t}\epsilon, \quad \epsilon\sim N(0, 1). 
-    \end{equation}
-\item From transition kernel perspective, 
-\begin{equation}
-    p(x_t) = \int_{x_0} p(x_0)p(x_t|x_0)dx_0,
-\end{equation}
-where 
-\begin{equation}
-    p(x_t|x_0) = N(x_t; \mu_t, \Sigma_t)=N(x_t; \Tilde{\alpha}_tx_0, \Tilde{\sigma}_t^2)=\frac{1}{C}e^{-\frac{\|x_t-\mu_t\|^2}{2\Sigma_t}}.
-\end{equation}
-\end{enumerate}
-
-\end{frame}
-
 \begin{frame}{Training recipe}
 The training for VE follows the following process (VP is in a similar way)
 \begin{enumerate}
@@ -811,39 +616,6 @@ Due to obeying the same Fokker-Planck equation for $p(x, t)$
 \end{equation}
 \end{frame}
 
-\begin{frame}{Reverse Process Proof: Setup}
-We prove the first reverse sampling form \eqref{eq:reverse}. The Fokker-Planck equation of the forward process \eqref{eq:forward} is:
-\begin{equation}
-    \frac{\partial p}{\partial t} + \nabla \cdot (f(x,t)p)-\frac{1}{2}g^2\triangle p = 0.
-\end{equation}
-Let $t = T-\tau$, we have:
-\begin{equation}
-    \frac{\partial p}{\partial \tau} - \nabla\cdot (f(x,T-\tau) p) + g^2\triangle p -\frac{1}{2}g^2\triangle p =0.
-\end{equation}
-\end{frame}
-
-\begin{frame}{Reverse Process Proof: Derivation}
-\begin{proofs}[\proofname\ (Cont)]
-By $\nabla\cdot\nabla = \triangle$ and $\nabla \log p=\nabla p/p$:
-\begin{equation}
-    \frac{\partial p}{\partial \tau} - \nabla\cdot \bigg(\left(f(x,T-\tau)-g^2\nabla\log p\right)p\bigg) -\frac{1}{2}g^2\triangle p =0.
-\end{equation}
-Hence, we obtain the corresponding SDE form:
-\begin{equation}
-    dx = -(f(x, T-\tau)-g^2\nabla\log p)d\tau + gdB_\tau
-\end{equation}
-By substitution $\tau = T-t$:
-\begin{equation}
-    dx = (f(x,t)-g^2\nabla\log p)dt + gdB_t
-\end{equation}
-\end{proofs}
-\end{frame}
-
-% \begin{frame}{Interesting property about the ODE and SDE}
-% \begin{enumerate}
-%     \item The forward SDE and the reverse SDE has different sign 
-% \end{enumerate}
-% \end{frame}
 
 \begin{frame}{Inference recipe}
 The inference for VE follows the following process (VP is in a similar way)
@@ -859,583 +631,10 @@ The inference for VE follows the following process (VP is in a similar way)
     over the time span $[0, 1]$ to get $x(0)$.
     \item Corrector process: at each internal value $x(t)$, we can relax the value $x(t)$ by a corrector, which takes the Langevin MCMC process. 
 \end{enumerate}
-
 \end{frame}
 
-
-\begin{frame}{The Corrector: revisit Langevin MCMC}
-The Langevin diffusion process is given by 
-\begin{equation}
-    x_i = x_{i-1}+\frac{\Delta t}{2}\textcolor{red}{\nabla_x\log p(x_{i-1})}+\sqrt{\Delta t}\epsilon, \quad \epsilon\sim N(0, 1).
-\end{equation}
-We can prove   $\pi(x)$ of the obtained data points $\{x_i\}_{i=1}^N$ converges to $p(x)$.
-
-\begin{proofs}
-The continuous form of the scheme is:
-\begin{equation}
-    dx = \frac{1}{2}\nabla\log p(x) dt + dB_t.
-\end{equation}
-The corresponding Fokker-Planck equation is:
-\begin{equation}
-\frac{\partial\pi(x,t)}{\partial t} + \nabla\cdot(\frac{1}{2}\nabla\log p(x) \pi(x,t)) -\frac{1}{2}\triangle \pi(x,t) = 0.
-\end{equation}
-With sufficient time evolution, the distribution converges to a stable distribution where:
-\begin{equation}
-    \frac{\partial \pi(x,t)}{\partial t} = 0, \quad t\to \infty.
-\end{equation}
-\end{proofs}
-\end{frame}
-
-\begin{frame}{The Corrector: revisit Langevin MCMC}
-
-\begin{proofs}[\proofname\ (Cont)]
-Hence we have:
-\begin{equation}
-    \nabla\cdot(\pi\nabla\log p - \nabla\pi) = 0, \quad \forall x.
-\end{equation}
-Therefore:
-\begin{equation}
-    \nabla\log p = \nabla\log \pi
-\end{equation}
-given that $\pi>0$ almost everywhere. 
-Hence:
-\begin{equation}
-    \pi^*(x) = p(x)
-\end{equation}
-where $\pi^*$ is the stable distribution of $\pi(x, t)$.
-\end{proofs}
-\end{frame}
-
-\subsection{Recent Advances: EDM, DPM-Solver, Consistency Models}
-\begin{frame}{Additional Important Papers}
-The field of diffusion models has evolved rapidly with many important contributions. Here we highlight several key papers that have shaped the current understanding and practice:
-
-\begin{itemize}
-    \item \textbf{DDPM} - The foundational work on denoising diffusion probabilistic models
-    \item \textbf{EDM} - Elucidating design choices for better performance
-    \item \textbf{DPM-Solver} - Fast ODE solvers for efficient sampling
-    \item \textbf{Consistency Models} - One-step generation with diffusion quality
-\end{itemize}
-
-These papers represent significant advances in making diffusion models more practical and efficient.
-\end{frame}
-
-\subsection{DDPM: Denoising Diffusion Probabilistic Models}
-\begin{frame}{DDPM: Goal \& Setup}
-\textbf{Goal.} Learn a generative model $p_\theta(x_0)$ by reversing a noisy diffusion.\\[4pt]
-\textbf{Latents.} Introduce $x_{1:T}$ with same dimensionality as data $x_0$.\\[4pt]
-\textbf{Reverse (sampling) chain:}
-\[
-p_\theta(x_{0:T}) = p(x_T)\prod_{t=1}^{T} p_\theta(x_{t-1}\mid x_t),\quad
-p(x_T)=\mathcal N(0,I),
-\]
-\[
-p_\theta(x_{t-1}\mid x_t)=\mathcal N\!\big(\mu_\theta(x_t,t),\,\Sigma_\theta(x_t,t)\big).
-\]
-\textbf{Forward (fixed) diffusion:}
-\[
-q(x_{1:T}\mid x_0)=\prod_{t=1}^{T} q(x_t\mid x_{t-1}),\quad
-q(x_t\mid x_{t-1})=\mathcal N\!\big(\sqrt{1-\beta_t}\,x_{t-1},\,\beta_t I\big).
-\]
-With $\alpha_t:=1-\beta_t,\;\bar\alpha_t:=\prod_{s=1}^t\alpha_s$:
-\[
-q(x_t\mid x_0)=\mathcal N\!\big(\sqrt{\bar\alpha_t}\,x_0,\,(1-\bar\alpha_t)I\big).
-\]
-\end{frame}
-
-\begin{frame}{DDPM: Training Objective (Variational Bound)}
-Optimize the NLL via a reduced-variance ELBO:
-\[
-\mathbb E[-\log p_\theta(x_0)] \;\le\; 
-\underbrace{\mathbb E\big[\mathrm{KL}(q(x_T|x_0)\,\|\,p(x_T))\big]}_{L_T}
-+ \sum_{t=2}^{T} \underbrace{\mathbb E\big[\mathrm{KL}(q(x_{t-1}|x_t,x_0)\,\|\,p_\theta(x_{t-1}|x_t))\big]}_{L_{t-1}}
-- \underbrace{\mathbb E[\log p_\theta(x_0|x_1)]}_{L_0}.
-\]
-Here $q(x_{t-1}\!\mid x_t,x_0)$ is Gaussian in closed form, so each KL has a tractable expression.\\[6pt]
-\textbf{Data scaling.} Images scaled to $[-1,1]$; $p_\theta(x_0\!\mid x_1)$ is a discretized Gaussian decoder for likelihood evaluation.
-\end{frame}
-
-\begin{frame}{DDPM: $\epsilon$-Prediction Parameterization}
-Write the forward noising as
-\[
-x_t = \sqrt{\bar\alpha_t}\,x_0 + \sqrt{1-\bar\alpha_t}\,\varepsilon,\quad \varepsilon\sim\mathcal N(0,I).
-\]
-Parameterize the reverse mean via a network $\varepsilon_\theta(x_t,t)$:
-\[
-\mu_\theta(x_t,t) \;=\; \frac{1}{\sqrt{\alpha_t}}\!\left(
-x_t - \frac{1-\alpha_t}{\sqrt{\,1-\bar\alpha_t\,}}\;\varepsilon_\theta(x_t,t)\right).
-\]
-\textbf{Sampling step} (with fixed $\sigma_t$ such as $\sigma_t^2=\beta_t$ or $\tilde\beta_t$):
-\[
-x_{t-1} \;=\; \mu_\theta(x_t,t) \;+\; \sigma_t\,z,\quad z\sim\mathcal N(0,I).
-\]
-This connects DDPM to denoising score matching and (annealed) Langevin-like sampling.
-\end{frame}
-
-\begin{frame}{DDPM: Simplified Loss \& Algorithms}
-\textbf{Simplified objective (``$L_{\text{simple}}$''):}
-\[
-\boxed{~~
-\mathcal L_{\text{simple}}(\theta) \;=\; \mathbb E_{t\sim\mathcal U[1,T],\,x_0,\,\varepsilon}
-\big\|\,\varepsilon - \varepsilon_\theta\!\big(\sqrt{\bar\alpha_t}\,x_0 + \sqrt{1-\bar\alpha_t}\,\varepsilon,\,t\big)\big\|_2^2
-~~}
-\]
-\textbf{Training (sketch).}
-\begin{enumerate}
-  \item Sample $x_0\!\sim q(x_0),\; t\!\sim\!\mathrm{Unif}\{1,\ldots,T\},\; \varepsilon\!\sim\!\mathcal N(0,I)$.
-  \item Form $x_t$ via the forward formula; take a GD step on $\|\varepsilon-\varepsilon_\theta(x_t,t)\|^2$.
-\end{enumerate}
-\textbf{Sampling (sketch).}
-\begin{enumerate}
-  \item $x_T\!\sim\!\mathcal N(0,I)$.
-  \item For $t=T,\ldots,1$: compute $\mu_\theta(x_t,t)$, add noise $\sigma_t z$ if $t>1$ to get $x_{t-1}$.
-\end{enumerate}
-Empirically, $L_{\text{simple}}$ gives best sample quality; ELBO training gives better likelihoods.
-\end{frame}
-
-\begin{frame}{DDPM: Schedules, Architecture, \& Practice}
-\textbf{Noise schedule.} Typical: $T{=}1000$, linear $\beta_t$ from $10^{-4}$ to $2{\times}10^{-2}$ (on $[-1,1]$ data); small $\beta_t$ keeps forward and reverse both Gaussian-friendly.\\[6pt]
-\textbf{Network.} U-Net backbone (PixelCNN++-style), group norm, sinusoidal time embedding, self-attention at medium resolution (e.g., $16{\times}16$).\\[6pt]
-\textbf{Tips.}
-\begin{itemize}
-  \item Fixed $\Sigma_\theta$ (e.g., $\sigma_t^2=\beta_t$ or $\tilde\beta_t$) stabilizes training.
-  \item Dropout (small) on CIFAR-10 helps; EMA on params (e.g., 0.9999).
-  \item Evaluate with FID/IS; likelihood via discretized decoder.
-\end{itemize}
-\end{frame}
-
-\begin{frame}{DDPM: Intuitions \& Connections}
-\textbf{Progressive generation.} Coarse structure emerges early (large $t$), details refine as $t\!\downarrow$.\\[4pt]
-\textbf{Score-based view.} $\varepsilon_\theta$ learns noise (scaled score), making the sampler resemble annealed Langevin dynamics.\\[4pt]
-\textbf{Autoregressive link.} The ELBO can be seen as progressive decoding with a generalized ``bit ordering.''\\[6pt]
-\textbf{Why DDPM?}
-\begin{itemize}
-  \item High sample quality; stable training; flexible architectures.
-  \item Trade-off: exact likelihoods lag some likelihood-based models, but samples excel.
-\end{itemize}
-\end{frame}
-
-\subsection{EDM: Elucidating the Design Space of Diffusion-Based Generative Models
-}
-
-\begin{frame}{Big Picture}
-\begin{itemize}
-  \item Goal: separate \textbf{design choices} (sampling, schedules, preconditioning, training) to simplify and speed up diffusion models.
-  \item Key outcomes:
-    \begin{itemize}
-      \item \textbf{Faster sampling} (tens of NFEs) with strong FID.
-      \item Modular choices: ODE view, schedule $\sigma(t)$, scaling $s(t)$, time steps $\{t_i\}$, preconditioning, loss weighting.
-    \end{itemize}
-  \item Works as a \textbf{drop-in} improvement over prior models (VP/VE/DDIM/ADM).
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Common ODE Framework}
-\textbf{Probability flow ODE} with schedule $\sigma(t)$ and (optional) scaling $s(t)$:
-\[
-\frac{d\bm{x}}{dt}
-=
-\Big(\frac{\dot{\sigma}}{\sigma} + \frac{\dot{s}}{s}\Big)\bm{x}
-\;-\;
-\frac{\dot{\sigma}\, s}{\sigma}\,\nabla_{\bm{x}}\log p\!\left(\tfrac{\bm{x}}{s};\sigma\right)
-\]
-Using denoising score matching,
-\[
-\nabla_{\bm{x}}\log p(\bm{x};\sigma)=\frac{D(\bm{x};\sigma)-\bm{x}}{\sigma^{2}},
-\]
-so the ODE is solved numerically by evaluating a \textbf{denoiser} $D_\theta(\bm{x};\sigma)$.
-\medskip
-
-\textbf{EDM choice:} set $\sigma(t)=t,\; s(t)=1$ $\Rightarrow$ straight(er) trajectories, stable integration.
-\end{frame}
-
-\begin{frame}{Denoising Score Matching (Training Target)}
-Given clean $\bm{y}\!\sim\!p_{\text{data}}$, noise $\bm{n}\!\sim\!\mathcal{N}(0,\sigma^2 I)$,
-\[
-D(\bm{y}+\bm{n};\sigma)
-\;=\;
-\arg\min_{D}\,\mathbb{E}\,\|\;D(\bm{y}+\bm{n};\sigma)-\bm{y}\;\|_2^2,
-\]
-and
-\[
-\nabla_{\bm{x}}\log p(\bm{x};\sigma)=\frac{D(\bm{x};\sigma)-\bm{x}}{\sigma^2}.
-\]
-Train $D_\theta$ over a range of $\sigma$ to match the optimal denoiser; use it at test time to integrate the ODE.
-\end{frame}
-
-
-% \begin{frame}{Fast Deterministic Sampling}
-% \textbf{Integrator:} Heun’s 2nd order (improved Euler) for better truncation error vs. Euler.
-% \[
-% \text{Predict: }\;\bm{x}_{i+1}^{(E)}=\bm{x}_i + \Delta t_i\, f(t_i,\bm{x}_i)
-% \quad
-% \text{Correct: }\;\bm{x}_{i+1}=\bm{x}_i + \Delta t_i\,
-% \frac{f(t_i,\bm{x}_i) + f(t_{i+1},\bm{x}_{i+1}^{(E)})}{2}
-% \]
-% \textbf{Noise levels / time steps:}
-% \[
-% \sigma_i
-% =
-% \Big(\sigma_{\max}^{1/\rho} + \tfrac{i}{N-1}\big(\sigma_{\min}^{1/\rho}-\sigma_{\max}^{1/\rho}\big)\Big)^{\rho},
-% \quad
-% t_i=\sigma_i,\quad \rho\approx 7.
-% \]
-% \textbf{Effect:} reach strong FID with far fewer NFEs (e.g., \(\sim\)35 for CIFAR-10).
-% \end{frame}
-
-% %------------------------------------------------------------
-% \begin{frame}{Stochastic Sampling (``Churn'')}
-% At step $i$ (noise $t_i$), temporarily \textbf{increase} noise:
-% \[
-% \hat{t}_i = t_i(1+\gamma_i), \quad \hat{\bm{x}}_i = \bm{x}_i + \sqrt{\hat{t}_i^2 - t_i^2}\;\bm{\varepsilon},\; \bm{\varepsilon}\sim\mathcal{N}(0,S_{\text{noise}}^2 I),
-% \]
-% then \textbf{one Heun step} from $\hat{t}_i$ to $t_{i+1}$ using $D_\theta$ evaluated at the \emph{post-churn} state $(\hat{\bm{x}}_i,\hat{t}_i)$.
-% \medskip
-
-% \textbf{Heuristics:}
-% \begin{itemize}
-%   \item Apply churn only for $t_i\!\in\![t_{\min}^{\star},t_{\max}^{\star}]$; set $\gamma_i\!=\!\text{Schurn}/N$, clamp to avoid excessive re-noising.
-%   \item Slightly inflate $S_{\text{noise}}\!>\!1$ to counter over-denoising bias.
-% \end{itemize}
-% \textbf{Use:} helpful on more diverse data; may be unnecessary (even harmful) once training is improved.
-% \end{frame}
-
-\begin{frame}{Network Preconditioning}
-Represent denoiser with \textbf{preconditioned} skip connection:
-\[
-D_\theta(\bm{x};\sigma)
-=
-c_{\text{skip}}(\sigma)\,\bm{x}
-\;+\;
-c_{\text{out}}(\sigma)\,F_\theta\!\big(c_{\text{in}}(\sigma)\,\bm{x};\;c_{\text{noise}}(\sigma)\big),
-\]
-Design $c_{\text{in}},c_{\text{out}},c_{\text{skip}}$ so that:
-\begin{itemize}
-  \item inputs/targets have \textbf{nearly unit variance} across $\sigma$,
-  \item network errors are not \textbf{amplified} at large $\sigma$ (robust gradients),
-  \item $F_\theta$ smoothly interpolates between predicting signal vs. noise.
-\end{itemize}
-This stabilizes training and unlocks better loss scheduling.
-\end{frame}
-
-\begin{frame}{Loss Weighting \& Noise-Level Sampling}
-With the preconditioned form, the effective per-sample weight scales with $c_{\text{out}}(\sigma)^2$.
-\[
-\textbf{Set}\quad \lambda(\sigma)=\frac{1}{c_{\text{out}}(\sigma)^2}
-\quad\Rightarrow\quad
-\text{balanced contributions over }\sigma.
-\]
-Sample noise levels $\sigma$ from a \textbf{log-normal} (or similar) that prioritizes the \emph{perceptually relevant} mid-$\sigma$ range:
-\[
-\ln\sigma \sim \mathcal{N}(P_{\text{mean}},P_{\text{std}}^2).
-\]
-Result: large FID gains across datasets when combined with preconditioning.
-\end{frame}
-
-\begin{frame}{Augmentation Regularization (Non-Leaky)}
-\begin{itemize}
-  \item Apply standard geometric augmentations to training images \emph{before} adding noise.
-  \item Feed augmentation parameters as conditioning to $F_\theta$ (\emph{non-leaky}); set to zero at inference.
-  \item Helps small/medium datasets reduce overfitting; further FID improvements.
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Headline Results \& Takeaways}
-\begin{itemize}
-  \item \textbf{Sampling:} Heun(2) + $\sigma(t)\!=\!t$ + $\rho$-scheduled steps $\Rightarrow$ big NFE cuts at equal FID.
-  \item \textbf{Training:} preconditioning + balanced loss + noise-level prior $\Rightarrow$ strong, robust models.
-  \item \textbf{Stochasticity:} beneficial on harder data; unnecessary with strong training on simpler data.
-  \item \textbf{Outcomes:} new SOTA-level FIDs on CIFAR-10 / ImageNet-64 with \textbf{much faster} sampling.
-\end{itemize}
-\end{frame}
-
-\subsection{DPM-Solver: A Fast ODE Solver for Diffusion Probabilistic Models}
-
-\begin{frame}{DPM-Solver: Motivation}
-\begin{itemize}
-  \item Diffusion models (DPMs) produce strong samples but are slow: \textbf{hundreds--thousands} of NFE.
-  \item Sampling can be recast as solving a \textbf{probability flow ODE}: no stochasticity $\Rightarrow$ larger steps possible.
-  \item \textbf{DPM-Solver} exploits the \emph{semi-linear} structure of the diffusion ODE to deliver high-quality samples in \textbf{10--20 NFE}.
-  \item Key idea: compute the \emph{linear part} analytically; only approximate a special, exponentially weighted integral of the network.
-\end{itemize}
-\end{frame}
-
-\begin{frame}{DPM-Solver: From SDE to ODE}
-\textbf{Forward SDE (VP-type example):}
-\[
-d\bm{x}_t = f(t)\bm{x}_t\,dt + g(t)\,d\bm{w}_t,\quad
-f(t)=\tfrac{d}{dt}\log \alpha_t,\quad
-g^2(t)=\tfrac{d}{dt}\sigma_t^2 - 2\tfrac{d}{dt}\log \alpha_t\cdot \sigma_t^2.
-\]
-\textbf{Probability flow ODE} with learned noise predictor $\varepsilon_\theta(\bm{x},t)$:
-\[
-\frac{d\bm{x}_t}{dt}
-= f(t)\bm{x}_t + \frac{g^2(t)}{2\sigma_t}\,\varepsilon_\theta(\bm{x}_t,t),\quad \bm{x}_T \sim \mathcal{N}(0,\Tilde{\sigma}^2\bm{I}).
-\]
-\textit{Semi-linear form:} linear in $\bm{x}_t$ plus a nonlinear NN term.
-\end{frame}
-
-% -------------------------
-\begin{frame}{DPM-Solver: Exact Solution via Variation of Constants}
-Given state $\bm{x}_s$ at $s>t$, the exact solution of the diffusion ODE is
-\[
-\bm{x}_t
-= e^{\int_t^s f(\tau)\,d\tau}\,\bm{x}_s
-+ \int_t^s e^{\int_t^\tau f(r)\,dr}\, \frac{g^2(\tau)}{2\sigma_\tau}\,\varepsilon_\theta(\bm{x}_\tau,\tau)\,d\tau.
-\]
-Introduce half-logSNR \(\lambda_t := \log(\alpha_t/\sigma_t)\) (strictly decreasing in $t$). Using change of variables,
-\[
-\boxed{\quad
-\bm{x}_t = \frac{\alpha_t}{\alpha_s}\,\bm{x}_s\;-\;\alpha_t\!\!\int_{\lambda_s}^{\lambda_t}\! e^{-\lambda}\,\hat{\varepsilon}_\theta(\hat{\bm{x}}_\lambda,\lambda)\,d\lambda \quad}
-\]
-Only the \textbf{exponentially weighted integral} of the network remains to be approximated.
-\end{frame}
-
-\begin{frame}{DPM-Solver: Why This Helps}
-\begin{itemize}
-  \item \textbf{Analytic linear term} removes its discretization error (a major source of instability for large steps).
-  \item The remaining integral matches the structure tackled by \textbf{exponential integrators}.
-  \item Work entirely in \(\lambda\) (half-logSNR) space: step selection $\{\lambda_i\}$ becomes \textbf{noise-schedule invariant}.
-\end{itemize}
-\end{frame}
-
-\begin{frame}{DPM-Solver-1 (First Order)}
-Let time grid \(t_0=T > t_1 > \cdots > t_M=0\), with \(\lambda_i=\lambda(t_i)\), \(h_i=\lambda_i-\lambda_{i-1}\).
-\[
-\boxed{\;
-\Tilde{\bm{x}}_{t_i}
-= \frac{\alpha_{t_i}}{\alpha_{t_{i-1}}}\,\Tilde{\bm{x}}_{t_{i-1}}
-- \sigma_{t_i}\!\left(e^{h_i}-1\right)\varepsilon_\theta(\Tilde{\bm{x}}_{t_{i-1}}, t_{i-1})\;}
-\]
-\textit{Fact:} This update is algebraically identical to \textbf{DDIM} in $\lambda$-parameterization.
-\end{frame}
-
-\begin{frame}{DPM-Solver-2 (Second Order)}
-Midpoint in $\lambda$: \(s_i = t_{\lambda}\big(\tfrac{\lambda_{i-1}+\lambda_i}{2}\big)\).
-\[
-\begin{aligned}
-\bm{u}_i &= \frac{\alpha_{s_i}}{\alpha_{t_{i-1}}}\Tilde{\bm{x}}_{t_{i-1}}
-- \sigma_{s_i}\!\left(e^{h_i/2}-1\right)\varepsilon_\theta(\Tilde{\bm{x}}_{t_{i-1}}, t_{i-1}), \\
-\Tilde{\bm{x}}_{t_i}
-&= \frac{\alpha_{t_i}}{\alpha_{t_{i-1}}}\Tilde{\bm{x}}_{t_{i-1}}
-- \sigma_{t_i}\!\left(e^{h_i}-1\right)\varepsilon_\theta(\bm{u}_i, s_i).
-\end{aligned}
-\]
-Second order accuracy in $\lambda$ with 2 network evaluations per step.
-\end{frame}
-
-\begin{frame}{DPM-Solver-3 (Third Order)}
-Two intermediate points \(s_{2i-1}=t_\lambda(\lambda_{i-1}+ \tfrac{1}{3}h_i)\), \(s_{2i}=t_\lambda(\lambda_{i-1}+ \tfrac{2}{3}h_i)\).
-\[
-\text{Evaluate } \varepsilon_\theta \text{ at } t_{i-1},\, s_{2i-1},\, s_{2i} \text{ and form finite-difference corrections } D_{2i-1},D_{2i}.
-\]
-\[
-\boxed{\;\tilde{\bm{x}}_{t_i}
-= \frac{\alpha_{t_i}}{\alpha_{t_{i-1}}}\tilde{\bm{x}}_{t_{i-1}}
-- \sigma_{t_i}(e^{h_i}-1)\varepsilon_\theta(\tilde{\bm{x}}_{t_{i-1}},t_{i-1})
-- \sigma_{t_i}\,\frac{2}{3}\!\left(\frac{e^{h_i}-1}{h_i}-1\right) D_{2i}\;}
-\]
-Third order accuracy in $\lambda$ with 3 evaluations per step; converges in very few steps.
-\end{frame}
-
-\begin{frame}{DPM-Solver: Choosing Step Sizes}
-\textbf{Uniform in \(\lambda\)}: split $[\lambda_T,\lambda_0]$ into $M$ equal parts:
-\[
-\lambda_i=\lambda_T + \frac{i}{M}(\lambda_0-\lambda_T).
-\]
-\textbf{Adaptive} (for larger NFE budgets): combine orders (1,2,3) with local error control in $\lambda$.
-\medskip
-
-\textit{Few-step recipe (e.g., total NFE $\le 20$):} use as many \textbf{DPM-Solver-3} steps as possible; if leftover evaluations remain, finish with a single DPM-Solver-2 (or -1) step.
-\end{frame}
-
-\begin{frame}{DPM-Solver: Discrete-Time DPMs}
-Models trained at integer steps $n=0,\dots,N-1$ with $\tilde{\varepsilon}_\theta(\bm{x}_n, n)$ can be used by defining a continuous-time wrapper:
-\[
-\varepsilon_\theta(\bm{x}, t) := \tilde{\varepsilon}_\theta\!\left(\bm{x}, \frac{(N-1)t}{T}\right),
-\]
-leveraging smooth time embeddings. Then apply DPM-Solver in continuous $t/\lambda$ directly.
-\end{frame}
-
-\begin{frame}{Quality \& Efficiency (Takeaways)}
-\begin{itemize}
-  \item \textbf{10--20 NFE} typically suffice for high-fidelity samples across standard benchmarks.
-  \item Outperforms generic RK solvers at the same order due to \textbf{analytic linear part} and \textbf{$\lambda$-space} integration.
-  \item Works with classifier guidance and both continuous/discrete DPMs \emph{without retraining}.
-\end{itemize}
-\end{frame}
-
-\begin{frame}{DPM-Solver: Implementation Tips}
-\begin{itemize}
-  \item Precompute $\alpha_t,\sigma_t,\lambda_t$ and (if available) closed-form $t_\lambda(\cdot)$ for your noise schedule.
-  \item Use float32 for networks but consider float64 for \(\lambda\)-grid arithmetic if extremely few steps are used.
-  \item Start with uniform-$\lambda$ grids; move to adaptive control only if pushing NFE below \(\approx 10\).
-  \item For guidance, share predictor calls between unconditional and conditional branches when possible.
-\end{itemize}
-\end{frame}
-
-\subsection{Consistency Models}
-\begin{frame}{Consistency Models: Motivation}
-\begin{itemize}
-  \item Diffusion models (DMs) achieve SOTA quality but require many denoising steps $\Rightarrow$ slow sampling.
-  \item \textbf{Goal:} Keep DM perks (quality, zero-shot editing, compute/quality trade-off) while enabling \textbf{fast 1-step} generation.
-  \item \textbf{Idea:} Learn a map that sends any point on a Probability-Flow (PF) ODE trajectory back to its origin (data).
-\end{itemize}
-
-\medskip
-\textbf{PF ODE (from SDE):}
-\[
-\mathrm{d}x_t
-=\bigg(\mu(x_t,t)-\tfrac{1}{2}\sigma(t)^2 \nabla \log p_t(x_t)\bigg)\,\mathrm{d}t
-\quad\Rightarrow\quad
-\frac{\mathrm{d}x_t}{\mathrm{d}t}=-\,t\, s_\phi(x_t,t)
-\]
-\vspace{-0.75em}
-(where $s_\phi \approx \nabla \log p_t$ under EDM-style settings)
-\end{frame}
-
-\begin{frame}{Consistency Function \& Model (Definition)}
-\begin{block}{Consistency function}
-Given a PF ODE trajectory $\{x_t\}_{t\in[\varepsilon,T]}$, define
-\[
-f:(x_t,t)\mapsto x_\varepsilon,
-\quad\text{with self-consistency } f(x_t,t)=f(x_{t'},t') \text{ if on same trajectory}.
-\]
-\end{block}
-
-\begin{block}{Consistency model}
-A neural estimator $f_\theta(x,t)$ of $f$ trained to enforce self-consistency.
-\end{block}
-
-\begin{itemize}
-  \item \textbf{Boundary condition:} $f_\theta(x,\varepsilon)=x$ (identity at $t=\varepsilon$).
-  \item Practical parameterization with skip:
-  \[
-    f_\theta(x,t)=c_{\mathrm{skip}}(t)\,x+c_{\mathrm{out}}(t)\,F_\theta(x,t),\ 
-    c_{\mathrm{skip}}(\varepsilon)=1,\ c_{\mathrm{out}}(\varepsilon)=0.
-  \]
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Sampling: One-step and Few-step}
-\textbf{One-step generation}
-\[
-x_T\sim\mathcal{N}(0,T^2 I),\quad x_\varepsilon = f_\theta(x_T,T).
-\]
-
-\textbf{Few-step (trade quality for compute)}: alternate denoise \& noise injection
-\[
-x \leftarrow f_\theta(x_T,T),\ 
-\text{then for } \tau_1>\dots>\tau_{N-1}:\ 
-\hat{x}_{\tau_n} \leftarrow x + \sqrt{\tau_n^2-\varepsilon^2}\,z,\ z\sim\mathcal{N}(0,I);\ 
-x \leftarrow f_\theta(\hat{x}_{\tau_n},\tau_n).
-\]
-\textit{Time points $\{\tau_n\}$ can be greedily tuned (e.g., by FID unimodality assumption).}
-\end{frame}
-
-\begin{frame}{Training I: Consistency Distillation (CD)}
-\textbf{Setting:} Pretrained diffusion score model $s_\phi(x,t)$; discretize $[\varepsilon,T]$ into $\{t_1\!=\varepsilon<\dots<t_N\!=T\}$.
-
-\medskip
-\textbf{One-step ODE update (e.g., Heun/Euler) from $x_{t_{n+1}}$ to $\hat{x}^{\phi}_{t_n}$:}
-\[
-\hat{x}^{\phi}_{t_n} \triangleq x_{t_{n+1}} + (t_n-t_{n+1})\,\Phi(x_{t_{n+1}},t_{n+1};\phi).
-\]
-
-\textbf{CD loss:} encourage equal outputs for adjacent points on same trajectory
-\[
-\mathcal{L}^{(N)}_{\mathrm{CD}}(\theta,\theta^{-};\phi)
-=\mathbb{E}\big[\lambda(t_n)\, d\!\left(f_\theta(x_{t_{n+1}},t_{n+1}),\ f_{\theta^{-}}(\hat{x}^{\phi}_{t_n},t_n)\right)\big]
-\]
-with target EMA $\theta^{-}\leftarrow \mu\,\theta^{-}+(1-\mu)\,\theta$.
-
-\smallskip
-\textbf{Notes:} LPIPS metric and Heun solver with moderate $N$ often work best; higher-order solvers tighten error bounds.
-\end{frame}
-
-\begin{frame}{Training II: Consistency Training (CT, No Teacher)}
-\textbf{Goal:} Train $f_\theta$ \emph{without} any pretrained diffusion.
-\[
-\mathcal{L}^{(N)}_{\mathrm{CT}}(\theta,\theta^-)
-=\mathbb{E}_{x\sim p_{\text{data}},\,z\sim\mathcal{N}(0,I),\,n}\ 
-\big[\lambda(t_n)\, d\!\left(f_\theta(x+t_{n+1}z, t_{n+1}),\ f_{\theta^-}(x+t_n z, t_n)\right)\big].
-\]
-
-\begin{itemize}
-  \item Connection: as $N\!\to\!\infty$ (small $\Delta t$) with Euler, $\mathcal{L}_{\mathrm{CT}}$ matches $\mathcal{L}_{\mathrm{CD}}$ up to $o(\Delta t)$.
-  \item Practice: progressively increase $N$ and the EMA decay $\mu$ during training for faster convergence then higher final quality.
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Consistency Models: Why it Works (Sketches)}
-\begin{itemize}
-  \item \textbf{Self-consistency} gives a functional fixed-point: $f_\theta$ constant along PF-ODE trajectories.
-  \item \textbf{Boundary} $f_\theta(\cdot,\varepsilon)=\mathrm{Id}$ prevents trivial collapse.
-  \item \textbf{CD theory:} If $\mathcal{L}_{\mathrm{CD}}=0$ and solver local error is $\mathcal{O}(\Delta t^{p+1})$, then
-  \[
-  \sup_{n,x}\|f_\theta(x,t_n)-f(x,t_n;\phi)\|=\mathcal{O}(\Delta t^p).
-  \]
-  \item \textbf{CT theory:} replaces teacher scores via unbiased score identities; continuous-time variant avoids bias (needs fwd-mode AD).
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Zero-shot Editing via Few-step Loop}
-\begin{itemize}
-  \item \textbf{Denoising} across noise levels (feed $x_t$ for any $t$).
-  \item \textbf{Inpainting / Colorization / Super-resolution / Stroke-guided editing}: modify parts / constraints between denoise \& re-noise steps, akin to diffusion inversion.
-  \item \textbf{Latent interpolations:} interpolate in $x_T$ space and map with $f_\theta$.
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Consistency Models: Quality \& Speed (Selected Numbers)}
-\begin{itemize}
-  \item \textbf{CD (one-step)}: CIFAR-10 FID $\approx 3.55$; ImageNet $64\times64$ FID $\approx 6.20$.
-  \item \textbf{CD (two-step)}: CIFAR-10 $\approx 2.93$; ImageNet $64\times64$ $\approx 4.70$.
-  \item \textbf{CT (direct, no teacher)}: surpasses many one-step non-adversarial baselines on CIFAR-10; improves with two-step sampling.
-\end{itemize}
-\small Zero-shot editing demonstrated on LSUN Bedroom/Cat $256^2$ (colorization, SR, inpainting, stroke-guided).
-\end{frame}
-
-\begin{frame}{Practical Tips}
-\begin{itemize}
-  \item Use EDM-style parameterization for $c_{\mathrm{skip}}(t),c_{\mathrm{out}}(t)$ and borrow U-Net backbones from diffusion.
-  \item For CD: LPIPS metric and Heun solver with $N$ around $18$ (dataset-dependent) often best.
-  \item For CT: schedule $N$ and EMA $\mu$ to grow over training; continuous-time CT is elegant but needs forward-mode AD.
-  \item Few-step sampling times $\{\tau_n\}$ can be greedily tuned (e.g., ternary search) to optimize FID.
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Takeaways}
-\begin{itemize}
-  \item \textbf{Consistency models} provide fast \textbf{one-step} generation while enabling \textbf{few-step} trade-offs.
-  \item Two training routes: \textbf{CD} (distill diffusion) and \textbf{CT} (train in isolation).
-  \item Maintain diffusion-style \textbf{zero-shot editing} abilities with simpler sampling.
-\end{itemize}
-\end{frame}
-
-\section{Known and unknown questions}
-\begin{frame}{Questions}
-If you are interested in the questions, please feel free to write an email to me {\color{red}(\href{mailto:hpp@bimsa.cn}{hpp@bimsa.cn})} with your comments. 
-\begin{enumerate}[(1.)]
-    \item Please prove that the forms \eqref{eq:reverse}-\eqref{eq:reverse2} are equivalent with same marginal distribution $p(x,t)$ given the same initial condition;
-    \item Please prove that the score function $s(x,t)$ satisfying the following formula
-    \begin{equation}
-        \frac{\partial s}{\partial t} = \nabla (-\nabla\cdot f - \langle f, s\rangle + \frac{1}{2}g^2\|s\|^2 + \frac{1}{2}g^2\langle \nabla, s \rangle);
-    \end{equation}
-    \item Why ISM loss is not commonly used like DSM loss in the diffusion model nowadays? Please make your comments.
-\end{enumerate}
-\end{frame}
-
-% Thank you slide  
-\begin{frame}{Welcome inputs}  
-  \centering  
-  Any comments?
-  \\[2em]
-  Welcome your inputs!  
-\end{frame}  
-
-\subsection{Flow Matching: Learning Probability Flows}
-
+\section{Flow Matching: Learning Probability Flows}
+\subsection{Probability Path and Coupling}
 \begin{frame}{Probability Path and Coupling}
 \begin{itemize}
   \item Let $\{p_t\}_{t\in[0,1]}$ be a prescribed path of marginals on $\R^d$ with $p_0$ simple and $p_1$ the data.
@@ -1450,18 +649,7 @@ If you are interested in the questions, please feel free to write an email to me
 \begin{remark}
     We can depict the flow matching and diffusion through the probability transition v.s. the trajectories. And also, we can connect the Neural ODE with the Flow matching.
 \end{remark}
-
 \end{frame}
-
-% \begin{frame}{Distributions and Notation}
-% \begin{itemize}
-%   \item Denote the density of $\xt$ by $p_t(x)$, and the joint law of $(\xt,\xdot)$ by $\mu_t(\dd x,\dd \dot x)$ with conditional density $p(\dot x\given x,t)$.
-%   \item Define the \emph{conditional-mean velocity}
-%   \[
-%     \vstar(x,t) \;:=\; \E[\xdot \mid \xt=x,\,t] \;=\; \int_{\R^d} \dot x \, p(\dot x\given x,t)\,\dd \dot x.
-%   \]
-% \end{itemize}
-% \end{frame}
 
 \begin{frame}{Strong and\ Weak Continuity}
 
@@ -1537,7 +725,7 @@ Different path/coupling choices change $\vstar$ and the irreducible variance $\E
   \item The correct notion of ``matching the path'' is the \textbf{weak continuity} identity for all test functions.
   \item The only deterministic field depending on $(x,t)$ that preserves this identity is the \textbf{conditional mean velocity}
   \[
-  \boxed{\ \vstar(x,t)=\E[\dot x_t\mid x_t=x,\,t]\ }.
+  \boxed{\ \vstar(x,t)=\E[\dot x_t\mid x_t]\ }.
   \]
   \item The \textbf{flow-matching MSE} is precisely the $L^2$ projection selecting $\vstar$:
   \[
@@ -1548,92 +736,7 @@ Different path/coupling choices change $\vstar$ and the irreducible variance $\E
 
 \subsection{Unified Interpretation: Diffusion and Flow Matching}
 
-\begin{frame}{Fokker--Planck / Forward Kolmogorov}
-\begin{theorem}[Fokker--Planck / Forward Kolmogorov]
-Let $(X_t)_{t\ge 0}\in\mathbb{R}^N$ solve the It\^o SDE
-\[
-dX_t=\mu(X_t,t)\,dt+\boldsymbol{\sigma}(X_t,t)\,dW_t,
-\]
-where $\mu:\mathbb{R}^N\times[0,\infty)\!\to\!\mathbb{R}^N$ is the drift,
-$\boldsymbol{\sigma}:\mathbb{R}^N\times[0,\infty)\!\to\!\mathbb{R}^{N\times M}$ the diffusion, and
-$W_t$ an $M$-dimensional standard Wiener process. 
-Define the diffusion tensor
-\[
-D(x,t)\coloneqq \frac{1}{2}\,\boldsymbol{\sigma}(x,t)\,\boldsymbol{\sigma}(x,t)^{\!\top}\in\mathbb{R}^{N\times N}.
-\]
-Then the (smooth) density $p(x,t)$ satisfies the Fokker--Planck equation
-\[
-\boxed{\;
-\partial_t p(x,t)
-= -\sum_{i=1}^N \frac{\partial}{\partial x_i}\big[\mu_i(x,t)\,p(x,t)\big]
-\;+\;\sum_{i,j=1}^N 
-\frac{\partial^2}{\partial x_i\,\partial x_j}\big[D_{ij}(x,t)\,p(x,t)\big]
-\;}
-\]
-for $t>0$, with $p(x,0)=p_0(x)$.
-\end{theorem}
-\end{frame}
-
-\begin{frame}{Isotropic diffusion: $\boldsymbol{\sigma}(x,t)=\sigma(t)\,\mathbf{I}_N$}
-When $\boldsymbol{\sigma}(x,t)=\sigma(t)\,\mathbf{I}_N$, the diffusion tensor becomes
-\[
-D(x,t)=\tfrac{1}{2}\,\sigma(t)^2\,\mathbf{I}_N,
-\qquad
-D_{ij}(x,t)=\tfrac{1}{2}\,\sigma(t)^2\,\delta_{ij}.
-\]
-Hence the Fokker--Planck equation simplifies to the drift--diffusion form
-\[
-\boxed{\;
-\partial_t p(x,t)
-= -\nabla\!\cdot\!\big(\mu(x,t)\,p(x,t)\big)
-\;+\;\frac{\sigma(t)^2}{2}\,\Delta p(x,t)
-\;}
-\]
-where $\nabla\!\cdot(\mu p)=\sum_{i=1}^N \partial_{x_i}\!\big(\mu_i p\big)$ and $\Delta=\sum_{i=1}^N \partial_{x_i}^2$ is the Laplacian.
-\end{frame}
-
-
-\begin{frame}{Mathematical connection to diffusion models}
-\textbf{Theoretical link}: For a forward SDE \(\dd\vx = f(\vx,t)\,\dd t + g(t)\,\dd B_t\), the probability flow ODE is:
-\begin{equation}
-    \frac{\dd}{\dd t}\,\vx = f(\vx,t) - \tfrac{1}{2}g^2(t)\,\grad_{\vx}\log p(\vx,t).
-\end{equation}
-
-\textbf{Key mathematical insight}: When Flow Matching uses Gaussian paths that match the SDE's marginal distributions \(p_t\), the learned velocity field \(\mathbf{v}_\theta\) approximates the probability flow drift:
-\begin{equation}
-    \mathbf{v}_\theta(\vx,t) \approx f(\vx,t) - \tfrac{1}{2}g^2(t)\,\grad_{\vx}\log p(\vx,t)
-\end{equation}
-
-\textbf{Crucial advantage}: Flow Matching achieves this approximation \emph{without} ever computing the score \(\grad_{\vx}\log p(\vx,t)\) during training!
-
-\textbf{Practical implications}: This connection allows Flow Matching to inherit the theoretical guarantees of diffusion models while avoiding their computational bottlenecks.
-\end{frame}
-
-\begin{frame}{Mathematical derivation: probability flow ODE}
-\textbf{Setup}: Forward SDE \(\dd\vx=f(\vx,t)\,\dd t + g(t)\,\dd B_t\) with density \(p(\vx,t)\) solving the Fokker-Planck equation:
-\begin{equation}
-    \partial_t p = -\grad\cdot(f p) + \tfrac{1}{2}g^2\,\triangle p.
-\end{equation}
-
-\textbf{Key insight}: A deterministic ODE \(\dot{\vx}=\mathbf{v}(\vx,t)\) transports densities via the continuity equation:
-\begin{equation}
-    \partial_t p + \grad\cdot(p\,\mathbf{v}) = 0.
-\end{equation}
-
-\textbf{Mathematical derivation}: Equating the two equations:
-\begin{align}
-    -\grad\cdot(p\,\mathbf{v}) &= -\grad\cdot(f p) + \tfrac{1}{2}g^2\,\triangle p\\
-    \Rightarrow\; \mathbf{v} &= f - \tfrac{1}{2}g^2\,\frac{\grad p}{p} 
-    \;=\; f - \tfrac{1}{2}g^2\,\grad\log p.
-\end{align}
-
-\textbf{Result}: The probability flow ODE drift is \(\mathbf{v} = f - \tfrac{1}{2}g^2\,\grad\log p\).
-
-\textbf{Connection to Flow Matching}: When Flow Matching learns \(\mathbf{v}_\theta\), it approximates this probability flow drift without computing the score \(\grad\log p\).
-\end{frame}
-
-
-\begin{frame}{Questions}
+\begin{frame}{Unified Interpretation: Diffusion and Flow Matching}
     From 
         \begin{enumerate}
             \item Score model $s_\theta(x_t)\to s_{\theta^*}(x_t)\equiv\mathbb{E}[\nabla \log p(x_t|x_0)\mid x_t]$
@@ -1651,10 +754,9 @@ where $\nabla\!\cdot(\mu p)=\sum_{i=1}^N \partial_{x_i}\!\big(\mu_i p\big)$ and 
     \begin{equation}
         s(x_t) = \mathbb{E}_x[\nabla_{x_t} \log p(x_t|x_0)| x_t]=\mathbb{E}_x[-\frac{x_t-\alpha x_0}{\sigma^2}| x_t] = -\frac{x_t-\alpha \mathbb{E}[x_0|x_t]}{\sigma^2}.
     \end{equation}
-        
 \end{frame}
 
-\section{Conditional Paths and Velocity Targets}
+\subsection{Conditional Paths and Velocity Targets}
 
 \begin{frame}{Gaussian conditional paths: mathematical derivation}
 \textbf{Assumption}: Gaussian conditional paths
@@ -1699,14 +801,21 @@ where $\nabla\!\cdot(\mu p)=\sum_{i=1}^N \partial_{x_i}\!\big(\mu_i p\big)$ and 
     \item \textbf{Advantage}: Simple form, good for high-dimensional data
 \end{itemize}
 
-\textbf{Key insight}: All choices provide \emph{closed-form} \(\mathbf{u}_t\) via the boxed formula!
 \end{frame}
 
 \begin{frame}{Derivation: VE/VP target forms}
 \small
+
+The interpolation path is given by
+\begin{equation}
+    x_t = \boldsymbol{\mu}_t(\vxz) + \sigt\epsilon,
+\end{equation}
+where \(\epsilon\sim\mathcal{N}(0,1)\).
+\vspace{1em}
+
 \textbf{VE-like.} \(\boldsymbol{\mu}_t(\vxz)=\vxz\), \(\sigt=\sigma(t)\). Then
 \begin{equation}
-    v = 0 + \frac{\dot\sigt}{\sigt}\,(\vx-\vxz).
+    v = 0 + \dot\sigt\epsilon = 0 + \frac{\dot\sigt}{\sigt}\,(\vx-\vxz).
 \end{equation}
 \textbf{VP-like.} \(\boldsymbol{\mu}_t(\vxz)=\alpha(t)\,\vxz\), \(\sigt=\sqrt{1-\alpha^2(t)}\). Using
 \(\mathbf{u}_t=\dot{\boldsymbol{\mu}}_t + (\dot\sigt/\sigt)(\vx-\boldsymbol{\mu}_t)\), we get
@@ -1715,17 +824,14 @@ where $\nabla\!\cdot(\mu p)=\sum_{i=1}^N \partial_{x_i}\!\big(\mu_i p\big)$ and 
     &= \dot\alpha\,\vxz + \frac{\dot\sigt}{\sigt}\,\vx - \frac{\dot\sigt}{\sigt}\,\alpha\,\vxz\\
     &= \frac{\dot\sigt}{\sigt}\,\vx + \Big(\dot\alpha - \alpha\,\frac{\dot\sigt}{\sigt}\Big)\,\vxz.
 \end{align}
-No explicit form for \(\dot\sigt/\sigt\) is required to train; schedules determine it numerically.
-
-\textbf{Mathematical insight}: These derivations show how different path choices lead to different velocity field structures, all computable analytically.
 \end{frame}
 
-\section{Flow Matching Training and Inference}
+\subsection{Flow Matching Training and Inference}
 
 \begin{frame}{Flow Matching: mathematical training objective}
 \textbf{Theoretical foundation}: Given conditional paths \(q_t(\vx\mid\vxz)\), the optimal velocity field satisfies:
 \begin{equation}
-    \vstar(x,t)=\E[\dot x_t\mid x_t=x,\,t]
+    \vstar(x,t)=\E[\dot x_t\mid x_t]
 \end{equation}
 
 \textbf{Training procedure}:
@@ -1779,552 +885,9 @@ No explicit form for \(\dot\sigt/\sigt\) is required to train; schedules determi
 \end{frame}
 
 
-\section{Advanced Topics and Extensions}
-\begin{frame}{Conditional Flow Matching}
-\textbf{Extension to conditional generation}: Instead of unconditional paths, we can define conditional paths \(q_t(\vx\mid\vxz, c)\) where \(c\) represents conditioning information (e.g., class labels, text prompts).
+\section{Applications in AI for Science: From Sequence to structure prediction}
 
-\textbf{Mathematical formulation}: The conditional velocity field becomes:
-\begin{equation}
-    \mathbf{u}_t(\vx\mid\vxz, c) := \EE\big[\tfrac{\dd}{\dd t}\, \vxt \;\big|\; \vxt=\vx,\,\vxz,\,c\big]
-\end{equation}
-
-\textbf{Training objective}:
-\begin{equation}
-    J_{\text{CFM}} = \EE\big[\,\|\, \mathbf{v}_\theta(\vxt,t,c) - v\,\|^2\,\big]
-\end{equation}
-
-\textbf{Applications}:
-\begin{itemize}
-    \item Class-conditional generation
-    \item Text-to-image synthesis
-    \item Image-to-image translation
-    \item Style transfer
-\end{itemize}
-
-\textbf{Advantage}: Maintains the same computational efficiency as unconditional Flow Matching while enabling controlled generation.
-\end{frame}
-
-\begin{frame}{Rectified Flow and Optimal Transport}
-\textbf{Rectified Flow}: A special case of Flow Matching that uses straight-line paths:
-\begin{equation}
-    \vxt = (1-t)\vxz + t\vx_1, \quad v = \vx_1 - \vxz
-\end{equation}
-
-\textbf{Mathematical properties}:
-\begin{itemize}
-    \item \textbf{Optimal transport}: Minimizes Wasserstein-2 distance
-    \item \textbf{Simplicity}: Constant velocity field along each path
-    \item \textbf{Efficiency}: Fastest convergence in many cases
-\end{itemize}
-
-\textbf{Connection to optimal transport}: Rectified Flow recovers the optimal transport map between \(p_0\) and \(p_1\) when the data is well-structured.
-
-\textbf{Practical advantages}:
-\begin{itemize}
-    \item Fewer function evaluations during sampling
-    \item More stable training
-    \item Better sample quality in many domains
-\end{itemize}
-\end{frame}
-
-
-\begin{frame}{Flow Matching in Latent Spaces}
-\textbf{Motivation}: Instead of working directly in pixel space, Flow Matching can be applied in learned latent representations.
-
-\textbf{Mathematical setup}: Given an encoder \(E: \mathcal{X} \to \mathcal{Z}\) and decoder \(D: \mathcal{Z} \to \mathcal{X}\):
-\begin{itemize}
-    \item Learn flow in latent space: \(\mathbf{v}_\theta: \mathcal{Z} \times [0,1] \to \mathcal{Z}\)
-    \item Generate latent codes: \(\mathbf{z}_0 = \mathbf{z}_1 + \int_0^1 \mathbf{v}_\theta(\mathbf{z}_t, t) dt\)
-    \item Decode to images: \(\mathbf{x} = D(\mathbf{z}_0)\)
-\end{itemize}
-
-\textbf{Advantages}:
-\begin{itemize}
-    \item \textbf{Computational efficiency}: Lower-dimensional space
-    \item \textbf{Sample quality}: Better inductive biases in latent space
-    \item \textbf{Flexibility}: Can use different architectures for encoder/decoder
-\end{itemize}
-
-\textbf{Examples}: Latent Diffusion Models (LDMs), Stable Diffusion
-\end{frame}
-
-
-\section{MeanFlow: Single-Step Generation}
-
-\begin{frame}{MeanFlow: Motivation}
-\textbf{Goal}: Achieve single-step (1-NFE) generation while retaining high fidelity and stability.
-
-\textbf{Problem with standard Flow Matching}: Multi-step ODE integration is computationally expensive and can accumulate errors.
-
-\textbf{Key insight}: Learn a \emph{ground-truth average velocity field} that summarizes an entire time interval.
-
-\textbf{Mathematical formulation}: For any pair \(r<t\) and point \(\z_t\) along the flow path:
-\begin{equation}\label{eq:u-def}
-\uavg(\z_t, r, t) \;\coloneqq\; \frac{1}{t-r} \int_{r}^{t} \vinst(\z_\tau,\tau)\, \dd\tau.
-\end{equation}
-
-\textbf{Properties}:
-\begin{itemize}
-    \item \(\uavg\) is an \textbf{underlying field} induced by \(\vinst\) (no networks yet)
-    \item As \(r\to t\), \(\uavg(\z_t,r,t) \to \vinst(\z_t,t)\)
-    \item Composition over intervals holds: one big step equals two smaller consecutive steps
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Definition: Average Velocity}
-For any pair $r<t$ and point $\z_t$ along the flow path:
-\begin{equation}\label{eq:avg-vel-def}
-\uavg(\z_t, r, t) \;\coloneqq\; \frac{1}{t-r} \int_{r}^{t} \vinst(\z_\tau,\tau)\, \dd\tau.
-\end{equation}
-\begin{itemize}
-\item $\uavg$ is an \textbf{underlying field} induced by $\vinst$ (no networks yet).
-\item As $r\to t$, \; $\uavg(\z_t,r,t) \to \vinst(\z_t,t)$.
-\item Composition over intervals holds: one big step equals two smaller consecutive steps (additivity of integrals).
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Preliminaries: Matrix function derivations and Jacobian-vector product}
-\begin{itemize}
-    \item Matrix function derivations
-    \item Einsten notation and Einstein summation convention
-    \item Jacobian-vector product
-\end{itemize}
-
-\vspace{1em}
-See \href{https://en.wikipedia.org/wiki/Matrix_calculus}{wikipedia matrix calculus} for more details.
-
-\end{frame}
-
-\begin{frame}{MeanFlow Identity (core relation)}
-Starting from Eq.~\eqref{eq:u-def}:
-\begin{equation}
-(t-r)\,\uavg(\z_t,r,t) \,=\, \int_r^t \vinst(\z_\tau,\tau)\,\dd\tau.
-\end{equation}
-Differentiate w.r.t. \(t\) (treating \(r\) as constant) and use the fundamental theorem of calculus:
-\begin{equation}\label{eq:meanflow-identity}
-\boxed{\;\uavg(\z_t,r,t) \,=\, \vinst(\z_t,t) \, - \, (t-r)\,\td\,\uavg(\z_t,r,t)\;}
-\end{equation}
-where the total derivative expands to
-\begin{equation}\label{eq:total-deriv}
-\td\,\uavg(\z_t,r,t) \;=\; \underbrace{\vinst(\z_t,t)}_{\dv{\z_t}{t}}\!\cdot \partial_{\z}\uavg(\z_t,r,t) \; +\; \partial_t\uavg(\z_t,r,t).
-\end{equation}
-
-\textbf{Interpretation}: Eq.~\eqref{eq:meanflow-identity} links instantaneous and average velocities \emph{without} introducing networks.
-
-\textbf{Mathematical significance}: This identity enables learning average velocity fields that can be used for single-step generation.
-\end{frame}
-
-
-\begin{frame}{Trainable objective}
-Parameterize a network \(\uavg_\theta(\z, r, t)\). Use the MeanFlow identity to form a target (replace \(\vinst\) by sample-conditional \(\vinst_t\)):
-\begin{align}
-\text{Target:}\quad \uavg_{\text{tgt}} \;&=\; \vinst_t \; -\; (t-r)\,\big(\underbrace{\vinst_t \cdot \partial_{\z}\uavg_\theta}_{\text{JVP}} + \partial_t\uavg_\theta\big). \\
-\mathcal{L}(\theta) \;&=\; \EE\,\big\|\,\uavg_\theta(\z_t, r, t) - \sg(\uavg_{\text{tgt}})\,\big\|_2^2.
-\end{align}
-
-\textbf{Key components}:
-\begin{itemize}
-    \item \(\sg(\cdot)\): stop-gradient; avoids higher-order differentiation
-    \item JVP (Jacobian-vector product) computed efficiently via autodiff
-    \item If \(r=t\), the correction term vanishes \(\Rightarrow\) reduces to standard Flow Matching
-\end{itemize}
-
-\textbf{Mathematical insight}: This objective learns to predict average velocities over time intervals, enabling single-step generation.
-\end{frame}
-
-
-\begin{frame}{Pseudocode (training)}
-\textbf{MeanFlow training algorithm}:
-\begin{enumerate}
-\item Sample \(t,r\sim \text{LogitNormal}\); set \(t\leftarrow\max(r,t)\), \(r\leftarrow\min(r,t)\)
-\item Sample \(\x\sim p_{\text{data}}\), \(\eps\sim\mathcal{N}(0,I)\); set \(\z_t=(1-t)\x + t\eps\), \(\vinst_t=\eps-\x\)
-\item Compute \(\big(\uavg_\theta,\; \td\uavg_\theta\big)=\JVP\big(\uavg_\theta(\cdot,r,t), \; (\vinst_t,0,1)\big)\)
-\item Set \(\uavg_{\text{tgt}}\leftarrow \vinst_t - (t-r)\,\td\uavg_\theta\)
-\item Minimize \(\;\|\uavg_\theta(\z_t,r,t)-\sg(\uavg_{\text{tgt}})\|_2^2\) (optionally with adaptive weights)
-\end{enumerate}
-
-\textbf{Key innovations}:
-\begin{itemize}
-    \item \textbf{LogitNormal sampling}: Ensures proper time interval distribution
-    \item \textbf{JVP computation}: Efficient higher-order derivatives
-    \item \textbf{Stop-gradient}: Prevents training instability
-\end{itemize}
-\end{frame}
-
-
-\begin{frame}{Sampling (1 step or few steps)}
-Replace the time integral by the learned average velocity:
-\begin{equation}
-\z_r \;=\; \z_t - (t-r)\,\uavg_\theta(\z_t,r,t).
-\end{equation}
-
-\textbf{1-NFE sampling}: take \((r,t)=(0,1)\), \(\z_1=\eps\),
-\begin{equation}
-\boxed{\;\x \equiv \z_0 = \eps - \uavg_\theta(\eps,0,1)\;}\;.
-\end{equation}
-
-\textbf{Mathematical significance}: This single-step generation maintains the same theoretical guarantees as multi-step Flow Matching.
-
-\textbf{Practical advantages}:
-\begin{itemize}
-    \item \textbf{Speed}: Single function evaluation
-    \item \textbf{Stability}: No accumulation of integration errors
-    \item \textbf{Flexibility}: Can still use few-step variants by chaining intervals
-\end{itemize}
-\end{frame}
-
-\begin{frame}{CFG inside the field (still 1-NFE)}
-Define a CFG velocity field
-\begin{equation}
-\vinst_{\text{cfg}}(\z_t,t\mid c) \;=\; \omega\,\vinst(\z_t,t\mid c) + (1-\omega)\,\vinst(\z_t,t).
-\end{equation}
-
-\textbf{Key insight}: CFG can be applied directly to the average velocity field:
-\begin{equation}
-\uavg_{\text{cfg}}(\z_t,r,t\mid c) \;=\; \omega\,\uavg(\z_t,r,t\mid c) + (1-\omega)\,\uavg(\z_t,r,t).
-\end{equation}
-
-\textbf{Mathematical property}: This maintains the 1-NFE property while enabling conditional generation.
-
-\textbf{Practical significance}: MeanFlow can achieve both single-step generation and strong conditioning, combining the best of both worlds.
-\end{frame}
-
-\section{Summary and Future Directions}
-
-\begin{frame}{Key Takeaways: Flow Matching}
-\textbf{Mathematical foundations}:
-\begin{itemize}
-    \item Flow Matching learns velocity fields that transport probability distributions via the continuity equation
-    \item Conditional paths provide analytic supervision without score estimation
-    \item The method connects to optimal transport theory and diffusion models
-\end{itemize}
-
-\textbf{Computational advantages}:
-\begin{itemize}
-    \item No score estimation during training
-    \item Deterministic sampling with flexible step sizes
-    \item Stable gradients and efficient training
-\end{itemize}
-
-\textbf{Practical benefits}:
-\begin{itemize}
-    \item Fewer function evaluations than diffusion models
-    \item Better sample quality in many domains
-    \item Natural extension to conditional generation
-\end{itemize}
-
-\textbf{MeanFlow extension}: Enables single-step generation while maintaining theoretical guarantees.
-\end{frame}
-
-\begin{frame}{Future Directions and Open Problems}
-\textbf{Theoretical developments}:
-\begin{itemize}
-    \item \textbf{Path optimization}: Finding optimal conditional paths for specific data distributions
-    \item \textbf{Convergence analysis}: Understanding when Flow Matching achieves optimal transport
-    \item \textbf{Error bounds}: Quantifying approximation errors in finite-sample settings
-\end{itemize}
-
-\textbf{Practical improvements}:
-\begin{itemize}
-    \item \textbf{Architecture design}: Specialized networks for different data modalities
-    \item \textbf{Training strategies}: Adaptive loss weighting and curriculum learning
-    \item \textbf{Sampling efficiency}: Better ODE solvers and step size selection
-\end{itemize}
-
-\textbf{Applications}:
-\begin{itemize}
-    \item \textbf{Scientific computing}: Molecular dynamics, fluid simulation
-    \item \textbf{Creative AI}: Music, video, and 3D content generation
-    \item \textbf{Data augmentation}: Synthetic data for training other models
-\end{itemize}
-\end{frame}
-
-\section{References}
-
-\begin{frame}{Key References}
-\textbf{Core Flow Matching papers}:
-\begin{itemize}
-    \item Lipman et al., \textit{Flow Matching for Generative Modeling} (2022)
-    \item Geng et al., \textit{MeanFlow: A Flow Matching Method for One-Step Generation} (2025)
-    \item Liu et al., \textit{Learning to Generate and Transfer Data with Rectified Flow} (2022)
-    \item Song et al., \textit{Score-based generative modeling through stochastic differential equations} (2020)
-    \item Albergo et al., \textit{stochastic interpolants: a unifying framework for flows and diffusions} (2023)
-\end{itemize}
-
-\textbf{Implementation resources}:
-\begin{itemize}
-    \item Flow Matching Guide and Code (GitHub)
-    \item Open source libraries: diffusers
-    \item Tutorial notebooks and examples
-\end{itemize}
-\end{frame}
-
-% Thank you slide  
-\begin{frame}{Welcome inputs}  
-  \centering  
-  Any comments?
-  \\[2em]
-  Welcome your inputs!  
-\end{frame}  
-
-\section{Applications in Molecules, Materials \& Proteins}
-
-\begin{frame}{Applications Overview}
-Generative models (diffusion and flow matching) enable powerful applications in scientific discovery:
-\begin{itemize}
-    \item \textcolor{red}{Molecular \& Materials Design}: Generating novel compounds with desired properties
-    \item \textcolor{red}{Protein Structure \& Complex Generation}: Designing proteins and protein complexes
-    \item \textcolor{red}{Property-Conditioned Generation}: Sampling structures with specific functional properties
-\end{itemize}
-
-\textbf{Key challenges:} Structural validity, prior knowledge integration, constraint handling
-\end{frame}
-
-\begin{frame}{Key Challenges in AI for Science}
-Scientific problems present unique challenges for machine learning:
-\begin{enumerate}
-    \item \textbf{Data scarcity}: Limited experimental data, expensive to collect
-    \item \textbf{Physical constraints}: Solutions must obey physical laws
-    \item \textbf{Interpretability}: Scientific understanding requires explainable models
-    \item \textbf{Uncertainty quantification}: Scientific predictions need confidence bounds
-    \item \textbf{Multi-scale phenomena}: From quantum to macroscopic scales
-\end{enumerate}
-\end{frame}
-
-\subsection{Molecular and Materials Generation}
-
-\begin{frame}{Molecular and Materials Generation with Generative Models}
-Generative models (diffusion and flow matching) enable novel molecular and materials design:
-
-\begin{itemize}
-    \item \textbf{Molecular generation}: Design drug-like molecules with desired properties
-    \item \textbf{Materials discovery}: Generate crystal structures with target electronic/mechanical properties
-    \item \textbf{Property-conditioned sampling}: Generate structures with specific functional properties
-\end{itemize}
-
-\textbf{Key considerations:}
-\begin{itemize}
-    \item Structural validity (chemical rules, bond constraints)
-    \item Prior knowledge integration (force fields, symmetry)
-    \item Constraint handling (physical constraints, domain knowledge)
-\end{itemize}
-\end{frame}
-
-
-
-\subsection{Property-Conditioned Generation}
-
-\begin{frame}{Molecular Representation Learning}
-Converting molecules to machine-readable formats:
-\begin{itemize}
-    \item \textbf{SMILES strings}: Text-based molecular representation
-    \item \textbf{Graph neural networks}: Molecular graphs with atoms as nodes, bonds as edges
-    \item \textbf{3D coordinates}: Spatial arrangement of atoms
-    \item \textbf{Descriptors}: Hand-crafted molecular features
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Graph Neural Networks for Molecules}
-For a molecular graph $G = (V, E)$ with atoms $v_i \in V$ and bonds $e_{ij} \in E$:
-
-\textbf{Message passing:}
-\begin{equation}
-    h_v^{(l+1)} = \text{UPDATE}\left(h_v^{(l)}, \text{AGGREGATE}\left(\{h_u^{(l)} : u \in \mathcal{N}(v)\}\right)\right)
-\end{equation}
-
-\textbf{Property prediction:}
-\begin{equation}
-    y = \text{READOUT}(\{h_v^{(L)} : v \in V\})
-\end{equation}
-where $L$ is the number of message passing layers.
-\end{frame}
-
-\begin{frame}{Applications in Drug Discovery}
-\begin{itemize}
-    \item \textbf{Property prediction}: Solubility, toxicity, binding affinity
-    \item \textbf{Molecular generation}: Designing new drug candidates
-    \item \textbf{Retrosynthesis}: Planning synthetic routes
-    \item \textbf{Protein-ligand binding}: Predicting drug-target interactions
-\end{itemize}
-
-\textbf{Key datasets:}
-\begin{itemize}
-    \item QM9: 134k small organic molecules; GEOM-Drugs
-    \item ChEMBL: Large-scale bioactivity data
-    \item PDB: Protein structures; AlphaFoldDB
-\end{itemize}
-\end{frame}
-
-
-
-\subsection{Protein Structure and Complex Design}
-
-\begin{frame}{The Protein Folding Problem}
-Proteins fold from linear amino acid sequences to 3D structures:
-\begin{equation}
-    \text{Sequence: } \text{ACDEFGHIKLMNPQRSTVWY} \rightarrow \text{3D Structure}
-\end{equation}
-
-\textbf{Key challenges:}
-\begin{itemize}
-    \item Exponential number of possible conformations
-    \item Complex energy landscapes
-    \item Multiple timescales (nanoseconds to seconds)
-\end{itemize}
-\end{frame}
-
-\begin{frame}{AlphaFold and Structure Prediction}
-\textbf{AlphaFold approach:}
-\begin{enumerate}
-    \item \textbf{Multiple sequence alignment}: Evolutionary information
-    \item \textbf{Attention mechanisms}: Long-range interactions
-    \item \textbf{Structure module}: 3D coordinate prediction
-    \item \textbf{Confidence estimation}: Reliability of predictions
-\end{enumerate}
-
-\textbf{Key innovations:}
-\begin{itemize}
-    \item End-to-end differentiable architecture
-    \item Integration of evolutionary and physical constraints
-    \item Uncertainty quantification
-\end{itemize}
-\end{frame}
-
-\begin{frame}{architecture}
-    \begin{figure}
-        \centering
-        \includegraphics[width=0.5\textwidth]{../figures/alphafold3.png}
-        \caption{The architecture of AlphaFold 3.}
-    \end{figure}
-\end{frame}
-
-\begin{frame}{Impact of AlphaFold}
-\begin{itemize}
-    \item \textbf{Structural biology revolution}: Millions of protein structures predicted
-    \item \textbf{Drug discovery}: Better understanding of drug targets
-    \item \textbf{Protein design}: Engineering proteins with desired functions
-    \item \textbf{Evolutionary biology}: Understanding protein evolution
-\end{itemize}
-
-\textbf{Current limitations:}
-\begin{itemize}
-    \item Limited accuracy for disordered regions
-    \item Challenges with protein complexes
-    \item Difficulty with membrane proteins
-\end{itemize}
-\end{frame}
-
-
-\begin{frame}{Materials Property Prediction}
-Predicting material properties from composition and structure:
-\begin{itemize}
-    \item \textbf{Electronic properties}: Band gap, conductivity, magnetic properties
-    \item \textbf{Mechanical properties}: Elastic modulus, strength, hardness
-    \item \textbf{Thermal properties}: Heat capacity, thermal conductivity
-    \item \textbf{Optical properties}: Refractive index, absorption spectra
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Crystal Structure Representation}
-\textbf{Periodic systems:} Representing crystal structures with periodic boundary conditions.
-
-\textbf{Graph representations:}
-\begin{itemize}
-    \item \textbf{Crystal graphs}: Atoms as nodes, bonds as edges
-    \item \textbf{Periodic embeddings}: Handling translational symmetry
-    \item \textbf{Multi-scale features}: From atomic to macroscopic properties
-\end{itemize}
-
-\textbf{Deep learning approaches:}
-\begin{itemize}
-    \item \textbf{CGCNN}: Crystal Graph Convolutional Neural Networks
-    \item \textbf{SchNet}: Quantum-chemical property prediction
-    \item \textbf{MEGNet}: Materials property prediction
-\end{itemize}
-\end{frame}
-
-\begin{frame}{High-Throughput Materials Discovery}
-\textbf{Computational screening:}
-\begin{enumerate}
-    \item Generate candidate materials
-    \item Predict properties using ML models
-    \item Filter promising candidates
-    \item Experimental validation
-\end{enumerate}
-
-\textbf{Key databases:}
-\begin{itemize}
-    \item \textbf{Materials Project}: 150k+ materials with computed properties
-    \item \textbf{OQMD}: Open Quantum Materials Database
-    \item \textbf{AFLOW}: Automatic Flow for Materials Discovery
-\end{itemize}
-\end{frame}
-
-
-
-\section{Towards Scientific Workflows}
-
-\begin{frame}{Methodological Reflections: Towards Scientific Workflows}
-Generative models for science must go beyond black-box generation. Key considerations:
-
-\begin{enumerate}
-    \item \textbf{Interpretability}: Understanding what models learn and how they make decisions
-    \item \textbf{Controllability}: Property-conditioned generation, constraint handling, prior knowledge integration
-    \item \textbf{Data Efficiency}: Learning from limited experimental data, leveraging physical priors
-    \item \textbf{Multimodal Integration}: Combining different data types (sequences, structures, properties)
-\end{enumerate}
-
-\textbf{Goal:} Models as tools for scientific discovery, not pure black-box generators.
-\end{frame}
-
-\begin{frame}{Interpretability: Understanding Model Behavior}
-\begin{itemize}
-    \item \textbf{Score functions} reveal learned data geometry and energy landscapes
-    \item \textbf{Flow trajectories} show generation paths and intermediate states
-    \item \textbf{Attention mechanisms} (in transformers) highlight important structural features
-    \item \textbf{Uncertainty quantification} provides confidence estimates for predictions
-\end{itemize}
-
-\textbf{Example:} In protein folding, attention patterns reveal which sequence regions drive structure formation.
-\end{frame}
-
-\begin{frame}{Controllability: Property-Conditioned Generation}
-\begin{itemize}
-    \item \textbf{Conditional generation}: Sample structures with specific properties (binding affinity, stability, etc.)
-    \item \textbf{Constraint handling}: Enforce physical constraints (bond lengths, angles, symmetry)
-    \item \textbf{Prior knowledge}: Incorporate domain knowledge (chemical rules, biological constraints)
-    \item \textbf{Guided sampling}: Use classifier guidance or energy-based models for targeted generation
-\end{itemize}
-
-\textbf{Example:} Generate drug-like molecules with desired binding properties while respecting chemical validity.
-\end{frame}
-
-\begin{frame}{Data Efficiency: Learning from Limited Data}
-\begin{itemize}
-    \item \textbf{Physical priors}: Incorporate known physics (force fields, conservation laws)
-    \item \textbf{Transfer learning}: Pre-train on large datasets, fine-tune on domain-specific data
-    \item \textbf{Active learning}: Selectively query expensive experiments
-    \item \textbf{Data augmentation}: Leverage symmetries and invariances (rotations, translations)
-\end{itemize}
-
-\textbf{Example:} Pre-train on AlphaFoldDB, fine-tune on experimental structures for specific protein families.
-\end{frame}
-
-\begin{frame}{Multimodal Integration: Combining Data Types}
-\begin{itemize}
-    \item \textbf{Sequence + Structure}: Joint modeling of amino acid sequences and 3D coordinates
-    \item \textbf{Structure + Properties}: Link geometric features to functional properties
-    \item \textbf{Text + Structure}: Natural language descriptions of molecular function
-    \item \textbf{Experimental + Computational}: Combine simulation and experimental data
-\end{itemize}
-
-\textbf{Example:} AlphaFold 3 integrates sequences, structures, and experimental data for complex prediction.
-\end{frame}
-
-\subsection{Case Studies: SimpleFold, AlphaFold 3, RFDiffusion}
-
-\subsection{SimpleFold}
-\begin{frame}{Concept \& Setup}
+\begin{frame}{SimpleFold: concept \& Setup}
 \textbf{Goal.} Predict full-atom 3D structures from an amino-acid sequence using a \emph{general-purpose} Transformer trained with flow matching. \\
 \medskip
 \textbf{Design stance.}
@@ -2456,35 +1019,6 @@ where $\bm{s}_\theta=\dfrac{t\,\bm{v}_\theta-\bm{x}_t}{1-t}$ and $w(t)=\dfrac{2(
 \end{figure}
 \end{frame}
 
-\subsection{AlphaFold 3}
-
-\begin{frame}{AlphaFold 3}
-
-See the pdfs.
-
-\end{frame}
-
-
-\subsection{UniGenX}
-\begin{frame}{UniGenX}
-See the MS PowerPoint presentation for more details.
-\end{frame}
-
-\subsection{RFDiffusion}
-
-\subsection{MPNN}
-
-\section{Conclusion}
-
-\begin{frame}{Summary}
-AI for Science represents a paradigm shift in how we approach scientific research:
-\begin{itemize}
-    \item \textbf{Acceleration}: Faster discovery and development cycles
-    \item \textbf{Integration}: Combining data-driven and physics-based approaches
-    \item \textbf{Automation}: Reducing manual work in scientific research
-    \item \textbf{Insights}: Discovering patterns humans might miss
-\end{itemize}
-\end{frame}
 
 \begin{frame}{The Future of AI for Science}
 \begin{itemize}
@@ -2495,14 +1029,6 @@ AI for Science represents a paradigm shift in how we approach scientific researc
 \end{itemize}
 \end{frame}
 
-\begin{frame}{Questions for Discussion}
-\begin{enumerate}
-    \item How can we ensure AI for Science maintains scientific rigor and reproducibility?
-    \item What are the implications of AI for the future of scientific careers?
-    \item How should we balance AI automation with human scientific intuition?
-    \item What ethical guidelines should govern AI for Science research?
-\end{enumerate}
-\end{frame}
 
 % Thank you slide  
 \begin{frame}{Welcome inputs}  
