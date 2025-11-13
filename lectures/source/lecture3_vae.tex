@@ -12,6 +12,8 @@
 \usepackage{mathtools}
 \usepackage{amsfonts}  
 \usepackage{amssymb}  
+\usepackage{graphicx}
+\usepackage{xcolor}
 \usepackage{CJKutf8}
 % Support for \Tilde macro used throughout
 \providecommand{\Tilde}[1]{\tilde{#1}}
@@ -91,169 +93,370 @@
 
 \section{Introduction: The Problem of Generative Modeling}
 
-\begin{frame}{The Challenge of Generative Modeling}
-Given a dataset $\mathcal{D} = \{x^{(i)}\}_{i=1}^N$ sampled from an unknown distribution $p^*(x)$, how can we:
+\begin{frame}{The Low-Dimensional Manifold Hypothesis}
+\textbf{Key observation:} Natural images lie on a low-dimensional manifold, not in the full high-dimensional space.
+
 \begin{itemize}
-    \item Learn a model $p_\theta(x)$ that approximates $p^*(x)$?
-    \item Generate new samples from the learned distribution?
-    \item Perform inference: $p_\theta(z|x)$ for latent variables $z$?
+    \item \textbf{Full space:} $1024 \times 1024 \times 3 = 3,145,728$ dimensions
+    \item \textbf{Actual manifold:} Much lower dimensional (often $< 100$ dimensions)
+    \item Most of the high-dimensional space is empty or contains unrealistic images
 \end{itemize}
 
-\textcolor{red}{Key challenges:}
-\begin{enumerate}
-    \item High-dimensional data spaces
-    \item Intractable likelihood computation
-    \item Latent variable inference
-    \item Scalable training procedures
-\end{enumerate}
-\end{frame}
+\vspace{0.5em}
+\textbf{Central question:} How can we embed these features into a compact latent space?
 
-\begin{frame}{Traditional Approaches and Their Limitations}
 \begin{itemize}
-    \item \textbf{Maximum Likelihood Estimation (MLE):}
-    \begin{equation}
-        \theta^* = \arg\max_\theta \sum_{i=1}^N \log p_\theta(x^{(i)})
-    \end{equation}
-    \item \textbf{Problem:} Direct likelihood computation often intractable
-    \item \textbf{Latent Variable Models:}
-    \begin{equation}
-        p_\theta(x) = \int p_\theta(x|z) p(z) dz
-    \end{equation}
-    \item \textbf{Problem:} Integration over latent space $z$ is typically intractable
+    \item Capture the essential structure of the data
+    \item Enable efficient representation and generation
+    \item Learn meaningful features for downstream tasks
 \end{itemize}
-
-\textcolor{red}{Solution:} Variational inference to approximate intractable posteriors
 \end{frame}
 
-\section{Variational Inference: The Foundation}
+\begin{frame}{Autoencoders: A Direct Approach}
+\textbf{Basic idea:} Use an encoder-decoder architecture to learn compact representations
 
-\begin{frame}{Variational Inference Framework}
-Given a latent variable model $p_\theta(x,z) = p_\theta(x|z)p(z)$, we want to:
-\begin{itemize}
-    \item Approximate the intractable posterior $p_\theta(z|x)$
-    \item Maximize the marginal likelihood $p_\theta(x)$
-\end{itemize}
-
-\textbf{Key idea:} Introduce a variational distribution $q_\phi(z|x)$ to approximate $p_\theta(z|x)$
-
-\begin{equation}
-\KL(q_\phi(z|x) \| p_\theta(z|x)) = \EE_{q_\phi(z|x)}[\log q_\phi(z|x)] - \EE_{q_\phi(z|x)}[\log p_\theta(z|x)]
-\end{equation}
-\end{frame}
-
-\begin{frame}{Evidence Lower Bound (ELBO)}
-The KL divergence can be decomposed as:
-\begin{equation}
-\KL(q_\phi(z|x) \| p_\theta(z|x)) = \log p_\theta(x) - \ELBO(x; \theta, \phi)
-\end{equation}
-
-where the \textcolor{red}{Evidence Lower Bound} is:
-\begin{equation}
-\ELBO(x; \theta, \phi) = \EE_{q_\phi(z|x)}[\log p_\theta(x|z)] - \KL(q_\phi(z|x) \| p(z))
-\end{equation}
-
-\textbf{Key insight:} Since $\KL \geq 0$, we have:
-\begin{equation}
-\log p_\theta(x) \geq \ELBO(x; \theta, \phi)
-\end{equation}
-
-Maximizing ELBO $\Leftrightarrow$ Minimizing KL divergence $\Leftrightarrow$ Approximating posterior
-\end{frame}
-
-\begin{frame}{ELBO Interpretation}
-The ELBO can be rewritten as:
-\begin{equation}
-\ELBO(x; \theta, \phi) = \EE_{q_\phi(z|x)}[\log p_\theta(x|z)] - \KL(q_\phi(z|x) \| p(z))
-\end{equation}
-
-\textbf{Two components:}
-\begin{enumerate}
-    \item \textcolor{blue}{Reconstruction term:} $\EE_{q_\phi(z|x)}[\log p_\theta(x|z)]$
-    \begin{itemize}
-        \item Encourages $q_\phi(z|x)$ to encode information about $x$
-        \item Maximizes likelihood of reconstructing $x$ from $z$
-    \end{itemize}
-    \item \textcolor{red}{Regularization term:} $-\KL(q_\phi(z|x) \| p(z))$
-    \begin{itemize}
-        \item Encourages $q_\phi(z|x)$ to be close to prior $p(z)$
-        \item Prevents overfitting to training data
-    \end{itemize}
-\end{enumerate}
-\end{frame}
-
-\section{A mathematical route}
-\begin{frame}{From Jensen to the ELBO}
-For any variational posterior \(q_\phi(z\mid x)\),
-\begin{align*}
-\log p_\theta(x)
-&= \log \int q_\phi(z\mid x)\,\frac{p_\theta(x,z)}{q_\phi(z\mid x)}\,dz \\
-&\ge \E_{q_\phi} \Big[ \log p_\theta(x,z) - \log q_\phi(z\mid x) \Big] \quad (\text{Jensen}) \\
-&= \underbrace{\E_{q_\phi}\big[\log p_\theta(x\mid z)\big]}_{\text{reconstruction}}
-- \underbrace{\KL\big(q_\phi(z\mid x)\,\|\,p(z)\big)}_{\text{regularization}} \\
-&\eqqcolon \mathcal L(\theta,\phi;x)\quad \text{(ELBO)}.
-\end{align*}
-Moreover, the identity
-\[
-\log p_\theta(x) = \mathcal L(\theta,\phi;x) + \KL\big(q_\phi(z\mid x)\,\|\,p_\theta(z\mid x)\big)
-\]
-shows \(\mathcal L\) is a lower bound and is tight iff \(q_\phi(z\mid x)=p_\theta(z\mid x)\).
-\end{frame}
-
-
-\begin{frame}{Two Equivalent Forms of the ELBO}
-\textbf{(1) Recon - KL form}
-\[
-\mathcal L = \E_{q_\phi}\big[\log p_\theta(x\mid z)\big] - \KL\big(q_\phi(z\mid x)\,\|\,p(z)\big).
-\]
-\textbf{(2) Variational free energy}
-\[
--\mathcal L = \underbrace{\KL\big(q_\phi(z\mid x)\,\|\,p_\theta(z\mid x)\big)}_{\text{inference gap}}
-- \log p_\theta(x).
-\]
-At fixed \(\theta\), the \(\mathcal L\)-maximizer is the true posterior.
-\end{frame}
-
-\section{Variational Autoencoders: Theory}
-
-\begin{frame}{VAE Architecture}
 \begin{center}
-\textbf{Encoder-Decoder Architecture}
+\textbf{Autoencoder (AE) Architecture}
 \end{center}
 
 \begin{itemize}
-    \item \textbf{Encoder (Recognition model):} $q_\phi(z|x)$
-    \begin{itemize}
-        \item Maps data $x$ to latent representation $z$
-        \item Typically: $q_\phi(z|x) = \mathcal{N}(z; \mu_\phi(x), \sigma_\phi^2(x)I)$
-    \end{itemize}
-    \item \textbf{Decoder (Generative model):} $p_\theta(x|z)$
-    \begin{itemize}
-        \item Reconstructs data $x$ from latent $z$
-        \item Typically: $p_\theta(x|z) = \mathcal{N}(x; \mu_\theta(z), \sigma_\theta^2 I)$ or Bernoulli
-    \end{itemize}
-    \item \textbf{Prior:} $p(z) = \mathcal{N}(z; 0, I)$
+    \item \textbf{Encoder:} $x \to z$ (compression)
+    \item \textbf{Decoder:} $z \to \hat{x}$ (reconstruction)
+    \item \textbf{Objective:} Minimize reconstruction error $\|x - \hat{x}\|^2$
+\end{itemize}
+
+\vspace{0.5em}
+\textcolor{red}{\textbf{Problem:} Interpretation problems in the latent space}
+
+\begin{columns}
+\begin{column}{0.4\textwidth}
+\begin{center}
+\includegraphics[width=\textwidth]{../figures/vae1.png}
+\end{center}
+\end{column}
+\begin{column}{0.25\textwidth}
+\begin{center}
+\includegraphics[width=\textwidth]{../figures/vae2.png}
+\end{center}
+\end{column}
+\end{columns}
+
+\end{frame}
+
+\begin{frame}{From Deterministic to Probabilistic: Variational Autoencoders}
+\textbf{Key insight:} Model encoder and decoder as \textcolor{blue}{random variables}
+
+\begin{itemize}
+    \item \textbf{Encoder:} $q_\phi(z|x)$ - maps data variable $x$ to latent variable $z$
+    \item \textbf{Decoder:} $p_\theta(x|z)$ - reconstructs data from latent variable
+    \item \textbf{Prior:} $p(z)$ - regularizes the latent space
+\end{itemize}
+
+\vspace{0.5em}
+\textbf{Benefits:}
+\begin{itemize}
+    \item \textcolor{blue}{Natural interpolation} in the latent space
+    \item Smooth transitions between data points
+    \item Well-structured, continuous latent representation
+\end{itemize}
+
+\begin{columns}
+\begin{column}{0.2\textwidth}
+\begin{center}
+\includegraphics[width=\textwidth]{../figures/vae3.png}
+\end{center}
+\end{column}
+\begin{column}{0.2\textwidth}
+\begin{center}
+\includegraphics[width=\textwidth]{../figures/vae4.png}
+\end{center}
+\end{column}
+\end{columns}
+\end{frame}
+
+
+
+\section{Variational Inference: The Foundation}
+
+\begin{frame}{Latent Variable Generative Models}
+
+\textbf{Goal.} Learn a probabilistic model that can:
+\begin{itemize}
+  \item Assign high probability to data: $x \sim p_{\text{data}}(x)$,
+  \item Generate realistic samples,
+  \item Provide useful latent representations $z$.
+\end{itemize}
+
+\medskip
+
+\textbf{Latent variable model.}
+\begin{align*}
+p_\theta(x,z) &= p_\theta(x \mid z)\,p(z), \\
+p_\theta(x)   &= \int p_\theta(x,z)\,dz
+              = \int p_\theta(x\mid z)p(z)\,dz.
+\end{align*}
+
+\textbf{Maximum likelihood objective.}
+\[
+\theta^* = \arg\max_\theta \mathbb{E}_{x\sim p_{\text{data}}}[\log p_\theta(x)].
+\]
+
+In practice, the expectation is replaced by the empirical average over the dataset.
+\end{frame}
+
+% ===================== Frame 2 =====================
+\begin{frame}{Why the Posterior is a Problem? How about $p_\theta(x)$ not $\log p_\theta(x)$?}
+
+We would like to optimize the log-likelihood
+\[
+\log p_\theta(x) = \log \int p_\theta(x,z)\,dz.
+\]
+
+Its gradient (assuming we can interchange $\nabla$ and $\int$):
+\begin{align*}
+\nabla_\theta \log p_\theta(x)
+&= \frac{1}{p_\theta(x)} \int \nabla_\theta p_\theta(x,z)\,dz \\
+&= \int \frac{p_\theta(x,z)}{p_\theta(x)} \nabla_\theta \log p_\theta(x,z)\,dz \\
+&= \mathbb{E}_{p_\theta(z\mid x)}\big[\nabla_\theta \log p_\theta(x,z)\big].
+\end{align*}
+
+\textbf{Key issue:} this expectation is taken under the \emph{posterior}
+\[
+p_\theta(z\mid x) = \frac{p_\theta(x,z)}{p_\theta(x)},
+\]
+which is typically intractable in deep models: no closed form,difficult to sample from directly.
+\end{frame}
+
+% ===================== Frame 3 =====================
+\begin{frame}{Variational Inference and the ELBO (Per-\textit{x})}
+
+Idea: introduce a tractable \emph{approximate posterior} $q_\phi(z\mid x)$ and derive a lower bound on $\log p_\theta(x)$. Rewrite:
+\vspace{-1em}
+\begin{align*}
+\log p_\theta(x)
+&= \log \int p_\theta(x,z)\,dz \\
+&= \log \int q_\phi(z\mid x)\,\frac{p_\theta(x,z)}{q_\phi(z\mid x)}\,dz \\
+&= \log \mathbb{E}_{q_\phi(z\mid x)}
+     \left[\frac{p_\theta(x,z)}{q_\phi(z\mid x)}\right].
+\end{align*}
+
+Apply Jensen's inequality (log is concave $E_p[\log x] \ge \log E_p[x]$):
+\begin{align*}
+\log p_\theta(x)
+&\ge \mathbb{E}_{q_\phi(z\mid x)}
+    \left[\log \frac{p_\theta(x,z)}{q_\phi(z\mid x)}\right]
+:= \mathcal{L}(\theta,\phi; x).
+\end{align*}
+
+$\mathcal{L}(\theta,\phi;x)$ is the \textbf{Evidence Lower Bound} (ELBO).
+We maximize it w.r.t.\ both $\theta$ and $\phi$.
+\end{frame}
+
+\begin{frame}{Decomposition: $\log p_\theta(x)$, ELBO, and Posterior KL}
+
+Start from the KL divergence between $q_\phi(z\mid x)$ and the true posterior $p_\theta(z\mid x)$:
+\begin{align*}
+\mathrm{KL}\big(q_\phi(z\mid x)\,\|\,p_\theta(z\mid x)\big)
+&= \mathbb{E}_{q_\phi(z\mid x)}
+   \left[\log \frac{q_\phi(z\mid x)}{p_\theta(z\mid x)}\right] \\[4pt]
+&= \mathbb{E}_{q_\phi(z\mid x)}
+   \left[\log q_\phi(z\mid x) - \log p_\theta(z\mid x)\right].
+\end{align*}
+
+Use Bayes' rule $p_\theta(z\mid x) = \dfrac{p_\theta(x,z)}{p_\theta(x)}$,
+\begin{align*}
+\Rightarrow\quad
+\mathrm{KL}&=\mathbb{E}_{q_\phi(z\mid x)}
+\left[\log q_\phi(z\mid x) - \log p_\theta(x,z) + \log p_\theta(x)\right].
+\end{align*}
+
+Separate the terms (note $\log p_\theta(x)$ does not depend on $z$):
+\begin{align*}
+\mathrm{KL}
+&= \mathbb{E}_{q_\phi}[\log q_\phi(z\mid x) - \log p_\theta(x,z)]
+   + \log p_\theta(x).
+\end{align*}
+
+Define the ELBO
+\[
+\mathcal{L}(\theta,\phi;x)
+:= \mathbb{E}_{q_\phi(z\mid x)}[\log p_\theta(x,z) - \log q_\phi(z\mid x)],
+\]
+so that
+\[
+\log p_\theta(x)
+= \mathcal{L}(\theta,\phi;x)
+ + \mathrm{KL}\big(q_\phi(z\mid x)\,\|\,p_\theta(z\mid x)\big).
+\]
+\end{frame}
+
+
+% ===================== Frame 4 =====================
+\begin{frame}{Two Views of the ELBO}
+
+\textbf{1. Joint-form ELBO and true posterior gap.}
+\begin{align*}
+\mathcal{L}(\theta,\phi;x)
+&= \mathbb{E}_{q_\phi(z\mid x)}[\log p_\theta(x,z) - \log q_\phi(z\mid x)], \\
+\log p_\theta(x)
+&= \mathcal{L}(\theta,\phi;x)
+ + \mathrm{KL}\big(q_\phi(z\mid x)\,\|\,p_\theta(z\mid x)\big). 
+\end{align*}
+
+Thus for fixed $\theta$:
+\[
+\max_\phi \mathcal{L}(\theta,\phi;x)
+\;\Longleftrightarrow\;
+\min_\phi \mathrm{KL}\big(q_\phi(z\mid x)\,\|\,p_\theta(z\mid x)\big).
+\]
+
+\medskip
+
+\textbf{2. Reconstruction--regularization form.}
+
+Using $p_\theta(x,z)=p_\theta(x\mid z)p(z)$:
+\begin{align*}
+\mathcal{L}(\theta,\phi;x)
+&= \mathbb{E}_{q_\phi(z\mid x)}[\log p_\theta(x\mid z)]
+   - \mathrm{KL}\big(q_\phi(z\mid x)\,\|\,p(z)\big).
+\end{align*}
+
+\begin{itemize}
+  \item First term: \textbf{reconstruction} (log-likelihood under decoder).
+  \item Second term: \textbf{regularization} toward prior $p(z)$.
 \end{itemize}
 \end{frame}
 
-\begin{frame}{The Reparameterization Trick}
-\textbf{Problem:} How to backpropagate through stochastic sampling $z \sim q_\phi(z|x)$?
+% ===================== Frame 5 =====================
+\begin{frame}{The VAE Architecture}
 
-\textbf{Solution:} Reparameterization trick
-\begin{equation}
-z = \mu_\phi(x) + \sigma_\phi(x) \odot \epsilon, \quad \epsilon \sim \mathcal{N}(0, I)
-\end{equation}
+We parameterize both the generative model and the approximate posterior with neural nets.
 
-\textbf{Benefits:}
+\medskip
+
+\textbf{Prior over latents.}
+\[
+p(z) = \mathcal{N}(0, I).
+\]
+
+\textbf{Decoder (generative model).}
+\[
+p_\theta(x\mid z)
+\]
 \begin{itemize}
-    \item Gradient flows through deterministic path: $x \to \{\mu_\phi(x), \sigma_\phi(x)\} \to z$
-    \item Stochasticity moved to $\epsilon$ (independent of parameters)
-    \item Enables end-to-end training with backpropagation
+  \item Example (continuous): 
+    $p_\theta(x\mid z) = \mathcal{N}(\mu_\theta(z), \sigma^2 I)$.
+  \item Example (binary): 
+    $p_\theta(x\mid z) = \text{Bernoulli}(\mathrm{sigmoid}(f_\theta(z)))$.
 \end{itemize}
 
-\begin{remark}
-    The reparameterization trick also leans the lights on the diffusion model.
-\end{remark}
+\textbf{Encoder (approximate posterior).}
+\[
+q_\phi(z\mid x) = \mathcal{N}\big(\mu_\phi(x), \mathrm{diag}(\sigma^2_\phi(x))\big),
+\]
+where $\mu_\phi(x)$ and $\log \sigma_\phi^2(x)$ are outputs of a neural network.
 
+\medskip
+
+\textbf{Training objective (per-sample).}
+\[
+\mathcal{L}(\theta,\phi;x)
+= \mathbb{E}_{q_\phi(z\mid x)}[\log p_\theta(x\mid z)]
+  - \mathrm{KL}\big(q_\phi(z\mid x)\,\|\,p(z)\big).
+\]
+\end{frame}
+
+% ===================== Frame 6 =====================
+\begin{frame}{Reparameterization Trick}
+
+To optimize the ELBO with SGD, we need gradients through the expectation
+\[
+\mathbb{E}_{q_\phi(z\mid x)}[\log p_\theta(x\mid z)].
+\]
+
+Directly sampling $z \sim q_\phi(z\mid x)$ makes the gradient w.r.t.\ $\phi$ hard to propagate.
+
+\medskip
+
+\textbf{Reparameterization trick:}
+\begin{align*}
+z &\sim q_\phi(z\mid x)
+ = \mathcal{N}\big(\mu_\phi(x), \mathrm{diag}(\sigma_\phi^2(x))\big) \\
+\Longrightarrow\quad
+z &= \mu_\phi(x) + \sigma_\phi(x) \odot \epsilon, \\
+\epsilon &\sim \mathcal{N}(0,I).
+\end{align*}
+
+Now the expectation becomes
+\[
+\mathbb{E}_{\epsilon\sim\mathcal{N}(0,I)}\big[\log p_\theta(x\mid 
+\mu_\phi(x)+\sigma_\phi(x)\odot\epsilon)\big],
+\]
+which is differentiable w.r.t.\ both $\theta$ and $\phi$ using standard backprop.
+\end{frame}
+
+% ===================== Frame 7 =====================
+\begin{frame}{Dataset Objective and Training}
+
+\textbf{Population objective:}
+\[
+\max_{\theta,\phi} \;\; 
+\mathbb{E}_{x\sim p_{\text{data}}}\big[\mathcal{L}(\theta,\phi;x)\big].
+\]
+
+Approximate with empirical average over dataset $\{x_i\}_{i=1}^N$:
+\[
+\max_{\theta,\phi} \;\; 
+\frac{1}{N} \sum_{i=1}^N \mathcal{L}(\theta,\phi;x_i).
+\]
+
+\textbf{Mini-batch SGD:}
+\begin{itemize}
+  \item Sample a mini-batch $\{x_i\}_{i\in \mathcal{B}}$,
+  \item For each $x_i$, sample $\epsilon^{(i)}\sim\mathcal{N}(0,I)$,
+  \item Compute $z^{(i)} = \mu_\phi(x_i) + \sigma_\phi(x_i)\odot \epsilon^{(i)}$,
+  \item Estimate
+  \[
+  \widehat{\mathcal{L}} = \frac{1}{|\mathcal{B}|}
+    \sum_{i\in\mathcal{B}}\left[
+      \log p_\theta(x_i\mid z^{(i)})
+      - \mathrm{KL}\big(q_\phi(z\mid x_i)\,\|\,p(z)\big)
+    \right],
+  \]
+  \item Update $(\theta,\phi)$ by ascending the gradient of $\widehat{\mathcal{L}}$.
+\end{itemize}
+\end{frame}
+
+% ===================== Frame 8 =====================
+\begin{frame}{Interpretations and Summary}
+
+\textbf{1. Approximate Bayesian inference.}
+\begin{itemize}
+  \item ELBO decomposition:
+  \[
+  \log p_\theta(x)
+  = \mathcal{L}(\theta,\phi;x)
+    + \mathrm{KL}\big(q_\phi(z\mid x)\,\|\,p_\theta(z\mid x)\big).
+  \]
+  \item Maximizing ELBO $\Rightarrow$ 
+    approximate maximum likelihood \emph{and}
+    make $q_\phi(z\mid x)$ close to the true posterior.
+\end{itemize}
+
+\textbf{2. Rate--distortion / information bottleneck view.}
+\begin{itemize}
+  \item Reconstruction term: fidelity to data.
+  \item KL$(q_\phi(z\mid x)\,\|\,p(z))$: ``rate'' / complexity of the code $z$.
+\end{itemize}
+
+\textbf{3. VAE in one sentence.}
+
+A VAE is a latent-variable generative model trained by maximizing a variational lower bound on log-likelihood, with:
+\begin{itemize}
+  \item a decoder $p_\theta(x\mid z)$ (generator),
+  \item an encoder $q_\phi(z\mid x)$ (amortized approximate posterior),
+  \item and the reparameterization trick for low-variance gradients.
+\end{itemize}
 \end{frame}
 
 \begin{frame}{VAE Training Objective}
