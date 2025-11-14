@@ -112,7 +112,7 @@
 This lecture is a compact form of the course ``Large Foundation Models: Mathematics, Algorithms, and Applications" on the generative modeling and AI for science. 
 \vspace{1em}
 
-The course materials are available by
+The course materials are available with
 \begin{itemize}
     \item Slides: \href{https://github.com/cam1681/CS25_Large_Foundation_model}{https://github.com/cam1681/CS25\_Large\_Foundation\_model}
     \item Videos: \href{https://bimsa.net/activity/LarFouModMatAlgandApp/}{https://bimsa.net/activity/LarFouModMatAlgandApp/}
@@ -128,29 +128,38 @@ The course materials are available by
 \tableofcontents
 \end{frame}
 
-\section{Understand diffusion models from a mathematical perspective}
+\section{Understand diffusion models from a mathematical viewpoint}
 
-\begin{frame}{Preliminary: Generate samples from given distribution}
-Given a distribution $p(x)$, how to sample from the distribution?
+\begin{frame}{Core problem in generative modeling: Generate samples from given distribution}
+Given a distribution $p(x)$, how to sample samples from the distribution?
 \begin{itemize}
-    \item Uniform distribution \& Gaussian distribution: easy sampling 
-    \item Mixture Gaussian: determine which Gaussian to sample \& sample from that Gaussian
-    \item A general sample function?
+    \item $p(x)$ is known, sample from $p(x)$
+    \item $p(x)$ is unknown, estimate $p(x)$ from data and sample from $p(x)$
+\end{itemize}
+
+\vspace{1em}
+
+When $p(x)$ is known:
+\begin{itemize}
+    \item Uniform distribution: easy sampling 
+    \item Mixture Gaussian: first determine which Gaussian to sample and then sample from that Gaussian
+    \item A general probability distribution?
     \begin{itemize}
         \item \textcolor{red}{Langevin Markov Chain Monte Carlo sampling (Langevin MCMC)}
-        \item Stein Variational Gradient Descent (SVGD)
         \item ...
     \end{itemize}
 \end{itemize}
 \end{frame}
 
-\begin{frame}{Score function is all you need?}
-A typical process of generating new samples from modeling the data distribution
+\begin{frame}{Core problem in generative modeling: Generate samples from given distribution}
+When $p(x)$ is unknown: 
     \begin{enumerate}
         \item To find the probability function $p(x)$, model $p(x;\theta)$.
         \item Normalization distribution $p(x;\theta)=\frac{1}{C(\theta)}e^{-E(x;\theta)}$ with $C(\theta)\equiv\int_x e^{-E(x;\theta)}dx$.
         \item Generating samples from above sampling methods.
     \end{enumerate}
+\vspace{1em}
+
 Recall the Langevin Markov Chain Monte Carlo sampling
 \begin{equation}
     x_t = x_{t-1}+\frac{\Delta t}{2}\textcolor{red}{\nabla_x\log p(x_{t-1};\theta)}+\sqrt{\Delta t}\epsilon, \quad \epsilon\sim N(0, 1).
@@ -163,8 +172,8 @@ Define the score function
 \end{equation}
 \end{frame}
 
-\begin{frame}{Molecular Dynamics (MD) and Langevin MCMC}
-Continuous form of the Langevin MCMC
+\begin{frame}{Molecular Dynamics (MD) is one kind of special sampling methods}
+$\square$ Continuous form of the Langevin MCMC:
 \begin{itemize}
     \item $\Delta t\to 0$
     \begin{equation}
@@ -176,7 +185,10 @@ Continuous form of the Langevin MCMC
         dx = -\frac{1}{2}\textcolor{red}{\nabla_x E}dt + dB_t
     \end{equation}
 \end{itemize}
-Langevin MCMC is  overdamped Langevin dynamics
+
+\vspace{1em}
+
+$\square$ MD is one kind of special sampling methods:
 \begin{itemize}
     \item Langevin dynamics (MD)
     \begin{equation}
@@ -584,7 +596,7 @@ The training for VE follows the following process (VP is in a similar way)
     \begin{equation}
         x_t = \Tilde{\alpha}_t x + \Tilde{\sigma}_t\epsilon, 
     \end{equation}
-    where the mean value $\Tilde{\alpha}_t x= x(0)$  and standard deviation $\Tilde{\sigma}_t = \sqrt{\sigma^2(t)-\sigma^2(0)}\approx \sigma(t)$ in VE referring to \eqref{eq:tranve}. VP is similar with the mean and standard deviation from its transition kernel \eqref{eq:tranvp};
+    where the mean value $\Tilde{\alpha}_t x= x(0)$  and standard deviation $\Tilde{\sigma}_t = \sqrt{\sigma^2(t)-\sigma^2(0)}\approx \sigma(t)$ in VE. VP is similar with the mean and standard deviation from its transition kernel;
     \item Compute the Loss
     by summation the following norm over $x$, $t$ and $\epsilon$ 
     \begin{equation}  
@@ -650,6 +662,14 @@ The inference for VE follows the following process (VP is in a similar way)
     We can depict the flow matching and diffusion through the probability transition v.s. the trajectories. And also, we can connect the Neural ODE with the Flow matching.
 \end{remark}
 \end{frame}
+
+\begin{frame}{Trajectories and Probability Transition}
+    \begin{figure}
+        \includegraphics[width=0.38\textwidth]{../figures/flow2.png}\\
+        \includegraphics[width=0.4\textwidth]{../figures/flow1.png}
+    \end{figure}
+\end{frame}
+
 
 \begin{frame}{Strong and\ Weak Continuity}
 
@@ -776,32 +796,6 @@ Different path/coupling choices change $\vstar$ and the irreducible variance $\E
 \end{equation}
 \end{frame}
 
-\begin{frame}{Mathematical analysis of path choices}
-\textbf{1. Linear bridge} (optimal transport):
-\begin{itemize}
-    \item \(\boldsymbol{\mu}_t(\vxz)=(1-t)\,\vxz\), \(\sigt=t\,\sigma_{\max}\)
-    \item \textbf{Mathematical property}: Minimizes Wasserstein-2 distance
-    \item \textbf{Velocity}: \(v = \frac{\sigma_{\max}}{t}(\vx-\vxz)\)
-    \item \textbf{Advantage}: Direct connection to optimal transport theory
-\end{itemize}
-
-\textbf{2. VP-like} (DDPM-inspired):
-\begin{itemize}
-    \item \(\boldsymbol{\mu}_t(\vxz)=\alpha(t)\,\vxz\), \(\sigt=\sqrt{1-\alpha^2(t)}\)
-    \item \textbf{Mathematical property}: Preserves energy structure
-    \item \textbf{Velocity}: \(v = \dot{\alpha}(t)\vxz + \frac{\dot{\sigt}}{\sigt}(\vx-\alpha(t)\vxz)\)
-    \item \textbf{Advantage}: Compatible with existing diffusion model schedules
-\end{itemize}
-
-\textbf{3. VE-like} (SMLD-inspired):
-\begin{itemize}
-    \item \(\boldsymbol{\mu}_t(\vxz)=\vxz\), \(\sigt=\sigma(t)\) increasing
-    \item \textbf{Mathematical property}: Preserves data structure
-    \item \textbf{Velocity}: \(v = \frac{\dot{\sigma}(t)}{\sigma(t)}(\vx-\vxz)\)
-    \item \textbf{Advantage}: Simple form, good for high-dimensional data
-\end{itemize}
-
-\end{frame}
 
 \begin{frame}{Derivation: VE/VP target forms}
 \small
