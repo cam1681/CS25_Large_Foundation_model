@@ -139,7 +139,7 @@ Given a distribution $p(x)$, how to sample samples from the distribution?
 
 \vspace{1em}
 
-When $p(x)$ is known:
+$\square$ When $p(x)$ is known:
 \begin{itemize}
     \item Uniform distribution: easy sampling 
     \item Mixture Gaussian: first determine which Gaussian to sample and then sample from that Gaussian
@@ -152,7 +152,7 @@ When $p(x)$ is known:
 \end{frame}
 
 \begin{frame}{Core problem in generative modeling: Generate samples from given distribution}
-When $p(x)$ is unknown: 
+$\square$ When $p(x)$ is unknown: 
     \begin{enumerate}
         \item To find the probability function $p(x)$, model $p(x;\theta)$.
         \item Normalization distribution $p(x;\theta)=\frac{1}{C(\theta)}e^{-E(x;\theta)}$ with $C(\theta)\equiv\int_x e^{-E(x;\theta)}dx$.
@@ -248,8 +248,9 @@ Denoising Score Matching (DSM) loss (Vincent, 2011) solves the optimization stab
 
 \subsection{Unified View: Score, x0, and Epsilon Models}
 
-\begin{frame}{Revisit the adding noise from $x$ to $\Tilde{x}$}
-Gaussian transition kernel for adding noise from $x$ to $\Tilde{x}$
+\begin{frame}{The relationship between the clean data $x$ and the noised data $\Tilde{x}$}
+
+$\square$ From $x$ to $\Tilde{x}$: adding noise by Gaussian transition kernel
 \begin{equation}
     \Tilde{x} = \alpha x + \sigma \epsilon,
 \end{equation}
@@ -266,7 +267,7 @@ And
     \epsilon = \frac{\Tilde{x}-\alpha x}{\sigma}.
 \end{equation}\\[1em]
 
-Questions arise: how can we get $x$ given $\Tilde{x}$?
+$\square$ Questions arise: how to remove the noise from $\Tilde{x}$ to get $x$? (Denoising)
 \end{frame}
 
 \begin{frame}{Tweedie's Formula}
@@ -329,7 +330,7 @@ s(\Tilde{x}) = \mathbb{E}_x[\nabla_{\Tilde{x}} \log p(\Tilde{x}|x)\given \Tilde{
 \begin{enumerate}
     \item Score model 
     \begin{equation}
-        Loss_{score} = \|s_\theta(\Tilde{x}) - \frac{\epsilon}{\sigma}\|^2;
+        Loss_{score} = \|s_\theta(\Tilde{x}) - \nabla_{\Tilde{x}}\log p(\Tilde{x}|x)\|^2 = \|s_\theta(\Tilde{x}) - \frac{\epsilon}{\sigma}\|^2;
     \end{equation}
     \item $X$ prediction model ( denoising model, $x0$ model)
     \begin{equation}
