@@ -6,7 +6,6 @@
 \setbeamertemplate{navigation symbols}{}
 \setbeamertemplate{footline}[frame number]
 
-
 % Packages for mathematics  
 \usepackage{amsmath}  
 \usepackage{amsfonts}  
@@ -23,6 +22,7 @@
 \newcommand{\dd}{\mathrm{d}}
 \newcommand{\kbT}{k_B T}
 \newcommand{\vx}{\mathbf{x}}
+\newcommand{\R}{\mathbb{R}}
 
 % Bold vector/time-indexed variables
 \newcommand{\vxz}{\mathbf{x}_0}
@@ -71,6 +71,48 @@
 \end{frame}
   
 % Presentation slides  
+
+\section{Introduction: Normalizing Flows in the Generative Modeling Landscape}
+
+\begin{frame}{Three perspectives so far}
+\textbf{Recap of previous lectures:}
+\begin{itemize}
+    \item \textbf{Diffusion models} (Lecture 1): start from data, add Gaussian noise via an SDE, and learn the \emph{score} $\nabla_{\vx}\log p_t(\vx)$ (or equivalent $\epsilon$/$x_0$ models) to run a reverse-time denoising process.
+    \item \textbf{Flow matching} (Lecture 2): prescribe a path of marginals $(p_t)_{t\in[0,1]}$ and learn a velocity field $v_\theta(x,t)$ whose ODE transports a simple prior into the data distribution.
+    \item \textbf{VAEs} (Lecture 3): introduce latent variables $z$, optimize an ELBO, and use an encoder $q_\phi(z\mid x)$ and decoder $p_\theta(x\mid z)$ trained with the reparameterization trick.
+\end{itemize}
+\vspace{0.5em}
+\textbf{Question:} Can we build generative models that are \emph{both} probabilistically principled (like VAEs/diffusions) and allow \emph{exact} likelihoods and fast sampling?
+\end{frame}
+
+\begin{frame}{Core idea of normalizing flows}
+\textbf{Normalizing flows:} learn an invertible mapping $T_\theta:\R^d\to\R^d$ that pushes a simple base distribution (e.g.\ $\mathcal{N}(0,I)$) to the data distribution.
+\begin{itemize}
+    \item \textbf{Forward (generation):} sample $z\sim p_Z$ and set $x = T_\theta(z)$.
+    \item \textbf{Inverse (density evaluation):} given $x$, compute $z = T_\theta^{-1}(x)$ and
+    \[
+      \log p_\theta(x) = \log p_Z(z) + \log\left|\det \frac{\partial T_\theta^{-1}(x)}{\partial x}\right|.
+    \]
+    \item \textbf{Training:} maximize exact log-likelihood $\mathbb{E}_{p_{\text{data}}}[\log p_\theta(x)]$, just as in classical maximum-likelihood modeling.
+\end{itemize}
+\textcolor{red}{Key challenge:} design $T_\theta$ so that both $T_\theta^{-1}$ and the Jacobian determinant are tractable in high dimensions.
+\end{frame}
+
+\begin{frame}{Flows vs. VAEs, diffusion, and flow matching}
+\textbf{Comparison with VAE:}
+\begin{itemize}
+    \item VAE optimizes an \emph{approximate} ELBO and uses a stochastic encoder $q_\phi(z\mid x)$.
+    \item Flows avoid variational approximation: the mapping is deterministic and invertible, and $\log p_\theta(x)$ is computed exactly.
+\end{itemize}
+
+\textbf{Comparison with diffusion / flow matching:}
+\begin{itemize}
+    \item Diffusion and flow matching describe a \emph{continuous-time path} $(p_t)$ and learn a score or velocity field, then integrate an SDE/ODE at inference time.
+    \item Normalizing flows instead parameterize the \emph{end-to-end transport map} as a finite composition of invertible layers; sampling is a single forward pass with no stochastic integration.
+\end{itemize}
+
+\textbf{This lecture:} develop the change-of-variables formula, study discrete flows (autoregressive and coupling-based), continuous flows (Neural ODE / FFJORD), and conditional normalizing flows.
+\end{frame}
 
 \section{Preliminary: Change of Variables and Jacobian}
 
