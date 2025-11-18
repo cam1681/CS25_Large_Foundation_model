@@ -6,6 +6,9 @@
 \setbeamertemplate{navigation symbols}{}
 \setbeamertemplate{footline}[frame number]
 
+% Font encoding and modern fonts to avoid missing bold-italic shapes
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
 
 % Packages for mathematics  
 \usepackage{amsmath}  
@@ -337,6 +340,132 @@ H_i &= \attn(X W_i^Q,\, X W_i^K,\, X W_i^V),\quad i=1,\dots,h.
 \end{remark}
 \end{frame}
 
+\section{Rotational Positional Encoding (RoPE)}
+\begin{frame}{Motivation: Positional Information in Transformers}
+  \begin{itemize}
+    \item Vanilla self-attention is permutation invariant:
+    \[
+      \text{Attn}(X) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d}}\right)V
+    \]
+    \item We need positional information to distinguish sequences like
+          ``A B C'' vs.\ ``C B A''.
+    \item Classical approaches:
+    \begin{itemize}
+      \item \emph{Absolute} positional encodings (e.g.\ sinusoidal or learned vectors added to token embeddings).
+      \item \emph{Relative} positional encodings (e.g.\ bias as a function of $n-m$ added to attention logits).
+    \end{itemize}
+    \item Absolute encodings tie the model to a fixed maximum length and do not naturally express relative positions.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}{Idea of RoPE}
+  \begin{itemize}
+    \item RoPE: encode position by applying a \textbf{rotation} to queries and keys in each attention head.
+    \item For a token at position $m$, instead of
+      \[
+        q_m = W_Q x_m,\quad k_m = W_K x_m,
+      \]
+      RoPE uses
+      \[
+        \tilde{q}_m = R_m q_m,\quad \tilde{k}_m = R_m k_m,
+      \]
+      where $R_m$ is a block-diagonal rotation matrix depending on position $m$.
+    \item Crucial property:
+      \[
+        \langle \tilde{q}_m,\tilde{k}_n\rangle
+        = \langle q_m, R_{n-m} k_n\rangle,
+      \]
+      so the attention score depends on the \textbf{relative position} $n-m$.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}{Rotations in 2D Subspaces}
+  \begin{itemize}
+    \item Let head dimension be $d_h$, and group coordinates into 2D blocks:
+      \[
+        q_m = \big( q_m^{(1)}, q_m^{(2)}, \dots, q_m^{(d_h/2)} \big),
+      \]
+      where each $q_m^{(j)} \in \mathbb{R}^2$.
+    \item For each block $j$ we pick a frequency $\omega_j > 0$ and define a 2D rotation:
+      \[
+        R_m^{(j)} =
+        \begin{bmatrix}
+          \cos(\omega_j m) & -\sin(\omega_j m)\\
+          \sin(\omega_j m) & \phantom{-}\cos(\omega_j m)
+        \end{bmatrix}.
+      \]
+    \item The full rotation $R_m$ is block diagonal:
+      \[
+        R_m = \mathrm{diag}\big(R_m^{(1)}, R_m^{(2)}, \dots, R_m^{(d_h/2)}\big).
+      \]
+    \item Apply $R_m$ to $q_m$ and $k_m$ to get position-aware vectors $\tilde{q}_m, \tilde{k}_m$.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}{Complex-Valued View and Relative Positions}
+  \begin{itemize}
+    \item A 2D vector $q_m^{(j)} = (a,b)$ can be seen as a complex number $z = a + i b$.
+    \item The rotation $R_m^{(j)}$ corresponds to multiplying by $e^{i\omega_j m}$:
+      \[
+        \tilde{z}_m^{(j)} = e^{i\omega_j m} z_m^{(j)}.
+      \]
+    \item For positions $m$ and $n$:
+      \[
+        \tilde{z}_m^{(j)} \,\overline{\tilde{z}_n^{(j)}}
+        = e^{i\omega_j (m-n)} z_m^{(j)} \overline{z_n^{(j)}},
+      \]
+      so the phase difference depends only on $(m-n)$.
+    \item Summing over all blocks yields
+      \[
+        \langle \tilde{q}_m,\tilde{k}_n\rangle
+        = \langle q_m, R_{n-m} k_n\rangle
+        = f(q_m,k_n,n-m),
+      \]
+      an attention score that is \textbf{equivariant to shifts} and carries relative positional information.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}{Multi-Head Attention with RoPE}
+  \begin{itemize}
+    \item For each head $h$:
+      \[
+        q_m^{(h)} = W_Q^{(h)} x_m,\quad
+        k_m^{(h)} = W_K^{(h)} x_m.
+      \]
+    \item Apply RoPE:
+      \[
+        \tilde{q}_m^{(h)} = R_m^{(h)} q_m^{(h)},\quad
+        \tilde{k}_m^{(h)} = R_m^{(h)} k_m^{(h)}.
+      \]
+    \item Attention logits for head $h$:
+      \[
+        s_{m,n}^{(h)} =
+        \frac{1}{\sqrt{d_h}}
+        \big\langle \tilde{q}_m^{(h)}, \tilde{k}_n^{(h)}\big\rangle.
+      \]
+    \item Frequencies $\{\omega_j\}$ are typically shared across heads and chosen as a geometric progression, analogous to sinusoidal positional encodings.
+  \end{itemize}
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}{Frequency Schedule and Length Extrapolation}
+  \begin{itemize}
+    \item Frequencies are usually defined as
+      \[
+        \omega_j = \theta^{-2j/d_h},\quad
+        \theta > 1,
+      \]
+      where $j = 0,1,\dots,d_h/2-1$.
+    \item Low frequencies capture long-range structure, high frequencies capture fine-grained local patterns.
+    \item Because RoPE is defined analytically for any integer position $m$, it can be \emph{extrapolated} to longer sequences than seen during training (though with practical limits).
+    \item Variants such as ``scaled RoPE'' or ``XPOS'' modify the effective frequency or add per-dimension scaling to improve length extrapolation and numerical stability.
+  \end{itemize}
+\end{frame}
+
 \section{Sampling and Generation Strategies}
 
 \begin{frame}{Greedy decoding}
@@ -387,19 +516,55 @@ Sample from the full distribution:
     p_{\text{temp}}(x | \vxtmoneone) = \frac{\exp(f(x, \vxtmoneone) / \tau)}{\sum_{x'} \exp(f(x', \vxtmoneone) / \tau)}
 \end{equation}
 
-where $\tau > 0$ controls randomness:
+where $x$ is a token candidate from the vocabulary $\mathcal{V}$ for $x_t$,
+ $f(x, x_{t-1:1})$ is the logit (pre-softmax output) for $x$ given the history $x_{t-1:1}$, and $\tau > 0$ controls randomness:
 \begin{itemize}
     \item $\tau \to 0$: Greedy decoding
     \item $\tau = 1$: Original distribution
     \item $\tau > 1$: More random
 \end{itemize}
 
-\textbf{Nucleus sampling} (Holtzman et al., 2019):
+\textbf{Nucleus sampling, i.e., top-$p$ sampling} (Holtzman et al., 2019):
 \begin{equation}
     \text{Select smallest } V \text{ such that } \sum_{x \in V} p(x | \vxtmoneone) \geq p
 \end{equation}
 Then sample from the truncated distribution.
 \end{frame}
+
+\begin{frame}{Limiting behavior of temperature scaling I}
+Consider logits $f(x,\vxtmoneone)$ over a finite dictionary $\mathcal{V}$ and the temperature-scaled distribution
+\[
+  p_\tau(x) = \frac{\exp(f(x,\vxtmoneone)/\tau)}{\sum_{x' \in \mathcal{V}} \exp(f(x',\vxtmoneone)/\tau)}.
+\]
+\textbf{Claim 1 (greedy limit).} Let $x^\star = \arg\max_{x} f(x,\vxtmoneone)$ and assume it is unique. Then
+\[
+  \lim_{\tau\to 0^+} p_\tau(x) = \delta_{x^\star}(x).
+\]
+\textbf{Proof.} For any $x\neq x^\star$, we have $f(x,\vxtmoneone) - f(x^\star,\vxtmoneone) < 0$, hence
+\[
+  \frac{p_\tau(x)}{p_\tau(x^\star)}
+  = \exp\Big(\tfrac{f(x,\vxtmoneone)-f(x^\star,\vxtmoneone)}{\tau}\Big) \xrightarrow[\tau\to 0^+]{} 0,
+\]
+so all mass concentrates on $x^\star$. (We can also divided by $exp(f(x^\star,\vxtmoneone)/\tau)$ on $p_\tau(x)$ and $p_\tau(x^\star)$ to get the same result with $p_\tau(x^\star) = 1$ and $p_\tau(x) = 0$ for $x \neq x^\star$.)
+\end{frame}
+
+\begin{frame}{Limiting behavior of temperature scaling II}
+We keep the same definition
+\[
+  p_\tau(x) = \frac{\exp(f(x,\vxtmoneone)/\tau)}{\sum_{x' \in \mathcal{V}} \exp(f(x',\vxtmoneone)/\tau)}.
+\]
+\textbf{Claim 2 (uniform limit).} As $\tau\to\infty$,
+\[
+  p_\tau(x) \;\longrightarrow\; \frac{1}{|\mathcal{V}|}\quad \text{for all }x\in\mathcal{V}.
+\]
+\textbf{Proof.} Using $\exp(f/\tau) = 1 + \mathcal{O}(1/\tau)$ as $\tau\to\infty$, we have
+\[
+  p_\tau(x) = \frac{1 + \mathcal{O}(1/\tau)}{|\mathcal{V}| + \mathcal{O}(1/\tau)}
+  \xrightarrow[\tau\to\infty]{} \frac{1}{|\mathcal{V}|}.
+\]
+\end{frame}
+
+
 
 \section{Evaluation and Challenges}
 
