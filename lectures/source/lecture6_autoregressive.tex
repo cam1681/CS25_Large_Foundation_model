@@ -692,7 +692,7 @@ Each row $C_{i*}$ is a linear combination of the rows $B_{k*}$ with coefficients
     
     % === Bounding Box Fix ===
     % Centers the Q-K-S diagram
-    \useasboundingbox (-3.0, -3.0) rectangle (8.5, 2.0);
+    \useasboundingbox (-0.5, -3.0) rectangle (8.5, 2.0);
 
     % --- 1. Query Matrix (Q) ---
     \matrix (Q) [s2-math-matrix] {
@@ -702,7 +702,7 @@ Each row $C_{i*}$ is a linear combination of the rows $B_{k*}$ with coefficients
     };
     \node[above=0.1cm of Q, blue] {Queries ($Q$)};
     \node[left=0.1cm of Q, font=\footnotesize, align=right, color=gray] {
-        Token 1\\Token 2\\Token 3
+        Token 1\\[1.5em]Token 2\\[0.8em]\\Token 3
     };
 
     \node[right=0.15cm of Q] (times) {$\times$};
