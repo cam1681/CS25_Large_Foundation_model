@@ -79,7 +79,7 @@
         left delimiter={[},
         right delimiter={]},
         nodes={
-            minimum size=0.8cm, % Compact size
+            minimum size=0.8cm,
             text height=1.5ex,
             text depth=0.5ex,
             draw=gray!20,
@@ -179,6 +179,49 @@
         anchor=north
     }
 }
+
+% --- SCENE 4 STYLES: Embedding to Loss ---
+\tikzset{
+    s4-base-cell/.style={
+        draw=gray!20,
+        fill=gray!5,
+        minimum width=0.85cm,   
+        minimum height=0.65cm,  
+        text height=1.5ex,      
+        text depth=0.25ex,
+        anchor=center,
+        font=\scriptsize        
+    },
+    s4-common-matrix/.style={
+        matrix of math nodes,
+        ampersand replacement=\&,
+        column sep=3pt,
+        row sep=3pt,
+        inner sep=4pt,          
+        left delimiter={[},
+        right delimiter={]},
+        nodes={s4-base-cell}       
+    },
+    s4-highlight-target/.style={
+        draw=green!60!black,
+        ultra thick,
+        fill=green!10,
+        fill opacity=0.3,
+        rounded corners=2pt
+    },
+    s4-label-text/.style={
+        font=\footnotesize\sffamily,
+        color=gray,
+        align=center
+    },
+    s4-arrow-style/.style={
+        ->,
+        >=stealth,
+        thick,
+        color=gray
+    }
+}
+
 
 \usetikzlibrary{positioning}
 % Support for \Tilde macro used throughout
@@ -556,13 +599,9 @@ Each row $C_{i*}$ is a linear combination of the rows $B_{k*}$ with coefficients
 % ============================================================================
 \begin{frame}{Matrix Multiplication: Row Picture}
     \centering
-    
-    % Vertical spacing for centering
     \vspace{1.1cm}
 
     \begin{tikzpicture}[>=stealth, thick]
-
-    % --- 1. Define Matrix Nodes ---
     % Matrix A
     \matrix (A) [s1-matrix] {
         1 \& 2 \\
@@ -591,32 +630,23 @@ Each row $C_{i*}$ is a linear combination of the rows $B_{k*}$ with coefficients
     };
     \node[above=0.2cm of C] {$AB$};
 
-    % Formula Placeholder (Internal spacing tightener)
+    % Formula Placeholder
     \node[below=0.3cm of B, font=\small, opacity=0] (formula-placeholder) {
         $3 \cdot [4, 1] + 1 \cdot [2, 5] = [14, 8]$
     };
 
-    % --- 2. Animation Logic ---
-
-    % Step 2: Highlight Row 1 of A
+    % Animation Logic
     \only<2-5>{
         \node[s1-highlight-box, fit=(A-1-1)(A-1-2)] (rowA1) {};
     }
-    
-    % Step 3-5: Extract coefficients
     \only<3-5>{
         \node[s1-coeff-node] (c1) at ($(B-1-1) - (1.8, 0)$) {1};
         \node[s1-coeff-node] (c2) at ($(B-2-1) - (1.8, 0)$) {2};
-        
         \draw[->, blue, dashed] (rowA1.east) to[out=0, in=180] (c1.west);
         \draw[->, blue, dashed] (rowA1.east) to[out=0, in=180] (c2.west);
-
-        % Highlight Rows of B
         \node[s1-highlight-box-green, fit=(B-1-1)(B-1-2)] {};
         \node[s1-highlight-box-green, fit=(B-2-1)(B-2-2)] {};
     }
-
-    % Step 4: Display formula for Row 1
     \only<4>{
         \node[text=blue, align=center, font=\small] at (formula-placeholder) {
             $1 \cdot [4, 1] + 2 \cdot [2, 5] = [8, 11]$
@@ -624,34 +654,22 @@ Each row $C_{i*}$ is a linear combination of the rows $B_{k*}$ with coefficients
         \draw[->, thick, blue] (c1) -- (B-1-1);
         \draw[->, thick, blue] (c2) -- (B-2-1);
     }
-
-    % Step 5: Result into AB
     \only<5>{
         \node[s1-highlight-box, fit=(C-1-1)(C-1-2)] {};
         \draw[->, orange, ultra thick] (B.east) -- (C-1-1);
     }
-
-    % --- Row 2 Demonstration ---
-
-    % Step 6: Highlight Row 2 of A
+    % Row 2
     \only<6-9>{
         \node[s1-highlight-box, fit=(A-2-1)(A-2-2)] (rowA2) {};
     }
-
-    % Step 7-9: Extract coefficients
     \only<7-9>{
         \node[s1-coeff-node] (c3) at ($(B-1-1) - (1.8, 0)$) {3};
         \node[s1-coeff-node] (c4) at ($(B-2-1) - (1.8, 0)$) {1};
-        
         \draw[->, red, dashed] (rowA2.east) to[out=0, in=180] (c3.west);
         \draw[->, red, dashed] (rowA2.east) to[out=0, in=180] (c4.west);
-
-        % Highlight Rows of B
         \node[s1-highlight-box-green, fit=(B-1-1)(B-1-2)] {};
         \node[s1-highlight-box-green, fit=(B-2-1)(B-2-2)] {};
     }
-
-    % Step 8: Display formula for Row 2
     \only<8>{
         \node[text=red!80!black, align=center, font=\small] at (formula-placeholder) {
             $3 \cdot [4, 1] + 1 \cdot [2, 5] = [14, 8]$
@@ -659,16 +677,12 @@ Each row $C_{i*}$ is a linear combination of the rows $B_{k*}$ with coefficients
         \draw[->, thick, red] (c3) -- (B-1-1);
         \draw[->, thick, red] (c4) -- (B-2-1);
     }
-
-    % Step 9: Result into AB
     \only<9>{
         \node[s1-highlight-box, fit=(C-2-1)(C-2-2)] {};
         \draw[->, orange, ultra thick] (B.east) -- (C-2-1);
     }
-
     \end{tikzpicture}
 
-    % Bottom Status Bar
     \vspace{0.1cm}
     \footnotesize
     \begin{itemize}
@@ -690,11 +704,10 @@ Each row $C_{i*}$ is a linear combination of the rows $B_{k*}$ with coefficients
 
     \begin{tikzpicture}[>=stealth, thick, scale=1.0, transform shape]
     
-    % === Bounding Box Fix ===
-    % Centers the Q-K-S diagram
-    \useasboundingbox (-0.5, -3.0) rectangle (8.5, 2.0);
+    % Bounding Box Fix
+    \useasboundingbox (-3.0, -3.0) rectangle (8.5, 2.0);
 
-    % --- 1. Query Matrix (Q) ---
+    % Query Matrix
     \matrix (Q) [s2-math-matrix] {
         q_1 \\
         q_2 \\
@@ -702,12 +715,12 @@ Each row $C_{i*}$ is a linear combination of the rows $B_{k*}$ with coefficients
     };
     \node[above=0.1cm of Q, blue] {Queries ($Q$)};
     \node[left=0.1cm of Q, font=\footnotesize, align=right, color=gray] {
-        Token 1\\[1.5em]Token 2\\[0.8em]\\Token 3
+        Token 1\\Token 2\\Token 3
     };
 
     \node[right=0.15cm of Q] (times) {$\times$};
 
-    % --- 2. Key Matrix Transposed (K^T) ---
+    % Key Matrix
     \matrix (K) [s2-math-matrix, right=0.15cm of times] {
         k_1^T \& k_2^T \& k_3^T \\
     };
@@ -715,7 +728,7 @@ Each row $C_{i*}$ is a linear combination of the rows $B_{k*}$ with coefficients
 
     \node[right=0.15cm of K] (equals) {$=$};
 
-    % --- 3. Raw Score Matrix (S = QK^T) ---
+    % Score Matrix
     \matrix (S) [s2-math-matrix, right=0.15cm of equals, nodes={minimum width=1.1cm}] {
         s_{11} \& s_{12} \& s_{13} \\
         s_{21} \& s_{22} \& s_{23} \\
@@ -723,70 +736,52 @@ Each row $C_{i*}$ is a linear combination of the rows $B_{k*}$ with coefficients
     };
     \node[above=0.1cm of S] (LabelS) {Scores ($QK^T$)};
 
-    % --- 4. Animation Steps ---
-
-    % === Step 1: Calculate Score (1,1) ===
+    % Animation Steps
     \only<2>{
         \node[s2-highlight-query, fit=(Q-1-1)] (hQ) {};
         \node[s2-highlight-key, fit=(K-1-1)] (hK) {};
         \node[draw=orange, thick, fit=(S-1-1)] {};
-        
         \draw[s2-arrow-style, blue, dashed] (hQ.east) to[out=30, in=150] (hK.north west);
         \node[s2-explanation-node, blue] {
             $s_{11} = q_1 \cdot k_1$: "Self-attention (Token 1 $\leftrightarrow$ 1)"
         };
     }
-
-    % === Step 2: Calculate Score (1,2) -> FUTURE! ===
     \only<3>{
         \node[s2-highlight-query, fit=(Q-1-1)] {};
         \node[s2-highlight-key, fit=(K-1-2)] {};
         \node[draw=orange, thick, fit=(S-1-2)] {};
-        
         \node[s2-explanation-node, red!80!black] {
             $s_{12} = q_1 \cdot k_2$: "Token 1 looking at Token 2 (Future)..."
         };
     }
-
-    % === Step 3: Apply Causal Mask ===
     \only<4>{
         \node[s2-mask-box, fit=(S-1-2)] {$-\infty$};
         \node[s2-mask-box, fit=(S-1-3)] {$-\infty$};
-        
         \node[s2-explanation-node, red!80!black] {
             \textbf{CAUSAL MASK APPLIED!}\\
             Score $\to -\infty$ (Future is invisible).
         };
     }
-
-    % === Step 4: Row 2 Calculation & Masking ===
     \only<5>{
         \node[s2-highlight-query, fit=(Q-2-1)] {};
         \node[draw=green!60!black, thick, fit=(S-2-1)(S-2-2)] {};
-        
         \node[s2-mask-box, fit=(S-1-2)] {$-\infty$};
         \node[s2-mask-box, fit=(S-1-3)] {$-\infty$};
         \node[s2-mask-box, fit=(S-2-3)] {$-\infty$};
-        
         \node[s2-explanation-node, blue] {
             Token 2 sees Past ($k_1$) \& Present ($k_2$), but not Future ($k_3$).
         };
     }
-
-    % === Final State ===
     \only<6>{
         \node[s2-mask-box, fit=(S-1-2)] {$-\infty$};
         \node[s2-mask-box, fit=(S-1-3)] {$-\infty$};
         \node[s2-mask-box, fit=(S-2-3)] {$-\infty$};
-        
         \node[s2-explanation-node, color=gray] {
             The Score Matrix is now ready for Softmax.
         };
     }
-
     \end{tikzpicture}
 
-    % Bottom Legend
     \vspace{0.1cm}
     \footnotesize
     \begin{itemize}
@@ -803,29 +798,27 @@ Each row $C_{i*}$ is a linear combination of the rows $B_{k*}$ with coefficients
     \centering
     \vspace{0.5cm}
 
-    % Scale 0.9
     \begin{tikzpicture}[>=stealth, thick, scale=0.9, transform shape]
     
-    % === Bounding Box ===
+    % Bounding Box
     \useasboundingbox (-3, -3.5) rectangle (12, 2.5);
 
-    % --- 1. Matrix A: Attention Weights ---
+    % Matrix A
     \matrix (Attn) [s3-matrix] {
         0.1 \& 0.9 \\
         0.5 \& 0.5 \\
     };
     \node[above=0.1cm of Attn, align=center, font=\footnotesize] (LabelAttn) {Attention Weights\\($A$)};
 
-    % --- 2. Matrix B: Values (V) ---
+    % Matrix V
     \matrix (V) [s3-matrix, right=2.8cm of Attn] {
         v_{1,1} \& v_{1,2} \\
         v_{2,1} \& v_{2,2} \\
     };
     \node[above=0.1cm of V, align=center, font=\footnotesize] (LabelV) {Values\\($V$)};
-
     \node[right=0.3cm of V] (equals) {$=$};
 
-    % --- 3. Matrix C: Output (Z) ---
+    % Matrix Z
     \node[right=0.3cm of equals] (Z-dummy) {};
     \matrix (Z) [s3-matrix, right=0cm of Z-dummy, nodes={fill=white, draw=black}] {
         \alt<5->{z_{1,1}}{?} \& \alt<5->{z_{1,2}}{?} \\
@@ -833,31 +826,22 @@ Each row $C_{i*}$ is a linear combination of the rows $B_{k*}$ with coefficients
     };
     \node[above=0.1cm of Z, align=center, font=\footnotesize] (LabelZ) {Output\\($Z$)};
 
-    % === Fixed Text Coordinates ===
+    % Fixed Text Coordinates
     \coordinate (BottomCenter) at ($(V.south) + (0, -1.0)$);
 
-    % --- Animation Logic ---
-
-    % === SCENARIO 1: Row 1 Calculation ===
-    % Step 2: Highlight Row 1 of A
+    % Animation Logic
+    % Row 1
     \only<2-5>{
         \node[s3-highlight-box, fit=(Attn-1-1)(Attn-1-2)] (rowA1) {};
     }
-    
-    % Step 3-5: Coefficients fly to V
     \only<3-5>{
         \node[s3-coeff-node] (c1) at ($(V-1-1) - (1.6, 0)$) {0.1};
         \node[s3-coeff-node, fill=blue!30, draw=blue] (c2) at ($(V-2-1) - (1.6, 0)$) {0.9}; 
-        
         \draw[->, blue, dashed] (rowA1.east) to[out=0, in=180] (c1.west);
         \draw[->, blue, dashed] (rowA1.east) to[out=0, in=180] (c2.west);
-
-        % Highlight V rows (Unified Style)
         \node[s3-highlight-box-value, fit=(V-1-1)(V-1-2)] {}; 
         \node[s3-highlight-box-value, fit=(V-2-1)(V-2-2)] {};
     }
-
-    % Step 4: Formula
     \only<4>{
         \node[s3-bottom-formula, blue] at (BottomCenter) {
             $\mathbf{z}_1 = 0.1 \cdot \mathbf{v}_1 + \mathbf{0.9} \cdot \mathbf{v}_2$ \\ 
@@ -866,33 +850,22 @@ Each row $C_{i*}$ is a linear combination of the rows $B_{k*}$ with coefficients
         \draw[->, thick, blue!40] (c1) -- (V-1-1.west);
         \draw[->, ultra thick, blue] (c2) -- (V-2-1.west);
     }
-
-    % Step 5: Result Z Row 1
     \only<5>{
         \node[s3-highlight-box, fit=(Z-1-1)(Z-1-2)] {};
         \draw[->, orange, ultra thick] (V.east) -- (Z-1-1.west);
     }
-
-
-    % === SCENARIO 2: Row 2 Calculation ===
-    % Step 6: Highlight Row 2 of A
+    % Row 2
     \only<6-9>{
         \node[s3-highlight-box, fit=(Attn-2-1)(Attn-2-2)] (rowA2) {};
     }
-
-    % Step 7-9: Coefficients fly
     \only<7-9>{
         \node[s3-coeff-node] (c3) at ($(V-1-1) - (1.6, 0)$) {0.5};
         \node[s3-coeff-node] (c4) at ($(V-2-1) - (1.6, 0)$) {0.5};
-        
         \draw[->, red, dashed] (rowA2.east) to[out=0, in=180] (c3.west);
         \draw[->, red, dashed] (rowA2.east) to[out=0, in=180] (c4.west);
-
         \node[s3-highlight-box-value, fit=(V-1-1)(V-1-2)] {};
         \node[s3-highlight-box-value, fit=(V-2-1)(V-2-2)] {};
     }
-
-    % Step 8: Formula
     \only<8>{
         \node[s3-bottom-formula, red!80!black] at (BottomCenter) {
             $\mathbf{z}_2 = 0.5 \cdot \mathbf{v}_1 + 0.5 \cdot \mathbf{v}_2$ \\ 
@@ -901,8 +874,6 @@ Each row $C_{i*}$ is a linear combination of the rows $B_{k*}$ with coefficients
         \draw[->, thick, red] (c3) -- (V-1-1.west);
         \draw[->, thick, red] (c4) -- (V-2-1.west);
     }
-
-    % Step 9: Result Z Row 2
     \only<9>{
         \node[s3-highlight-box, fit=(Z-2-1)(Z-2-2)] {};
         \draw[->, orange, ultra thick] (V.east) -- (Z-2-1.west);
@@ -918,6 +889,125 @@ Each row $C_{i*}$ is a linear combination of the rows $B_{k*}$ with coefficients
         \item<2-> \textbf{Coefficients:} The weights come from the Attention Matrix ($A$).
         \item<3-> \textbf{Fusion:} The output ($Z$) is a fused representation of relevant information.
     \end{itemize}
+\end{frame}
+
+
+% ============================================================================
+% FRAME 4: From Embedding to Loss (Final Projection)
+% ============================================================================
+% Note: [fragile] is required for & replacement in matrices
+\begin{frame}[fragile]{Training Objective: From Token Matrix to MLE Loss}
+    \centering
+    \vspace{0.1cm}
+
+    \begin{tikzpicture}[scale=0.85, transform shape]
+    
+    % Bounding box
+    \useasboundingbox (-2.0, -5.0) rectangle (17.5, 3.0);
+
+    % --- 1. Transformer Output (H) ---
+    \node[s4-label-text] (LabelH) at (0, 2.2) {Output Matrix ($H$)\\ \tiny ($N \times h$)};
+    
+    \matrix (H) [s4-common-matrix] at (0, 0) {
+        h_{1,1} \& \dots \& h_{1,h} \\
+        h_{2,1} \& \dots \& h_{2,h} \\
+        h_{3,1} \& \dots \& h_{3,h} \\
+    };
+    \node[left=0.8cm of H-1-1, font=\small, color=gray] {$t_1$};
+    \node[left=0.8cm of H-2-1, font=\small, color=gray] {$t_2$};
+    \node[left=0.8cm of H-3-1, font=\small, color=gray] {$t_3$};
+
+    % --- 2. Linear Head (W) ---
+    \node[s4-label-text] (LabelW) at (4.2, 2.2) {Linear Head ($W$)\\ \tiny ($h \times |V|$)};
+    
+    \matrix (W) [s4-common-matrix, nodes={s4-base-cell, fill=blue!5}] at (4.2, 0) {
+        w_{1,1} \& \dots \& w_{1,V} \\
+        \vdots \& \ddots \& \vdots \\
+        w_{h,1} \& \dots \& w_{h,V} \\
+    };
+    
+    \node[font=\Large] at (6.6, 0) {$=$};
+
+    % --- 3. Logits (Z) ---
+    \only<2->{
+        \node[s4-label-text] (LabelZ) at (9.0, 2.2) {Logits ($Z$)\\ \tiny ($N \times |V|$)};
+        
+        \matrix (Z) [s4-common-matrix, nodes={s4-base-cell, minimum width=1.0cm}] at (9.0, 0) {
+            2.5 \& -1.0 \& 4.2 \& 0.5 \\
+            0.1 \& 3.8 \& -0.5 \& 1.2 \\
+            -2.0 \& 0.5 \& 1.0 \& 5.1 \\
+        };
+        \node[above=0.05cm of Z-1-1, font=\tiny, color=gray] {\texttt{"apple"}};
+        \node[above=0.05cm of Z-1-2, font=\tiny, color=gray] {\texttt{"book"}};
+        \node[above=0.05cm of Z-1-3, font=\tiny, color=gray] {\texttt{"cat"}};
+        \node[above=0.05cm of Z-1-4, font=\tiny, color=gray] {\texttt{"dog"}};
+    }
+
+    % --- 4. Softmax & Probabilities (P) ---
+    \only<3->{
+        \draw[s4-arrow-style, orange, thick] (Z.south) -- ++(0,-0.5) node[midway, right, font=\tiny, align=left] {Softmax};
+        
+        \node[s4-label-text, orange!80!black] at (9.0, -2.15) {Probabilities ($P$) \tiny ($N \times |V|$)};
+        
+        \matrix (P) [s4-common-matrix, below=0.9cm of Z, nodes={s4-base-cell, minimum width=1.0cm, fill=orange!5}] {
+            0.1 \& 0.0 \& \mathbf{0.8} \& 0.1 \\
+            0.0 \& \mathbf{0.9} \& 0.0 \& 0.1 \\
+            0.0 \& 0.0 \& 0.1 \& \mathbf{0.9} \\
+        };
+    }
+
+    % --- 5. Ground Truth & Loss ---
+    \only<4->{
+        \matrix (GT) [s4-common-matrix, right=0.4cm of P, nodes={s4-base-cell, fill=green!10, minimum width=1.2cm}] {
+            \texttt{"cat"} \\ \texttt{"book"} \\ \texttt{"dog"} \\
+        };
+        \node[above=0.1cm of GT, font=\scriptsize, color=green!50!black, align=center] {Targets\\($Y$)};
+        
+        \draw[->, green!60!black, dashed, thick] (GT-1-1.west) to[out=180, in=0] (P-1-3.east);
+        \node[s4-highlight-target, fit=(P-1-3)] {};
+        \draw[->, green!60!black, dashed, thick] (GT-2-1.west) to[out=180, in=0] (P-2-2.east);
+        \node[s4-highlight-target, fit=(P-2-2)] {};
+        \draw[->, green!60!black, dashed, thick] (GT-3-1.west) to[out=180, in=0] (P-3-4.east);
+        \node[s4-highlight-target, fit=(P-3-4)] {};
+    }
+    
+    \only<5>{
+        \node[text width=5.5cm, font=\scriptsize, align=left, draw=red, dashed, rounded corners, inner sep=6pt, anchor=west] (Loss) at (-0.5, -4.0) {
+            \textbf{Total Loss ($\mathcal{L}$):} Neg-Log-Likelihood \\
+            $\ell_1 = -\log(0.8) \approx 0.22$ \\
+            $\ell_2 = -\log(0.9) \approx 0.10$ \\
+            $\ell_3 = -\log(0.9) \approx 0.10$ \\[0.1cm]
+            \color{red!80!black}$\mathcal{L} = \frac{1}{3} \sum \ell_i \approx \mathbf{0.14}$
+        };
+        \draw[->, red, thick] (P.west) to[out=180, in=0] (Loss.east);
+    }
+
+    % --- Bottom Explanations ---
+    \only<1>{
+        \node[right=1.0cm of W, text width=8cm, align=left, color=blue, font=\small] {
+            \textbf{Step 1: Projection}\\
+            Embeddings $\mathbf{h}_i$ projected to vocabulary space ($W$).
+        };
+    }
+    \only<2>{
+        \node[align=center, color=blue, font=\small] at (9.0, -3.2) {
+            \textbf{Step 2: Logits Matrix}\\
+            $N \times |V|$ scores for every word.
+        };
+    }
+    \only<3>{
+        \node[left=0.8cm of P, text width=4.5cm, align=right, color=orange!80!black, font=\scriptsize] {
+            \textbf{Step 3: Softmax}\\
+            Normalize \textbf{each row} to sum to 1.0.
+        };
+    }
+    \only<4>{
+        \node[left=0.8cm of P, text width=4.5cm, align=right, color=green!50!black, font=\scriptsize] {
+            \textbf{Step 4: Selection}\\
+            Pick probability of the correct word (Target).
+        };
+    }
+    \end{tikzpicture}
 \end{frame}
 
 
@@ -1103,6 +1193,10 @@ Stacking attention layers corresponds to composing multiple such nonlocal operat
   \item \textbf{Nonlocal operators:} In a continuum perspective, self-attention is a learnable nonlocal operator, analogous to kernels in nonlocal PDEs and integral equations.
 \end{itemize}
 \end{frame}
+
+\section{Training Autoregressive Models: Maximize Likelihood}
+
+
 
 \section{Rotational Positional Encoding (RoPE)}
 \begin{frame}{Motivation: Positional Information in Transformers}

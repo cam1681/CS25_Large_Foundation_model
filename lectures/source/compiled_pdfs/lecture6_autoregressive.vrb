@@ -1,0 +1,112 @@
+\frametitle{Training Objective: From Token Matrix to MLE Loss}
+\centering
+    \vspace{0.1cm}
+
+    \begin{tikzpicture}[scale=0.85, transform shape]
+
+    % Bounding box
+    \useasboundingbox (-2.0, -5.0) rectangle (17.5, 3.0);
+
+    % --- 1. Transformer Output (H) ---
+    \node[s4-label-text] (LabelH) at (0, 2.2) {Output Matrix ($H$)\\ \tiny ($N \times h$)};
+
+    \matrix (H) [s4-common-matrix] at (0, 0) {
+        h_{1,1} \& \dots \& h_{1,h} \\
+        h_{2,1} \& \dots \& h_{2,h} \\
+        h_{3,1} \& \dots \& h_{3,h} \\
+    };
+    \node[left=0.8cm of H-1-1, font=\small, color=gray] {$t_1$};
+    \node[left=0.8cm of H-2-1, font=\small, color=gray] {$t_2$};
+    \node[left=0.8cm of H-3-1, font=\small, color=gray] {$t_3$};
+
+    % --- 2. Linear Head (W) ---
+    \node[s4-label-text] (LabelW) at (4.2, 2.2) {Linear Head ($W$)\\ \tiny ($h \times |V|$)};
+
+    \matrix (W) [s4-common-matrix, nodes={s4-base-cell, fill=blue!5}] at (4.2, 0) {
+        w_{1,1} \& \dots \& w_{1,V} \\
+        \vdots \& \ddots \& \vdots \\
+        w_{h,1} \& \dots \& w_{h,V} \\
+    };
+
+    \node[font=\Large] at (6.6, 0) {$=$};
+
+    % --- 3. Logits (Z) ---
+    \only<2->{
+        \node[s4-label-text] (LabelZ) at (9.0, 2.2) {Logits ($Z$)\\ \tiny ($N \times |V|$)};
+
+        \matrix (Z) [s4-common-matrix, nodes={s4-base-cell, minimum width=1.0cm}] at (9.0, 0) {
+            2.5 \& -1.0 \& 4.2 \& 0.5 \\
+            0.1 \& 3.8 \& -0.5 \& 1.2 \\
+            -2.0 \& 0.5 \& 1.0 \& 5.1 \\
+        };
+        \node[above=0.05cm of Z-1-1, font=\tiny, color=gray] {\texttt{"apple"}};
+        \node[above=0.05cm of Z-1-2, font=\tiny, color=gray] {\texttt{"book"}};
+        \node[above=0.05cm of Z-1-3, font=\tiny, color=gray] {\texttt{"cat"}};
+        \node[above=0.05cm of Z-1-4, font=\tiny, color=gray] {\texttt{"dog"}};
+    }
+
+    % --- 4. Softmax & Probabilities (P) ---
+    \only<3->{
+        \draw[s4-arrow-style, orange, thick] (Z.south) -- ++(0,-0.5) node[midway, right, font=\tiny, align=left] {Softmax};
+
+        \node[s4-label-text, orange!80!black] at (9.0, -2.15) {Probabilities ($P$) \tiny ($N \times |V|$)};
+
+        \matrix (P) [s4-common-matrix, below=0.9cm of Z, nodes={s4-base-cell, minimum width=1.0cm, fill=orange!5}] {
+            0.1 \& 0.0 \& \mathbf{0.8} \& 0.1 \\
+            0.0 \& \mathbf{0.9} \& 0.0 \& 0.1 \\
+            0.0 \& 0.0 \& 0.1 \& \mathbf{0.9} \\
+        };
+    }
+
+    % --- 5. Ground Truth & Loss ---
+    \only<4->{
+        \matrix (GT) [s4-common-matrix, right=0.4cm of P, nodes={s4-base-cell, fill=green!10, minimum width=1.2cm}] {
+            \texttt{"cat"} \\ \texttt{"book"} \\ \texttt{"dog"} \\
+        };
+        \node[above=0.1cm of GT, font=\scriptsize, color=green!50!black, align=center] {Targets\\($Y$)};
+
+        \draw[->, green!60!black, dashed, thick] (GT-1-1.west) to[out=180, in=0] (P-1-3.east);
+        \node[s4-highlight-target, fit=(P-1-3)] {};
+        \draw[->, green!60!black, dashed, thick] (GT-2-1.west) to[out=180, in=0] (P-2-2.east);
+        \node[s4-highlight-target, fit=(P-2-2)] {};
+        \draw[->, green!60!black, dashed, thick] (GT-3-1.west) to[out=180, in=0] (P-3-4.east);
+        \node[s4-highlight-target, fit=(P-3-4)] {};
+    }
+
+    \only<5>{
+        \node[text width=5.5cm, font=\scriptsize, align=left, draw=red, dashed, rounded corners, inner sep=6pt, anchor=west] (Loss) at (-0.5, -4.0) {
+            \textbf{Total Loss ($\mathcal{L}$):} Neg-Log-Likelihood \\
+            $\ell_1 = -\log(0.8) \approx 0.22$ \\
+            $\ell_2 = -\log(0.9) \approx 0.10$ \\
+            $\ell_3 = -\log(0.9) \approx 0.10$ \\[0.1cm]
+            \color{red!80!black}$\mathcal{L} = \frac{1}{3} \sum \ell_i \approx \mathbf{0.14}$
+        };
+        \draw[->, red, thick] (P.west) to[out=180, in=0] (Loss.east);
+    }
+
+    % --- Bottom Explanations ---
+    \only<1>{
+        \node[right=1.0cm of W, text width=8cm, align=left, color=blue, font=\small] {
+            \textbf{Step 1: Projection}\\
+            Embeddings $\mathbf{h}_i$ projected to vocabulary space ($W$).
+        };
+    }
+    \only<2>{
+        \node[align=center, color=blue, font=\small] at (9.0, -3.2) {
+            \textbf{Step 2: Logits Matrix}\\
+            $N \times |V|$ scores for every word.
+        };
+    }
+    \only<3>{
+        \node[left=0.8cm of P, text width=4.5cm, align=right, color=orange!80!black, font=\scriptsize] {
+            \textbf{Step 3: Softmax}\\
+            Normalize \textbf{each row} to sum to 1.0.
+        };
+    }
+    \only<4>{
+        \node[left=0.8cm of P, text width=4.5cm, align=right, color=green!50!black, font=\scriptsize] {
+            \textbf{Step 4: Selection}\\
+            Pick probability of the correct word (Target).
+        };
+    }
+    \end{tikzpicture}
