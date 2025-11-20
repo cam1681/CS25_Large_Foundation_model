@@ -15,7 +15,171 @@
 \usepackage{amsfonts}  
 \usepackage{amssymb}  
 \usepackage{CJKutf8}
+
 \usepackage{tikz}
+\usetikzlibrary{matrix, positioning, fit, backgrounds, calc, shapes, arrows.meta}
+
+% --- Language Configuration ---
+\usepackage[english]{babel}
+
+% ============================================================================
+%                               STYLE DEFINITIONS
+% ============================================================================
+
+% --- SCENE 1 STYLES: Matrix Multiplication (Row Picture) ---
+\tikzset{
+    s1-matrix/.style={
+        matrix of math nodes,
+        ampersand replacement=\&, 
+        left delimiter={[},
+        right delimiter={]},
+        nodes={
+            minimum size=1cm,
+            text height=1.5ex,
+            text depth=0.25ex,
+            draw=gray!20,
+            fill=gray!5,
+            anchor=center
+        },
+        column sep=5pt,
+        row sep=5pt,
+        inner sep=5pt
+    },
+    s1-highlight-box/.style={
+        draw=orange,
+        thick,
+        inner sep=0pt,
+        fill=orange!10,
+        fill opacity=0.3,
+        rounded corners
+    },
+    s1-highlight-box-green/.style={
+        draw=green!60!black,
+        thick,
+        inner sep=0pt,
+        fill=green!10,
+        fill opacity=0.3,
+        rounded corners
+    },
+    s1-coeff-node/.style={
+        circle,
+        draw=blue!80,
+        fill=blue!10,
+        font=\bfseries,
+        inner sep=2pt,
+        minimum size=8mm
+    }
+}
+
+% --- SCENE 2 STYLES: Attention Construction (QK & Masking) ---
+\tikzset{
+    s2-math-matrix/.style={
+        matrix of math nodes,
+        ampersand replacement=\&, 
+        left delimiter={[},
+        right delimiter={]},
+        nodes={
+            minimum size=0.8cm, % Compact size
+            text height=1.5ex,
+            text depth=0.5ex,
+            draw=gray!20,
+            fill=gray!5,
+            anchor=center,
+            font=\small
+        },
+        column sep=3pt, 
+        row sep=3pt,
+        inner sep=3pt
+    },
+    s2-highlight-query/.style={
+        draw=blue,
+        thick,
+        fill=blue!10,
+        fill opacity=0.3,
+        rounded corners
+    },
+    s2-highlight-key/.style={
+        draw=green!60!black,
+        thick,
+        fill=green!10,
+        fill opacity=0.3,
+        rounded corners
+    },
+    s2-mask-box/.style={
+        fill=gray!80,
+        opacity=0.9,
+        text=white,
+        font=\bfseries\footnotesize,
+        align=center,
+        text opacity=1
+    },
+    s2-arrow-style/.style={
+        ->,
+        >=stealth,
+        thick,
+        color=gray
+    },
+    s2-explanation-node/.style={
+        below=0.3cm of S, 
+        xshift=-3.2cm,    
+        text width=11cm,  
+        align=center,     
+        font=\small
+    }
+}
+
+% --- SCENE 3 STYLES: Attention Mechanism (Linear Combination) ---
+\tikzset{
+    s3-matrix/.style={
+        matrix of math nodes,
+        ampersand replacement=\&, 
+        left delimiter={[},
+        right delimiter={]},
+        nodes={
+            minimum size=1.0cm,
+            text height=1.5ex,
+            text depth=0.5ex,
+            draw=gray!20,
+            fill=gray!5,
+            anchor=center,
+            font=\small
+        },
+        column sep=4pt,
+        row sep=4pt,
+        inner sep=4pt
+    },
+    s3-highlight-box/.style={
+        draw=orange,
+        thick,
+        inner sep=0pt,
+        fill=orange!10,
+        fill opacity=0.3,
+        rounded corners
+    },
+    s3-highlight-box-value/.style={
+        draw=green!60!black,
+        thick,
+        inner sep=0pt,
+        fill=green!10,
+        fill opacity=0.3,
+        rounded corners
+    },
+    s3-coeff-node/.style={
+        circle,
+        draw=blue!80,
+        fill=blue!10,
+        font=\bfseries\footnotesize,
+        inner sep=0pt,
+        minimum size=8mm
+    },
+    s3-bottom-formula/.style={
+        font=\small,
+        align=center,
+        text width=11cm,
+        anchor=north
+    }
+}
+
 \usetikzlibrary{positioning}
 % Support for \Tilde macro used throughout
 \providecommand{\Tilde}[1]{\tilde{#1}}
@@ -55,8 +219,11 @@
 \institute[BIMSA]{Beijing Institute of Mathematical Sciences and Applications}  
 \date{\today}  
 
-\pgfdeclareimage[width=2cm]{logo}{../figures/logo.png}
-\logo{\pgfuseimage{logo}}
+% Company/organization logo (guarded if asset missing)
+\IfFileExists{../figures/logo.png}{
+  \pgfdeclareimage[width=2cm]{logo}{../figures/logo.png}
+  \logo{\pgfuseimage{logo}}
+}{}
 
 % Outline slide (moved to later; avoid frame before \begin{document})
 
@@ -239,10 +406,17 @@ LSTM addresses RNN limitations with gating mechanisms:
 \subsection{Transformers}
 
 \begin{frame}{Transformers}
-\begin{figure}
-    \centering
-    \includegraphics[width=0.75\textwidth]{../figures/transformer.pdf}
-\end{figure}
+\IfFileExists{../figures/transformer.pdf}{
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.75\textwidth]{../figures/transformer.pdf}
+    \end{figure}
+}{
+    \begin{block}{Visualization placeholder}
+        Figure file `transformer.pdf` is missing under `lectures/figures/`.  
+        Add the asset or update the path to display the architecture diagram.
+    \end{block}
+}
 \end{frame}
 
 \begin{frame}{Scaled Dot-Product Attention: Key formula}
@@ -330,6 +504,604 @@ LSTM addresses RNN limitations with gating mechanisms:
 \begin{remark}
     Understand the Transformer architecture by block matrix, e.g., $(AB)_k = \sum_{k}A_{ki}B_i$.
 \end{remark}
+\end{frame}
+
+
+
+
+
+% ===================== Matrix view =====================
+\begin{frame}{Left Multiplication as Row-wise Linear Combination}
+Let
+\[
+A \in \mathbb{R}^{m \times n}, \quad
+B \in \mathbb{R}^{n \times p}, \quad
+C = AB \in \mathbb{R}^{m \times p}.
+\]
+
+Denote:
+\[
+A_{i*} = (a_{i1},\dots,a_{in}) \quad \text{(row $i$ of $A$)}, \qquad
+B_{k*} \quad \text{(row $k$ of $B$)}.
+\]
+
+By the definition of matrix multiplication,
+\[
+C_{ij} = (AB)_{ij} = \sum_{k=1}^n a_{ik} b_{kj}.
+\]
+
+Therefore the entire $i$-th row of $C$ satisfies
+\[
+C_{i*}
+=
+\bigl( C_{i1},\dots,C_{ip} \bigr)
+=
+\sum_{k=1}^n a_{ik} \, B_{k*}.
+\]
+
+\medskip
+\textbf{Key fact:}
+\[
+\boxed{
+\text{Left multiplying by } A \text{ takes the rows of } B
+\text{ and forms row-wise linear combinations.}
+}
+\]
+Each row $C_{i*}$ is a linear combination of the rows $B_{k*}$ with coefficients from $A_{i*}$.
+\end{frame}
+
+
+% ============================================================================
+% FRAME 1: Matrix Multiplication (Row Picture)
+% ============================================================================
+\begin{frame}{Matrix Multiplication: Row Picture}
+    \centering
+    
+    % Vertical spacing for centering
+    \vspace{1.1cm}
+
+    \begin{tikzpicture}[>=stealth, thick]
+
+    % --- 1. Define Matrix Nodes ---
+    % Matrix A
+    \matrix (A) [s1-matrix] {
+        1 \& 2 \\
+        3 \& 1 \\
+    };
+    \node[above=0.2cm of A] {$A$};
+
+    % Spacing
+    \node[right=1.2cm of A] (times) {};
+
+    % Matrix B
+    \node[right=0.8cm of times] (B-dummy) {}; 
+    \matrix (B) [s1-matrix, right=0cm of B-dummy] {
+        4 \& 1 \\
+        2 \& 5 \\
+    };
+    \node[above=0.2cm of B] {$B$};
+
+    \node[right=0.5cm of B] (equals) {$=$};
+
+    % Matrix AB
+    \node[right=0.5cm of equals] (C-dummy) {};
+    \matrix (C) [s1-matrix, right=0cm of C-dummy, nodes={fill=white, draw=black}] {
+        \alt<5->{8}{?} \& \alt<5->{11}{?} \\
+        \alt<9->{14}{?} \& \alt<9->{8}{?} \\
+    };
+    \node[above=0.2cm of C] {$AB$};
+
+    % Formula Placeholder (Internal spacing tightener)
+    \node[below=0.3cm of B, font=\small, opacity=0] (formula-placeholder) {
+        $3 \cdot [4, 1] + 1 \cdot [2, 5] = [14, 8]$
+    };
+
+    % --- 2. Animation Logic ---
+
+    % Step 2: Highlight Row 1 of A
+    \only<2-5>{
+        \node[s1-highlight-box, fit=(A-1-1)(A-1-2)] (rowA1) {};
+    }
+    
+    % Step 3-5: Extract coefficients
+    \only<3-5>{
+        \node[s1-coeff-node] (c1) at ($(B-1-1) - (1.8, 0)$) {1};
+        \node[s1-coeff-node] (c2) at ($(B-2-1) - (1.8, 0)$) {2};
+        
+        \draw[->, blue, dashed] (rowA1.east) to[out=0, in=180] (c1.west);
+        \draw[->, blue, dashed] (rowA1.east) to[out=0, in=180] (c2.west);
+
+        % Highlight Rows of B
+        \node[s1-highlight-box-green, fit=(B-1-1)(B-1-2)] {};
+        \node[s1-highlight-box-green, fit=(B-2-1)(B-2-2)] {};
+    }
+
+    % Step 4: Display formula for Row 1
+    \only<4>{
+        \node[text=blue, align=center, font=\small] at (formula-placeholder) {
+            $1 \cdot [4, 1] + 2 \cdot [2, 5] = [8, 11]$
+        };
+        \draw[->, thick, blue] (c1) -- (B-1-1);
+        \draw[->, thick, blue] (c2) -- (B-2-1);
+    }
+
+    % Step 5: Result into AB
+    \only<5>{
+        \node[s1-highlight-box, fit=(C-1-1)(C-1-2)] {};
+        \draw[->, orange, ultra thick] (B.east) -- (C-1-1);
+    }
+
+    % --- Row 2 Demonstration ---
+
+    % Step 6: Highlight Row 2 of A
+    \only<6-9>{
+        \node[s1-highlight-box, fit=(A-2-1)(A-2-2)] (rowA2) {};
+    }
+
+    % Step 7-9: Extract coefficients
+    \only<7-9>{
+        \node[s1-coeff-node] (c3) at ($(B-1-1) - (1.8, 0)$) {3};
+        \node[s1-coeff-node] (c4) at ($(B-2-1) - (1.8, 0)$) {1};
+        
+        \draw[->, red, dashed] (rowA2.east) to[out=0, in=180] (c3.west);
+        \draw[->, red, dashed] (rowA2.east) to[out=0, in=180] (c4.west);
+
+        % Highlight Rows of B
+        \node[s1-highlight-box-green, fit=(B-1-1)(B-1-2)] {};
+        \node[s1-highlight-box-green, fit=(B-2-1)(B-2-2)] {};
+    }
+
+    % Step 8: Display formula for Row 2
+    \only<8>{
+        \node[text=red!80!black, align=center, font=\small] at (formula-placeholder) {
+            $3 \cdot [4, 1] + 1 \cdot [2, 5] = [14, 8]$
+        };
+        \draw[->, thick, red] (c3) -- (B-1-1);
+        \draw[->, thick, red] (c4) -- (B-2-1);
+    }
+
+    % Step 9: Result into AB
+    \only<9>{
+        \node[s1-highlight-box, fit=(C-2-1)(C-2-2)] {};
+        \draw[->, orange, ultra thick] (B.east) -- (C-2-1);
+    }
+
+    \end{tikzpicture}
+
+    % Bottom Status Bar
+    \vspace{0.1cm}
+    \footnotesize
+    \begin{itemize}
+        \item<1-> Initial state
+        \item<2-> Extract row $i$ from $A$
+        \item<3-> Rotate as coefficients (Weights), \textbf{acting on every row of $B$}
+        \item<4-> Linear combination of rows of $B$
+        \item<5-> Fill into row $i$ of $AB$
+    \end{itemize}
+\end{frame}
+
+
+% ============================================================================
+% FRAME 2: Attention Construction (Alignment & Masking)
+% ============================================================================
+\begin{frame}{Attention Construction: Alignment \& Masking}
+    \centering
+    \vspace{0.5cm}
+
+    \begin{tikzpicture}[>=stealth, thick, scale=1.0, transform shape]
+    
+    % === Bounding Box Fix ===
+    % Centers the Q-K-S diagram
+    \useasboundingbox (-3.0, -3.0) rectangle (8.5, 2.0);
+
+    % --- 1. Query Matrix (Q) ---
+    \matrix (Q) [s2-math-matrix] {
+        q_1 \\
+        q_2 \\
+        q_3 \\
+    };
+    \node[above=0.1cm of Q, blue] {Queries ($Q$)};
+    \node[left=0.1cm of Q, font=\footnotesize, align=right, color=gray] {
+        Token 1\\Token 2\\Token 3
+    };
+
+    \node[right=0.15cm of Q] (times) {$\times$};
+
+    % --- 2. Key Matrix Transposed (K^T) ---
+    \matrix (K) [s2-math-matrix, right=0.15cm of times] {
+        k_1^T \& k_2^T \& k_3^T \\
+    };
+    \node[above=0.1cm of K, green!60!black] {Keys ($K^T$)};
+
+    \node[right=0.15cm of K] (equals) {$=$};
+
+    % --- 3. Raw Score Matrix (S = QK^T) ---
+    \matrix (S) [s2-math-matrix, right=0.15cm of equals, nodes={minimum width=1.1cm}] {
+        s_{11} \& s_{12} \& s_{13} \\
+        s_{21} \& s_{22} \& s_{23} \\
+        s_{31} \& s_{32} \& s_{33} \\
+    };
+    \node[above=0.1cm of S] (LabelS) {Scores ($QK^T$)};
+
+    % --- 4. Animation Steps ---
+
+    % === Step 1: Calculate Score (1,1) ===
+    \only<2>{
+        \node[s2-highlight-query, fit=(Q-1-1)] (hQ) {};
+        \node[s2-highlight-key, fit=(K-1-1)] (hK) {};
+        \node[draw=orange, thick, fit=(S-1-1)] {};
+        
+        \draw[s2-arrow-style, blue, dashed] (hQ.east) to[out=30, in=150] (hK.north west);
+        \node[s2-explanation-node, blue] {
+            $s_{11} = q_1 \cdot k_1$: "Self-attention (Token 1 $\leftrightarrow$ 1)"
+        };
+    }
+
+    % === Step 2: Calculate Score (1,2) -> FUTURE! ===
+    \only<3>{
+        \node[s2-highlight-query, fit=(Q-1-1)] {};
+        \node[s2-highlight-key, fit=(K-1-2)] {};
+        \node[draw=orange, thick, fit=(S-1-2)] {};
+        
+        \node[s2-explanation-node, red!80!black] {
+            $s_{12} = q_1 \cdot k_2$: "Token 1 looking at Token 2 (Future)..."
+        };
+    }
+
+    % === Step 3: Apply Causal Mask ===
+    \only<4>{
+        \node[s2-mask-box, fit=(S-1-2)] {$-\infty$};
+        \node[s2-mask-box, fit=(S-1-3)] {$-\infty$};
+        
+        \node[s2-explanation-node, red!80!black] {
+            \textbf{CAUSAL MASK APPLIED!}\\
+            Score $\to -\infty$ (Future is invisible).
+        };
+    }
+
+    % === Step 4: Row 2 Calculation & Masking ===
+    \only<5>{
+        \node[s2-highlight-query, fit=(Q-2-1)] {};
+        \node[draw=green!60!black, thick, fit=(S-2-1)(S-2-2)] {};
+        
+        \node[s2-mask-box, fit=(S-1-2)] {$-\infty$};
+        \node[s2-mask-box, fit=(S-1-3)] {$-\infty$};
+        \node[s2-mask-box, fit=(S-2-3)] {$-\infty$};
+        
+        \node[s2-explanation-node, blue] {
+            Token 2 sees Past ($k_1$) \& Present ($k_2$), but not Future ($k_3$).
+        };
+    }
+
+    % === Final State ===
+    \only<6>{
+        \node[s2-mask-box, fit=(S-1-2)] {$-\infty$};
+        \node[s2-mask-box, fit=(S-1-3)] {$-\infty$};
+        \node[s2-mask-box, fit=(S-2-3)] {$-\infty$};
+        
+        \node[s2-explanation-node, color=gray] {
+            The Score Matrix is now ready for Softmax.
+        };
+    }
+
+    \end{tikzpicture}
+
+    % Bottom Legend
+    \vspace{0.1cm}
+    \footnotesize
+    \begin{itemize}
+        \item<1-> \textbf{Relevance:} Dot product $q_i \cdot k_j$ measures similarity.
+        \item<3-> \textbf{Masking:} Setting score to $-\infty$ prevents attending to future tokens.
+    \end{itemize}
+\end{frame}
+
+
+% ============================================================================
+% FRAME 3: Attention Mechanism (Linear Combination)
+% ============================================================================
+\begin{frame}{Attention Mechanism: Linear Combination of Values}
+    \centering
+    \vspace{0.5cm}
+
+    % Scale 0.9
+    \begin{tikzpicture}[>=stealth, thick, scale=0.9, transform shape]
+    
+    % === Bounding Box ===
+    \useasboundingbox (-3, -3.5) rectangle (12, 2.5);
+
+    % --- 1. Matrix A: Attention Weights ---
+    \matrix (Attn) [s3-matrix] {
+        0.1 \& 0.9 \\
+        0.5 \& 0.5 \\
+    };
+    \node[above=0.1cm of Attn, align=center, font=\footnotesize] (LabelAttn) {Attention Weights\\($A$)};
+
+    % --- 2. Matrix B: Values (V) ---
+    \matrix (V) [s3-matrix, right=2.8cm of Attn] {
+        v_{1,1} \& v_{1,2} \\
+        v_{2,1} \& v_{2,2} \\
+    };
+    \node[above=0.1cm of V, align=center, font=\footnotesize] (LabelV) {Values\\($V$)};
+
+    \node[right=0.3cm of V] (equals) {$=$};
+
+    % --- 3. Matrix C: Output (Z) ---
+    \node[right=0.3cm of equals] (Z-dummy) {};
+    \matrix (Z) [s3-matrix, right=0cm of Z-dummy, nodes={fill=white, draw=black}] {
+        \alt<5->{z_{1,1}}{?} \& \alt<5->{z_{1,2}}{?} \\
+        \alt<9->{z_{2,1}}{?} \& \alt<9->{z_{2,2}}{?} \\
+    };
+    \node[above=0.1cm of Z, align=center, font=\footnotesize] (LabelZ) {Output\\($Z$)};
+
+    % === Fixed Text Coordinates ===
+    \coordinate (BottomCenter) at ($(V.south) + (0, -1.0)$);
+
+    % --- Animation Logic ---
+
+    % === SCENARIO 1: Row 1 Calculation ===
+    % Step 2: Highlight Row 1 of A
+    \only<2-5>{
+        \node[s3-highlight-box, fit=(Attn-1-1)(Attn-1-2)] (rowA1) {};
+    }
+    
+    % Step 3-5: Coefficients fly to V
+    \only<3-5>{
+        \node[s3-coeff-node] (c1) at ($(V-1-1) - (1.6, 0)$) {0.1};
+        \node[s3-coeff-node, fill=blue!30, draw=blue] (c2) at ($(V-2-1) - (1.6, 0)$) {0.9}; 
+        
+        \draw[->, blue, dashed] (rowA1.east) to[out=0, in=180] (c1.west);
+        \draw[->, blue, dashed] (rowA1.east) to[out=0, in=180] (c2.west);
+
+        % Highlight V rows (Unified Style)
+        \node[s3-highlight-box-value, fit=(V-1-1)(V-1-2)] {}; 
+        \node[s3-highlight-box-value, fit=(V-2-1)(V-2-2)] {};
+    }
+
+    % Step 4: Formula
+    \only<4>{
+        \node[s3-bottom-formula, blue] at (BottomCenter) {
+            $\mathbf{z}_1 = 0.1 \cdot \mathbf{v}_1 + \mathbf{0.9} \cdot \mathbf{v}_2$ \\ 
+            \textit{(Linear combination dominated by $\mathbf{v}_2$)}
+        };
+        \draw[->, thick, blue!40] (c1) -- (V-1-1.west);
+        \draw[->, ultra thick, blue] (c2) -- (V-2-1.west);
+    }
+
+    % Step 5: Result Z Row 1
+    \only<5>{
+        \node[s3-highlight-box, fit=(Z-1-1)(Z-1-2)] {};
+        \draw[->, orange, ultra thick] (V.east) -- (Z-1-1.west);
+    }
+
+
+    % === SCENARIO 2: Row 2 Calculation ===
+    % Step 6: Highlight Row 2 of A
+    \only<6-9>{
+        \node[s3-highlight-box, fit=(Attn-2-1)(Attn-2-2)] (rowA2) {};
+    }
+
+    % Step 7-9: Coefficients fly
+    \only<7-9>{
+        \node[s3-coeff-node] (c3) at ($(V-1-1) - (1.6, 0)$) {0.5};
+        \node[s3-coeff-node] (c4) at ($(V-2-1) - (1.6, 0)$) {0.5};
+        
+        \draw[->, red, dashed] (rowA2.east) to[out=0, in=180] (c3.west);
+        \draw[->, red, dashed] (rowA2.east) to[out=0, in=180] (c4.west);
+
+        \node[s3-highlight-box-value, fit=(V-1-1)(V-1-2)] {};
+        \node[s3-highlight-box-value, fit=(V-2-1)(V-2-2)] {};
+    }
+
+    % Step 8: Formula
+    \only<8>{
+        \node[s3-bottom-formula, red!80!black] at (BottomCenter) {
+            $\mathbf{z}_2 = 0.5 \cdot \mathbf{v}_1 + 0.5 \cdot \mathbf{v}_2$ \\ 
+            \textit{(Balanced mix of information)}
+        };
+        \draw[->, thick, red] (c3) -- (V-1-1.west);
+        \draw[->, thick, red] (c4) -- (V-2-1.west);
+    }
+
+    % Step 9: Result Z Row 2
+    \only<9>{
+        \node[s3-highlight-box, fit=(Z-2-1)(Z-2-2)] {};
+        \draw[->, orange, ultra thick] (V.east) -- (Z-2-1.west);
+    }
+
+    \end{tikzpicture}
+
+    % Bottom Legend
+    \vspace{0.1cm}
+    \footnotesize
+    \begin{itemize}
+        \item<1-> \textbf{Concept:} Attention is a \textbf{Linear Combination} of value vectors ($V$).
+        \item<2-> \textbf{Coefficients:} The weights come from the Attention Matrix ($A$).
+        \item<3-> \textbf{Fusion:} The output ($Z$) is a fused representation of relevant information.
+    \end{itemize}
+\end{frame}
+
+
+% ===================== Self-attention as matrix product =====================
+\begin{frame}{Self-Attention as Row-wise Linear Combination}
+Consider a single-head self-attention layer with sequence length $n$:
+\[
+Q,K \in \mathbb{R}^{n\times d},\qquad
+V \in \mathbb{R}^{n\times d_v}.
+\]
+
+Define the attention scores and weights:
+\[
+S = \frac{QK^\top}{\sqrt{d}} \in \mathbb{R}^{n\times n},\qquad
+A = \mathrm{softmax}_{\text{row}}(S) \in \mathbb{R}^{n\times n},
+\]
+where softmax is applied row-wise.
+
+The output of attention is
+\[
+H = AV \in \mathbb{R}^{n\times d_v}.
+\]
+
+Using the previous linear algebra fact, for each token index $i$:
+\[
+H_{i*} = \sum_{j=1}^n A_{ij} \, V_{j*}.
+\]
+
+\textbf{Interpretation:}
+\[
+\boxed{
+\text{The representation of token } i \text{ is a linear combination of all value vectors } V_{j*},
+\text{ with weights } A_{ij}.
+}
+\]
+Each row of $A$ provides a recipe for mixing the rows of $V$.
+\end{frame}
+
+% ===================== Attention as kernel-weighted sum =====================
+\begin{frame}{Attention as a Kernel-Weighted Sum}
+Define a (parametric) kernel
+\[
+k(q_i, k_j)
+:= \exp\!\Bigl( \frac{\langle q_i, k_j \rangle}{\sqrt{d}} \Bigr),
+\]
+where $q_i$ and $k_j$ are the $i$-th and $j$-th rows of $Q$ and $K$.
+
+Then the attention weights can be written as
+\[
+A_{ij} =
+\frac{k(q_i, k_j)}{\sum_{\ell=1}^n k(q_i, k_\ell)}.
+\]
+
+The output row becomes
+\[
+H_{i*}
+= \sum_{j=1}^n
+   \frac{k(q_i, k_j)}{\sum_{\ell=1}^n k(q_i, k_\ell)} \, V_{j*}.
+\]
+
+\textbf{Kernel view of attention:}
+\begin{itemize}
+  \item Values $\{V_{j*}\}$ are samples of a function on discrete points $\{x_j\}$.
+  \item The kernel $k(q_i, k_j)$ measures the relevance between query $q_i$ and key $k_j$.
+  \item The output $H_{i*}$ is a kernel-weighted average (normalized by the sum of kernel weights).
+\end{itemize}
+
+Thus self-attention is a \emph{learnable, data-dependent kernel smoother} over the sequence.
+\end{frame}
+
+% ===================== Continuum limit / integral operator =====================
+\begin{frame}{From Discrete Sum to Integral Operator}
+Think of the keys as points $\{x_j\}$ in a space $\Omega$ with a discrete measure
+\[
+\mu = \sum_{j=1}^n \delta_{x_j},
+\]
+and let $V(x_j) = V_{j*}$.
+
+Then the attention output at query $q_i$ can be written as
+\[
+H(q_i)
+=
+\frac{\sum_j k(q_i, x_j) V(x_j)}
+     {\sum_j k(q_i, x_j)}
+=
+\frac{\int k(q_i, x) V(x)\, \mathrm d\mu(x)}
+     {\int k(q_i, x)\, \mathrm d\mu(x)}.
+\]
+
+In a continuum limit (dense sampling),
+\[
+H(q)
+\approx
+\frac{\int_\Omega k_\theta(q, x) V(x)\, \mathrm d\mu(x)}
+     {\int_\Omega k_\theta(q, x)\, \mathrm d\mu(x)}.
+\]
+
+\textbf{Attention as a normalized kernel integral operator:}
+\[
+\boxed{
+(\mathcal{T}_\theta V)(q) =
+{\displaystyle \int_\Omega k_\theta(q, x) V(x)\, \mathrm d\mu(x)}/
+     {\displaystyle \int_\Omega k_\theta(q, x)\, \mathrm d\mu(x)}.
+}
+\]
+
+The kernel $k_\theta$ is parameterized by neural network weights (e.g., $W_Q, W_K$) and learned from data.
+\end{frame}
+
+% ===================== Linear / kernelized attention =====================
+\begin{frame}{Linear and Kernelized Attention as Operator Approximation}
+Suppose we approximate the kernel by a feature map
+\[
+k_\theta(q, x) \approx \phi_\theta(q)^\top \phi_\theta(x),
+\]
+with $\phi_\theta:\Omega \to \mathbb{R}^r$ (random or learned features).
+
+In matrix form:
+\[
+K(q_i, x_j) \approx \phi_\theta(q_i)^\top \phi_\theta(x_j),
+\quad
+\Phi_Q = \phi_\theta(Q) \in \mathbb{R}^{n \times r},\quad
+\Phi_K = \phi_\theta(K) \in \mathbb{R}^{n \times r}.
+\]
+
+Then
+\[
+AV
+\approx
+\mathrm{row\_norm}\!\bigl(\Phi_Q \Phi_K^\top\bigr) V.
+\]
+
+The unnormalized part factors as
+\[
+\Phi_Q \Phi_K^\top V
+=
+\Phi_Q\, (\Phi_K^\top V).
+\]
+
+\textbf{Operator-theoretic view:}
+\begin{itemize}
+  \item Full self-attention is a dense kernel integral operator.
+  \item Linear / kernelized attention uses a low-rank (feature-based) approximation of this operator.
+\end{itemize}
+\end{frame}
+
+% ===================== Nonlocal operators / PDE link =====================
+\begin{frame}{Connection to Nonlocal Operators and PDEs}
+Classical nonlocal operators often take the form
+\[
+(\mathcal{L}u)(x)
+= \int_\Omega \bigl(u(y) - u(x)\bigr) K(x,y)\, \mathrm dy,
+\quad
+(\mathcal{N}u)(x)
+= \int_\Omega u(y)\, K(x,y)\, \mathrm dy.
+\]
+
+Comparing with attention:
+\[
+(\mathcal{T}_\theta V)(q)
+=
+\frac{\displaystyle \int_\Omega k_\theta(q, x) V(x)\, \mathrm d\mu(x)}
+     {\displaystyle \int_\Omega k_\theta(q, x)\, \mathrm d\mu(x)}.
+\]
+
+\textbf{Interpretation:}
+\begin{itemize}
+  \item A self-attention layer is a \emph{learnable nonlocal operator} acting on the value function $V$.
+  \item Traditional PDE models prescribe $K(x,y)$ from physics.
+  \item Transformers learn $k_\theta(q,x)$ from data in a high-dimensional latent space.
+\end{itemize}
+
+Stacking attention layers corresponds to composing multiple such nonlocal operators with pointwise nonlinearities, forming a deep, data-driven approximation of complex nonlocal dynamics.
+\end{frame}
+
+% ===================== Summary frame =====================
+\begin{frame}{Summary}
+\begin{itemize}
+  \item \textbf{Linear algebra:} Left multiplication $C = AB$ makes each row $C_{i*}$ a linear combination of the rows of $B$.
+  \item \textbf{Self-attention:} $H = AV$ means each token's output is a linear combination of all value vectors, with weights given by attention scores.
+  \item \textbf{Kernel view:} Attention can be written as a normalized kernel-weighted sum and interpreted as a learnable kernel integral operator.
+  \item \textbf{Approximation:} Linear and kernelized attention approximate this operator via low-rank or feature-based decompositions.
+  \item \textbf{Nonlocal operators:} In a continuum perspective, self-attention is a learnable nonlocal operator, analogous to kernels in nonlocal PDEs and integral equations.
+\end{itemize}
 \end{frame}
 
 \section{Rotational Positional Encoding (RoPE)}
@@ -673,3 +1445,4 @@ If you are interested in these questions, please feel free to write an email to 
 \end{frame}  
   
 \end{document}
+
