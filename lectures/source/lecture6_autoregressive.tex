@@ -237,44 +237,36 @@ LSTM addresses RNN limitations with gating mechanisms:
 \end{frame}
 
 \subsection{Transformers}
-\begin{frame}{From RNN/CNN limits to attention}
-\begin{itemize}
-\item RNNs: sequential dependencies $\Rightarrow$ low parallelism; vanishing gradients for long-range context.
-\item CNNs: fixed receptive fields; long-range dependencies need many layers/dilations.
-\item \textbf{Transformer}: \emph{self-attention} provides content-based, global interactions with full parallelism.
-\item Complexity per layer: RNN $\mathcal{O}(n)$ but sequential; self-attention $\mathcal{O}(n^2)$ but fully parallel and expressive.
-\end{itemize}
-\end{frame}
 
-\begin{frame}{Scaled Dot-Product Attention: Key formula}
-Inputs: queries $Q\in\R^{n\times d_k}$, keys $K\in\R^{n\times d_k}$, values $V\in\R^{n\times d_v}$.
-\begin{align}
-\attn(Q,K,V) &= \softmax\!\left(\frac{QK^\top}{\sqrt{d_k}} + M\right) V, \label{eq:attn}
-\end{align}
-where $M$ is an optional mask (e.g., $M_{ij}=-\infty$ for $j>i$ in autoregressive decoding).
-\begin{itemize}
-\item Scaling by $\sqrt{d_k}$ keeps gradients in a reasonable range.
-\item \textbf{Interpretation}: each token re-weights all values using similarity to keys.
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Multi-Head Attention (MHA)}
-\begin{align}
-\mathrm{MHA}(X) &= \mathrm{Concat}(H_1,\dots,H_h) \, W^O,\\
-H_i &= \attn(X W_i^Q,\, X W_i^K,\, X W_i^V),\quad i=1,\dots,h.
-\end{align}
-\begin{itemize}
-\item Heads attend to different subspaces/patterns.
-\item Residual + LayerNorm around MHA and FFN blocks stabilize training.
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Transformer macro-architecture}
+\begin{frame}{Transformers}
 \begin{figure}
     \centering
     \includegraphics[width=0.75\textwidth]{../figures/transformer.pdf}
 \end{figure}
 \end{frame}
+
+\begin{frame}{Scaled Dot-Product Attention: Key formula}
+  Inputs: queries $Q\in\R^{n\times d_k}$, keys $K\in\R^{n\times d_k}$, values $V\in\R^{n\times d_v}$.
+  \begin{align}
+  \attn(Q,K,V) &= \softmax\!\left(\frac{QK^\top}{\sqrt{d_k}} + M\right) V, \label{eq:attn}
+  \end{align}
+  where $M$ is an optional mask (e.g., $M_{ij}=-\infty$ for $j>i$ in autoregressive decoding).
+  \begin{itemize}
+  \item Scaling by $\sqrt{d_k}$ keeps gradients in a reasonable range.
+  \item \textbf{Interpretation}: each token re-weights all values using similarity to keys.
+  \end{itemize}
+  \end{frame}
+  
+  \begin{frame}{Multi-Head Attention (MHA)}
+  \begin{align}
+  \mathrm{MHA}(X) &= \mathrm{Concat}(H_1,\dots,H_h) \, W^O,\\
+  H_i &= \attn(X W_i^Q,\, X W_i^K,\, X W_i^V),\quad i=1,\dots,h.
+  \end{align}
+  \begin{itemize}
+  \item Heads attend to different subspaces/patterns.
+  \item Residual + LayerNorm around MHA and FFN blocks stabilize training.
+  \end{itemize}
+  \end{frame}
 
 
 \begin{frame}{Understanding the Transformer architecture from a mathematical view}
