@@ -97,13 +97,14 @@ Given a dataset $\{x_i\}_{i=1}^n$ sampled from an unknown distribution $p_{data}
     \item \textcolor{red}{Explicit modeling}: Learn $p_\theta(x)$ directly
     \begin{itemize}
         \item Maximum Likelihood Estimation (MLE)
-        \item Variational Autoencoders (VAEs)
         \item Normalizing Flows
     \end{itemize}
     \item \textcolor{red}{Implicit modeling}: Learn a generator $G_\theta(z)$ that maps noise to data
     \begin{itemize}
         \item Generative Adversarial Networks (GANs)
         \item Diffusion Models
+        \item Variational Autoencoders (VAEs)
+
     \end{itemize}
 \end{itemize}
 \end{frame}
@@ -121,6 +122,20 @@ The minimax objective:
 \begin{equation}
 \min_G \max_D V(D,G) = \EE_{x \sim p_{data}}[\log D(x)] + \EE_{z \sim p_z}[\log(1-D(G(z)))]
 \end{equation}
+\end{frame}
+
+\begin{frame}
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.9\textwidth]{../figures/gan.png}
+    \end{figure}
+\end{frame}
+
+\begin{frame}
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.9\textwidth]{../figures/gan2.png}
+    \end{figure}
 \end{frame}
 
 \begin{frame}{Why Adversarial Training?}
