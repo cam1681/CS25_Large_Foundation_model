@@ -26,6 +26,7 @@ lectures/
 - `lecture4_normalizing_flow.tex` - Normalizing Flows
 - `lecture5_GANs.tex` - Generative Adversarial Networks
 - `lecture6_autoregressive.tex` - Autoregressive Models
+- `homework1_generative_models.tex` - Homework 1 slides (Lectures 0--6)
 - `lecture7_discrete_diffusion.tex` - Discrete Diffusion
 - `lecture8_world_model.tex` - World Models
 - `lecture9_reinforcementlearning.tex` - Reinforcement Learning
