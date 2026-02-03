@@ -50,6 +50,11 @@ Comprehensive course materials are available in the [`book/`](book/) directory:
 - **Main Book**: [`book.pdf`](book/compiled_pdfs/book.pdf) - course textbook under construction
 - **Individual Chapters**: Source files in [`book/chapters/`](book/chapters/)
 
+### Homework
+
+Homework assignments are available in the [`lectures/source/`](lectures/source/) directory:
+
+- **Homework 1**: [`homework1_generative_models.pdf`](lectures/source/compiled_pdfs/homework1_generative_models.pdf) - Generative Models (Diffusion, Flow Matching, VAE, Normalizing Flows, GANs)
 
 ### Course Content
 
@@ -122,7 +127,8 @@ CS25_Large_Foundation_model/
 │   │   ├── lecture10_reasoning.tex
 │   │   ├── lecture11_agent.tex
 │   │   ├── lecture12_ai4science.tex
-│   │   ├── compiled_pdfs/         # Generated PDF slides
+│   │   ├── homework1_generative_models.tex  # Homework assignment
+│   │   ├── compiled_pdfs/         # Generated PDF slides and homework
 │   │   └── README.md             # Lecture documentation
 │   ├── figures/                   # Course figures and diagrams
 │   └── README.md                  # Lecture documentation
@@ -163,6 +169,7 @@ CS25_Large_Foundation_model/
 - **13 Complete Lectures**: All lecture materials are ready
 - **Figure Integration**: All figures are properly linked and accessible
 - **PDF Generation**: All lectures compile to high-quality PDFs
+- **Homework Assignments**: First homework on generative models is available
 - **Course Book**: Comprehensive textbook is under construction
 - **Code Examples**: Implementation examples and datasets are under construction
 

@@ -6,14 +6,13 @@
 \setbeamertemplate{navigation symbols}{}
 \setbeamertemplate{footline}[frame number]
 
-
-% Packages for mathematics  
-\usepackage{amsmath}  
-\usepackage{amsfonts}  
-\usepackage{amssymb}  
+% Packages
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{mathtools}
 \usepackage{CJKutf8}
-% Support for \Tilde macro used throughout
-\providecommand{\Tilde}[1]{\tilde{#1}}
+\usepackage{tikz}
+
+% Proof environment for beamer
 \providecommand{\proofname}{Proof}
 \newenvironment<>{proofs}[1][\proofname]{%
     \par
@@ -22,425 +21,684 @@
   {\usebeamertemplate{proof end}}
 \makeatother
 
-% Math shorthand and vector symbols
-\newcommand{\grad}{\nabla}
+% Math shorthand
 \newcommand{\EE}{\mathbb{E}}
-\newcommand{\dd}{\mathrm{d}}
-\newcommand{\kbT}{k_B T}
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\Cat}{\mathrm{Cat}}
+\newcommand{\Dkl}{D_{\mathrm{KL}}}
+\newcommand{\Dis}{D_{\mathrm{IS}}}
+\DeclareMathOperator{\SNR}{SNR}
+\newcommand{\ones}{\mathbf{1}}
 \newcommand{\vx}{\mathbf{x}}
+\newcommand{\vm}{\mathbf{m}}
+\newcommand{\vu}{\mathbf{u}}
 
-% Bold vector/time-indexed variables
-\newcommand{\vxz}{\mathbf{x}_0}
-\newcommand{\vxt}{\mathbf{x}_t}
-\newcommand{\alpt}{\alpha_t}
-\newcommand{\sigt}{\sigma_t}
-\newcommand{\veps}{\boldsymbol{\epsilon}}
-\newcommand{\vF}{\mathbf{F}}
-
-% Discrete diffusion specific notation
-\newcommand{\vq}{\mathbf{q}}
-\newcommand{\vQ}{\mathbf{Q}}
-\newcommand{\vK}{\mathbf{K}}
-\newcommand{\vV}{\mathbf{V}}
-\newcommand{\vP}{\mathbf{P}}
-
-% Title page details:   
-\title[Discrete diffusion models]{Discrete diffusion models: From continuous to categorical}  
-\author{Pipi Hu}  
-\institute[BIMSA]{Beijing Institute of Mathematical Sciences and Applications}  
-\date{\today}  
+% Title page details
+\title[GIDD]{Generalized Interpolating Discrete Diffusion (GIDD)}
+\subtitle{Mathematical Foundations of Discrete Diffusion Models}
+\author{Pipi Hu}
+\institute[BIMSA]{Beijing Institute of Mathematical Sciences and Applications}
+\date{\today}
 
 \pgfdeclareimage[width=2cm]{logo}{../figures/logo.png}
 \logo{\pgfuseimage{logo}}
 
-% Outline slide (moved to later; avoid frame before \begin{document})
-
 \setbeamertemplate{navigation symbols}{}
-\AtBeginSection[]  
-{  
-    \begin{frame}<beamer>{Outline}         
-        \tableofcontents[currentsection]  
-    \end{frame}  
-}  
-  
-\AtBeginSubsection[]  
-{  
-    \begin{frame}<beamer>{Outline}         
-        \tableofcontents[currentsection,currentsubsection]  
-    \end{frame}  
-}  
+\AtBeginSection[]
+{
+    \begin{frame}<beamer>{Outline}
+        \tableofcontents[currentsection]
+    \end{frame}
+}
 
-\begin{document}  
-  
-% Title slide  
-\begin{frame}  
-  \titlepage  
-\end{frame}  
+\AtBeginSubsection[]
+{
+    \begin{frame}<beamer>{Outline}
+        \tableofcontents[currentsection,currentsubsection]
+    \end{frame}
+}
 
-\begin{frame}{Feynman's words}
-\centering
-    What I cannot create, I do not understand.
+\begin{document}
+
+% Title slide
+\begin{frame}
+  \titlepage
 \end{frame}
-  
-% Presentation slides  
 
-\section{From Continuous to Discrete: The Challenge}
+\begin{frame}{Outline}
+  \tableofcontents
+\end{frame}
 
-\begin{frame}{The discrete data challenge}
-Traditional diffusion models work well for continuous data, but many real-world applications involve discrete data:
+%% ========================================================================
+\section{Basic Definitions}
+%% ========================================================================
+
+\begin{frame}{Motivation: Discrete Diffusion}
 \begin{itemize}
-    \item \textcolor{red}{Text generation}: Words, tokens, characters
-    \item \textcolor{red}{Image generation}: Pixel values, categorical features
-    \item \textcolor{red}{Molecular generation}: Atom types, bond types
-    \item \textcolor{red}{Music generation}: Notes, chords, instruments
+    \item Many real-world data are \textcolor{red}{discrete/categorical}: text tokens, molecular types, pixel classes
+    \item Continuous diffusion (Gaussian noise) does not preserve categorical structure
+    \item \textbf{GIDD} provides a unified framework:
+    \begin{itemize}
+        \item Interpolation between data and noise via \textcolor{blue}{mixing rates}
+        \item Flexible \textcolor{blue}{mixing distributions} (mask, uniform, or combinations)
+        \item Recovers MDM (Masked Diffusion Model) as a special case
+    \end{itemize}
 \end{itemize}
 
-\textbf{Key question}: How to apply diffusion principles to discrete/categorical data?
+\vspace{0.5em}
+\textbf{Key idea}: Define a continuous-time Markov chain (CTMC) on a discrete state space $V$ with $|V|$ categories.
 \end{frame}
 
-\begin{frame}{Why not just discretize continuous diffusion?}
-Direct discretization of continuous diffusion faces several challenges:
+\begin{frame}{Mixing Rate}
+\begin{block}{Definition 1.1 (Mixing Rate)}
+The \textbf{cumulative mixing rate} is a differentiable, monotonically decreasing function
+\[
+\alpha: [0,1] \to [0,1], \quad t \mapsto \alpha_t
+\]
+with boundary conditions $\alpha_0 = 1$ (no mixing) and $\alpha_1 = 0$ (fully mixed).
+\end{block}
+
+\vspace{0.5em}
+Define $\beta_t := 1 - \alpha_t$. The \textbf{signal-to-noise ratio} (SNR) is:
+\[
+\SNR(t) := \frac{\alpha_t}{\beta_t}
+\]
+
+\begin{itemize}
+    \item At $t=0$: $\SNR = \infty$ (pure signal)
+    \item At $t=1$: $\SNR = 0$ (pure noise)
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Mixing Distribution}
+\begin{block}{Definition 1.2 (Mixing Distribution)}
+The \textbf{mixing distribution} is a differentiable function
+\[
+\bar{\pi}: [0,1] \to \Delta^{|V|-1}, \quad t \mapsto \bar{\pi}_t
+\]
+where $\Delta^{d-1} = \left\{ \vx \in \RR^d \;\middle|\; x_i \geq 0,\; \sum_{i=1}^{d} x_i = 1 \right\}$ is the probability simplex.
+\end{block}
+
+\vspace{0.5em}
+\begin{itemize}
+    \item $\bar{\pi}_t$ determines the \textcolor{red}{type of noise} added at time $t$
+    \item $\bar{\pi}_1$ is the \textbf{prior distribution} of the diffusion process
+    \item \textbf{Special case}: $\bar{\pi}_t = \vm$ (mask token one-hot) $\Rightarrow$ Masked Diffusion Model
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Marginal Forward Transition}
+\begin{block}{Definition 1.3 (Marginal Forward Transition)}
+Let $x \in V$ be a data point and $\vx \in \{0,1\}^{|V|}$ its one-hot encoding. The \textbf{marginal forward transition} is:
+\[
+q_t(z_t|x) := \Cat\left(z_t;\, \alpha_t \vx + \beta_t \bar{\pi}_t\right)
+\]
+where $z_t \in V$ is the latent variable at time $t$.
+\end{block}
+
+\vspace{0.5em}
+\textbf{Interpretation}: At time $t$, with ``probability'' $\alpha_t$ we keep the data $x$, and with ``probability'' $\beta_t$ we sample from the noise distribution $\bar{\pi}_t$.
+
+\vspace{0.5em}
+\begin{itemize}
+    \item $t = 0$: $q_0(z_0|x) = \Cat(z_0; \vx) = \delta_{z_0, x}$ (exact data)
+    \item $t = 1$: $q_1(z_1|x) = \Cat(z_1; \bar{\pi}_1)$ (pure noise)
+\end{itemize}
+\end{frame}
+
+%% ========================================================================
+\section{Continuous-Time Markov Chain Construction}
+%% ========================================================================
+
+\begin{frame}{Transition Matrix $Q_{t|s}$}
+\begin{block}{Proposition 1.1}
+There exists a continuous-time Markov chain with transition probability from $z_s$ to $z_t$ ($s \leq t$):
+\[
+q_{t|s}(z_t|z_s) = \Cat(z_t;\; Q_{t|s}\, z_s)
+\]
+where
+\[
+Q_{t|s} = \alpha_{t|s}\, I + \beta_{t|s}\, \bar{\pi}_{t|s}\, \ones^T
+\]
+\end{block}
+
+\vspace{0.3em}
+Here the conditional parameters are:
+\[
+\alpha_{t|s} = \frac{\alpha_t}{\alpha_s}, \qquad
+\beta_{t|s}\, \bar{\pi}_{t|s} = \beta_t\, \bar{\pi}_t - \frac{\alpha_t}{\alpha_s}\, \beta_s\, \bar{\pi}_s
+\]
+\end{frame}
+
+\begin{frame}{Proof Strategy: Mathematical Induction}
+\textbf{Goal}: Prove $Q_{t|s} = \alpha_{t|s}\, I + \beta_{t|s}\, \bar{\pi}_{t|s}\, \ones^T$ on a discrete grid $\{0, \Delta, 2\Delta, \ldots, 1\}$.
+
+\vspace{0.5em}
+\textbf{Setup}: Define single-step quantities
+\[
+\dot{\alpha}_t := \frac{\alpha_{t+\Delta}}{\alpha_t}, \qquad
+\dot{\beta}_t\, \dot{\bar{\pi}}_t := \beta_{t+\Delta}\, \bar{\pi}_{t+\Delta} - \frac{\alpha_{t+\Delta}}{\alpha_t}\, \beta_t\, \bar{\pi}_t
+\]
+
+Single-step transition:
+\[
+\dot{Q}_t = \dot{\alpha}_t\, I + \dot{\beta}_t\, \dot{\bar{\pi}}_t\, \ones^T
+\]
+
+Cumulative transition:
+\[
+Q_{t|s} = \prod_{i=s/\Delta}^{t/\Delta - 1} \dot{Q}_{\Delta i}
+\]
+\end{frame}
+
+\begin{frame}{Induction Proof}
+\textbf{Base case} ($t = s$):
+\[
+Q_{s|s} = I \quad \checkmark \qquad (\alpha_{s|s} = 1,\; \beta_{s|s}\, \bar{\pi}_{s|s} = 0)
+\]
+
+\textbf{Inductive step}: Assume $Q_{t|s} = \alpha_{t|s}\, I + \beta_{t|s}\, \bar{\pi}_{t|s}\, \ones^T$. Then:
+\[
+Q_{t+\Delta|s} = \dot{Q}_t \cdot Q_{t|s}
+= \bigl(\dot{\alpha}_t\, I + \dot{\beta}_t\, \dot{\bar{\pi}}_t\, \ones^T\bigr)\bigl(\alpha_{t|s}\, I + \beta_{t|s}\, \bar{\pi}_{t|s}\, \ones^T\bigr)
+\]
+
+\vspace{0.3em}
+Using two key auxiliary lemmas:
+\begin{itemize}
+    \item \textcolor{blue}{(H1)}: $\ones^T \bar{\pi}_{t|s} = 1$ \quad (probability normalization)
+    \item \textcolor{blue}{(H2)}: $\alpha_{t|s} + \beta_{t|s} = 1$
+\end{itemize}
+
+\vspace{0.3em}
+We obtain: $Q_{t+\Delta|s} = \alpha_{t+\Delta|s}\, I + \beta_{t+\Delta|s}\, \bar{\pi}_{t+\Delta|s}\, \ones^T$ \hfill $\square$
+\end{frame}
+
+\begin{frame}{Induction: Key Computation}
+Expanding the product:
+\begin{align*}
+Q_{t+\Delta|s} &= \dot{\alpha}_t \alpha_{t|s}\, I + \dot{\beta}_t \bigl\{ \alpha_{t|s}\, \bar{\pi}_t\, \ones^T + \beta_{t|s}\, \bar{\pi}_t\, \underbrace{(\ones^T \bar{\pi}_{t|s})}_{=1}\, \ones^T \bigr\} + \dot{\alpha}_t\, \beta_{t|s}\, \bar{\pi}_{t|s}\, \ones^T \\[6pt]
+&= \dot{\alpha}_t \alpha_{t|s}\, I + \dot{\beta}_t \underbrace{(\alpha_{t|s} + \beta_{t|s})}_{=1}\, \bar{\pi}_t\, \ones^T + \dot{\alpha}_t\, \beta_{t|s}\, \bar{\pi}_{t|s}\, \ones^T \\[6pt]
+&= \underbrace{\dot{\alpha}_t \alpha_{t|s}}_{\alpha_{t+\Delta|s}}\, I + \underbrace{\bigl(\dot{\beta}_t\, \bar{\pi}_t + \dot{\alpha}_t\, \beta_{t|s}\, \bar{\pi}_{t|s}\bigr)}_{\beta_{t+\Delta|s}\, \bar{\pi}_{t+\Delta|s}}\, \ones^T
+\end{align*}
+
+Here we used auxiliary lemmas \textcolor{blue}{(H3)} and \textcolor{blue}{(H4)} to verify the identifications.
+\end{frame}
+
+\begin{frame}{From Discrete Grid to Continuous Time}
+The induction proof holds on the grid $\{0, \Delta, 2\Delta, \ldots, 1\}$. To extend to all $s, t \in [0,1]$:
+
+\vspace{0.3em}
+By differentiability of $\alpha_t$ and $\bar{\pi}_t$, the \textbf{rate matrix} exists:
+\[
+R_t = \lim_{\Delta \to 0} \frac{Q_{t+\Delta|t} - I}{\Delta} = \lim_{\Delta \to 0} \frac{\dot{Q}_t - I}{\Delta}
+\]
+
+\begin{alertblock}{Kolmogorov Forward Equation}
+If $R_t$ is continuous and $\sup_{t \in [0,1]} \|R_t\| < \infty$, then there exists a unique transition matrix family $\{Q_{t|s}\}_{0 \leq s \leq t \leq 1}$ satisfying:
+\[
+\frac{\partial}{\partial t} Q_{t|s} = Q_{t|s}\, R_t, \quad Q_{s|s} = I
+\]
+and the Chapman--Kolmogorov equation: $Q_{t|s} = Q_{t|u}\, Q_{u|s}$ for $s \leq u \leq t$.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{Auxiliary Lemmas}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\begin{block}{Lemma H1: $\ones^T \bar{\pi}_{t|s} = 1$}
+\vspace{-0.5em}
+\begin{align*}
+\beta_{t|s}\, \ones^T \bar{\pi}_{t|s} &= \beta_t - \frac{\alpha_t}{\alpha_s}\, \beta_s \\
+&= \beta_{t|s}
+\end{align*}
+\end{block}
+
+\begin{block}{Lemma H2: $\alpha_{t|s} + \beta_{t|s} = 1$}
+\vspace{-0.5em}
+\begin{align*}
+&\frac{\alpha_t}{\alpha_s} + \beta_t - \frac{\alpha_t}{\alpha_s}\beta_s \\
+&= \frac{\alpha_t}{\alpha_s}(1-\beta_s) + \beta_t = \alpha_t + \beta_t = 1
+\end{align*}
+\end{block}
+\end{column}
+\begin{column}{0.48\textwidth}
+\begin{block}{Lemma H3}
+$\alpha_{t+\Delta|s} = \dot{\alpha}_t\, \alpha_{t|s}$
+
+\vspace{0.3em}
+\textit{Proof}: $\frac{\alpha_{t+\Delta}}{\alpha_s} = \frac{\alpha_{t+\Delta}}{\alpha_t} \cdot \frac{\alpha_t}{\alpha_s}$
+\end{block}
+
+\begin{block}{Lemma H4}
+$\beta_{t+\Delta|s}\, \bar{\pi}_{t+\Delta|s} = \dot{\beta}_t\, \bar{\pi}_t + \dot{\alpha}_t\, \beta_{t|s}\, \bar{\pi}_{t|s}$
+
+\vspace{0.3em}
+\textit{Proof}: Both sides equal $\beta_{t+\Delta}\, \bar{\pi}_{t+\Delta} - \frac{\alpha_{t+\Delta}}{\alpha_s}\, \beta_s\, \bar{\pi}_s$
+\end{block}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Corollary: Marginal Transition Probability}
+\begin{block}{Corollary 1.2 (Marginal Transition)}
+The marginal transition probability of the CTMC is:
+\[
+q_t(z_t|x) = \Cat(z_t;\; Q_t\, \vx), \qquad Q_t = \alpha_t\, I + \beta_t\, \bar{\pi}_t\, \ones^T
+\]
+\end{block}
+
+\textbf{Proof}: Set $s = 0$ in Proposition 1.1. By boundary conditions $\alpha_0 = 1$, $\beta_0 = 0$:
+\[
+\alpha_{t|0} = \alpha_t, \qquad \beta_{t|0}\, \bar{\pi}_{t|0} = \beta_t\, \bar{\pi}_t
+\]
+
+This gives:
+\[
+q_t(z_t|x) = z_t^T Q_t\, \vx = \alpha_t\, \delta_{z_t,x} + \beta_t\, (\bar{\pi}_t)_{z_t}
+\]
+which is exactly Definition 1.3. \hfill $\square$
+\end{frame}
+
+%% ========================================================================
+\section{Forward Transition Rate Matrix $R_t$}
+%% ========================================================================
+
+\begin{frame}{CTMC Forward Transition}
+\begin{block}{Definition 2.1 (CTMC Forward Transition)}
+For $s < t = s + \Delta$ with $\Delta \to 0$, the forward transition probability satisfies:
+\[
+q_{t|s}(z_t|z_s) = \delta_{z_s,z_t} + R_t(z_s, z_t)\,\Delta + o(\Delta)
+\]
+where $R_t$ is the \textbf{forward transition rate matrix}.
+\end{block}
+
+\vspace{0.5em}
+Properties of $R_t$:
+\begin{itemize}
+    \item Off-diagonal: $R_t(z, z') \geq 0$ for $z \neq z'$ \quad (instantaneous jump rate)
+    \item Diagonal: $R_t(z, z) = -\sum_{z' \neq z} R_t(z, z')$ \quad (probability conservation)
+\end{itemize}
+\end{frame}
+
+\begin{frame}{GIDD Forward Rate (Lemma 3.6)}
+\begin{block}{Lemma 2.1 (GIDD Forward Transition Rate)}
+The rate matrix for the GIDD forward process is:
+\[
+R_t(z_s, z_t) = \frac{\alpha_t'}{\alpha_t}\,\delta_{z_s,z_t} + z_t^T\!\left(\beta_t\, \bar{\pi}_t' - \frac{\alpha_t'}{\alpha_t}\,\bar{\pi}_t\right)
+\]
+\end{block}
+
+\vspace{0.3em}
+\textbf{Physical interpretation}:
+\begin{itemize}
+    \item $R_t(z, z')\, dt$ = instantaneous probability of jumping from $z$ to $z'$ in $[t, t{+}dt)$
+    \item Diagonal: $R_t(z, z) = \frac{\alpha_t'}{\alpha_t} < 0$ (since $\alpha_t$ is decreasing)
+    \item The rate of \textcolor{red}{leaving} state $z$ equals $-\frac{\alpha_t'}{\alpha_t} > 0$
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Proof of Lemma 2.1}
+\textbf{Taylor expand} $q_{s+\Delta|s}(z_t|z_s)$ at $\Delta = 0$:
+\[
+\alpha_{s+\Delta|s} = \frac{\alpha_{s+\Delta}}{\alpha_s} = 1 + \frac{\alpha_s'}{\alpha_s}\,\Delta + o(\Delta)
+\]
+\begin{align*}
+\beta_{s+\Delta|s}\,\bar{\pi}_{s+\Delta|s} &= \beta_{s+\Delta}\,\bar{\pi}_{s+\Delta} - \frac{\alpha_{s+\Delta}}{\alpha_s}\,\beta_s\,\bar{\pi}_s \\
+&= \underbrace{\left[(\beta_s\,\bar{\pi}_s)' - \frac{\alpha_s'}{\alpha_s}\,\beta_s\,\bar{\pi}_s\right]}_{\text{simplifies to } \beta_s\,\bar{\pi}_s' - \frac{\alpha_s'}{\alpha_s}\,\bar{\pi}_s}\,\Delta + o(\Delta)
+\end{align*}
+
+Substituting:
+\begin{align*}
+q_{s+\Delta|s}(z_t|z_s) &= \delta_{z_s,z_t} + \underbrace{\left[\frac{\alpha_s'}{\alpha_s}\,\delta_{z_s,z_t} + z_t^T\!\left(\beta_s\,\bar{\pi}_s' - \frac{\alpha_s'}{\alpha_s}\,\bar{\pi}_s\right)\right]}_{= R_s(z_s,z_t)}\,\Delta + o(\Delta)
+\end{align*}
+\hfill $\square$
+\end{frame}
+
+\begin{frame}{Simplification of the Rate Expression}
+The key simplification uses the product rule. Starting from:
+\[
+(\beta_s\,\bar{\pi}_s)' - \frac{\alpha_s'}{\alpha_s}\,\beta_s\,\bar{\pi}_s
+\]
+
+Expand with $\beta_s = 1 - \alpha_s$:
+\begin{align*}
+&= (1-\alpha_s)'\,\bar{\pi}_s + \beta_s\,\bar{\pi}_s' - \frac{\alpha_s'}{\alpha_s}\,(1-\alpha_s)\,\bar{\pi}_s \\
+&= -\alpha_s'\,\bar{\pi}_s + \beta_s\,\bar{\pi}_s' - \frac{\alpha_s'}{\alpha_s}\,\beta_s\,\bar{\pi}_s \\
+&= \beta_s\,\bar{\pi}_s' - \alpha_s'\!\left(1 + \frac{\beta_s}{\alpha_s}\right)\bar{\pi}_s
+= \beta_s\,\bar{\pi}_s' - \frac{\alpha_s'}{\alpha_s}\,\bar{\pi}_s
+\end{align*}
+
+This gives the clean expression: $R_t = \frac{\alpha_t'}{\alpha_t}\,I + \left(\beta_t\,\bar{\pi}_t' - \frac{\alpha_t'}{\alpha_t}\,\bar{\pi}_t\right)\ones^T$
+\end{frame}
+
+%% ========================================================================
+\section{Backward Transition Rate $\hat{R}_t$}
+%% ========================================================================
+
+\begin{frame}{Backward Transition: Setup}
+\textbf{Goal}: Derive the backward rate $\hat{R}_t$ for denoising (recovering data from noise).
+
+\begin{block}{Definition 3.1 (CTMC Backward Transition)}
+For $s = t - \Delta$, $\Delta \to 0$:
+\[
+p_{s|t}(z_s|z_t) = \delta_{z_t,z_s} + \hat{R}_t(z_t, z_s)\,\Delta + o(\Delta)
+\]
+\end{block}
+
+\begin{block}{Lemma 3.1 (Bayesian Form of Backward Transition)}
+The true backward transition is:
+\[
+q_{s|t}(z_s|z_t, x) = \frac{q_{t|s}(z_t|z_s) \cdot q_s(z_s|x)}{q_t(z_t|x)}
+\]
+\end{block}
+
+This follows from Bayes' rule and the Markov property: $q_{t|s}(z_t|z_s, x) = q_{t|s}(z_t|z_s)$.
+\end{frame}
+
+\begin{frame}{Model Backward Distribution}
+Since we don't know the true $x$, we use a neural network $x_\theta(Z_t, t)$ to predict it.
+
+\vspace{0.5em}
+\textbf{Model backward distribution}:
+\[
+p_\theta(z_s|z_t) := q_{t|s}(z_t|z_s) \cdot \frac{q_s(z_s|x_\theta)}{q_t(z_t|x_\theta)}
+\]
+
+where $q_t(z_t|x_\theta) := \Cat(z_t;\; Q_t\, x_\theta(Z_t, t))$.
+
+\vspace{0.5em}
+\textbf{Key idea}: Replace the unknown true $x$ with the model's prediction $x_\theta(Z_t, t)$, preserving the same Bayesian structure.
+\end{frame}
+
+\begin{frame}{GIDD Backward Rate}
+\begin{block}{Lemma 3.2 (GIDD Backward Rate)}
+The CTMC backward rate for the model posterior is:
+\[
+\hat{R}_t^\theta(z_t, z_s) = -\delta_{z_s,z_t} \sum_{z'} R_t(z', z_t)\, \frac{q_t(z'|x_\theta)}{q_t(z_t|x_\theta)} + R_t(z_s, z_t)\,\frac{q_t(z_s|x_\theta)}{q_t(z_t|x_\theta)}
+\]
+\end{block}
+
+\vspace{0.3em}
+Equivalently, in cases:
+\[
+\hat{R}_t^\theta(z_t, z_s) = \begin{cases}
+\displaystyle R_t(z_s, z_t)\,\frac{q_t(z_s|x_\theta)}{q_t(z_t|x_\theta)} & \text{if } z_s \neq z_t \\[12pt]
+\displaystyle -\sum_{z' \neq z_t} R_t(z', z_t)\,\frac{q_t(z'|x_\theta)}{q_t(z_t|x_\theta)} & \text{if } z_s = z_t
+\end{cases}
+\]
+\end{frame}
+
+\begin{frame}{Proof of Backward Rate (1/2)}
+Set $s = t - \Delta$, $\Delta \to 0$. From the model backward distribution:
+\[
+p_\theta(z_s|z_t) = q_{t|s}(z_t|z_s) \cdot \frac{q_s(z_s|x_\theta)}{q_t(z_t|x_\theta)}
+\]
+
+Substitute the forward rate expansion and Taylor expand $q_s$:
+\begin{align*}
+p_\theta(z_s|z_t) &= \bigl(\delta_{z_s,z_t} + R_t(z_s, z_t)\,\Delta + o(\Delta)\bigr) \\
+&\qquad \cdot \frac{q_t(z_s|x_\theta) - q_t'(z_s|x_\theta)\,\Delta + o(\Delta)}{q_t(z_t|x_\theta)}
+\end{align*}
+\end{frame}
+
+\begin{frame}{Proof of Backward Rate (2/2)}
+Expanding to first order in $\Delta$:
+\[
+p_\theta(z_s|z_t) = \delta_{z_s,z_t} + \left[-\delta_{z_s,z_t}\,\frac{q_t'(z_s|x_\theta)}{q_t(z_t|x_\theta)} + R_t(z_s,z_t)\,\frac{q_t(z_s|x_\theta)}{q_t(z_t|x_\theta)}\right]\Delta + o(\Delta)
+\]
+
+Comparing with the definition $p_{s|t}(z_s|z_t) = \delta_{z_t,z_s} + \hat{R}_t(z_t, z_s)\,\Delta + o(\Delta)$:
+\[
+\hat{R}_t^\theta(z_t, z_s) = -\delta_{z_s,z_t}\,\frac{q_t'(z_t|x_\theta)}{q_t(z_t|x_\theta)} + R_t(z_s, z_t)\,\frac{q_t(z_s|x_\theta)}{q_t(z_t|x_\theta)}
+\]
+
+\vspace{0.3em}
+Finally, apply the \textbf{Kolmogorov forward equation}:
+\[
+q_t'(z|x_\theta) = \sum_{z'} q_t(z'|x_\theta)\, R_t(z', z)
+\]
+to eliminate the time derivative and obtain the final form. \hfill $\square$
+\end{frame}
+
+%% ========================================================================
+\section{ELBO: Evidence Lower Bound}
+%% ========================================================================
+
+\begin{frame}{General CT-ELBO}
+\begin{block}{Proposition 4.1 (General CT-ELBO, Proposition H.4)}
+For any CTMC diffusion process with marginal $q_t$, forward rate $R_t$, and backward rate $\hat{R}_t$:
+\[
+\log p(x) \geq \EE_{t, q_t(z_t|x)} \!\left[\hat{R}_t(z_t, z_t) - R_t(z_t, z_t) + \!\sum_{z' \neq z_t}\! R_t(z', z_t)\, \frac{q_t(z'|x)}{q_t(z_t|x)} \log \frac{\hat{R}_t(z_t, z')\, q_t(z_t|x)}{R_t(z', z_t)\, q_t(z'|x)}\right] + C
+\]
+\end{block}
+
+where $t \sim \mathcal{U}(0,1)$ and
+\[
+C = \EE_{q_0(z_0|x)}[\log p(x|z_0)] - \Dkl(q_1(z_1|x) \| p_1(z_1))
+\]
+\end{frame}
+
+\begin{frame}{Proof Sketch of CT-ELBO (1/3)}
+\textbf{Step 1}: Start from the KL divergence between true and model backward:
+\[
+\Dkl(q_{s|t}(\cdot|z_t,x) \| p_{s|t}(\cdot|z_t)) = \sum_{z_s} \frac{q_{t|s}(z_t|z_s)\, q_s(z_s|x)}{q_t(z_t|x)} \log \frac{q_{t|s}(z_t|z_s)\, q_s(z_s|x)}{p_{s|t}(z_s|z_t)\, q_t(z_t|x)}
+\]
+
+\textbf{Step 2}: Taylor expand each factor for $s = t - \Delta$, $\Delta \to 0$:
+\begin{itemize}
+    \item For $z_s = z_t$: $\log q_{t|s}(z_t|z_s) = \Delta\, R_s(z_t, z_t) + o(\Delta)$
+    \item For $z_s \neq z_t$: the product $q_{t|s} \log q_{t|s}$ contributes at order $O(\Delta)$
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Proof Sketch of CT-ELBO (2/3)}
+\textbf{Step 2 (continued)}: The KL divergence expands as:
+\begin{align*}
+\Dkl(q_{s|t}(\cdot|z_t,x) \| p_{s|t}(\cdot|z_t)) &= \Delta \Big( R_s(z_t, z_t) - \hat{R}_s(z_t, z_t) \\
+&\quad + \sum_{z_s \neq z_t} R_s(z_s, z_t)\, \frac{q_s(z_s|x)}{q_t(z_t|x)} \log \frac{R_s(z_s, z_t)\, q_s(z_s|x)}{\hat{R}_s(z_t, z_s)\, q_t(z_t|x)} \Big) + o(\Delta)
+\end{align*}
+
+\vspace{0.3em}
+\textbf{Key observation}: The KL divergence is $O(\Delta)$, not $O(1)$.
+\end{frame}
+
+\begin{frame}{Proof Sketch of CT-ELBO (3/3)}
+\textbf{Step 3}: From discrete to continuous. The discrete-time ELBO is:
+\[
+\log p(x) \geq -\sum_{i=2}^{T} \EE_{q_{\Delta i}(z_t|x)} \left[ \Dkl(q_{\Delta(i-1)|\Delta i}(\cdot|z_t, x) \| p_\theta(\cdot|z_t)) \right] + C
+\]
+
+With $\Delta = 1/T$ and using the $O(\Delta)$ expansion:
+\begin{align*}
+\log p(x) &\geq -\frac{1}{\Delta} \cdot \EE_{t \sim \mathcal{U}(0,1)} \left[ \Delta \left(\text{rate terms}\right) + o(\Delta) \right] + C
+\end{align*}
+
+The $\Delta$'s cancel, $o(\Delta)/\Delta \to 0$, yielding the CT-ELBO. \hfill $\square$
+\end{frame}
+
+\begin{frame}{Weight Function}
+\begin{block}{Lemma 4.1 (Weight Expectation, Lemma H.5)}
+Define the weight function:
+\[
+w_t(z_t, x) = \frac{1}{q_t(z_t|x)}\, z_t^T \!\left(\beta_t\, \bar{\pi}_t' - \frac{\alpha_t'}{\alpha_t}\,\bar{\pi}_t\right)
+\]
+Then:
+\[
+\EE_{z_t \sim q_t(\cdot|x)} [w_t(z_t, x)] = -\frac{\alpha_t'}{\alpha_t}
+\]
+\end{block}
+
+\textbf{Proof}: Since $\sum_{z_t} z_t = \ones$ (summing over all one-hot vectors):
+\[
+\EE_{z_t}[w_t] = \ones^T\!\left(\beta_t\, \bar{\pi}_t' - \frac{\alpha_t'}{\alpha_t}\,\bar{\pi}_t\right) = \beta_t \underbrace{(\ones^T \bar{\pi}_t')}_{= (\ones^T \bar{\pi}_t)' = 0} - \frac{\alpha_t'}{\alpha_t} \underbrace{(\ones^T \bar{\pi}_t)}_{= 1} = -\frac{\alpha_t'}{\alpha_t}
+\]
+
+\textbf{Key}: $\bar{\pi}_t$ is always a probability vector, so $\ones^T \bar{\pi}_t = 1$ $\Rightarrow$ $\ones^T \bar{\pi}_t' = 0$. \hfill $\square$
+\end{frame}
+
+\begin{frame}{GIDD ELBO Theorem}
+\begin{block}{Theorem 4.1 (GIDD ELBO, Theorem 3.7)}
+The continuous-time negative ELBO (CT-NELBO) satisfies:
+\[
+-\log p(x) \leq \EE_{t, z_t}\!\left[w_t(z_t, x) \left(\Dkl(q_t(\cdot|x) \| q_t(\cdot|x_\theta)) + \Dis(q_t(z_t|x) \| q_t(z_t|x_\theta))\right)\right] + C
+\]
+where $t \sim \mathcal{U}(0,1)$, $z_t \sim q_t(\cdot|x)$, and
+\[
+\Dis(p\|q) = \frac{p}{q} - \log\frac{p}{q} - 1
+\]
+is the pointwise \textbf{Itakura--Saito divergence}.
+\end{block}
+\end{frame}
+
+\begin{frame}{GIDD ELBO: Proof Outline (1/2)}
+\textbf{Step 1}: Substitute the GIDD backward rate into the general CT-ELBO.
+
+\textbf{Step 2}: Simplify the first summation term. Using $R_t(z', z_t) = w_t(z_t, x)\, q_t(z_t|x)$ for $z' \neq z_t$:
+\[
+\sum_{z'} R_t(z', z_t)\, \frac{q_t(z'|x_\theta)}{q_t(z_t|x_\theta)} = w_t(z_t, x)\, \frac{q_t(z_t|x)}{q_t(z_t|x_\theta)} + \frac{\alpha_t'}{\alpha_t}
+\]
+
+\textbf{Step 3}: Simplify the logarithmic term:
+\begin{align*}
+&\sum_{z' \neq z_t} \frac{q_t(z'|x)}{q_t(z_t|x)}\, R_t(z', z_t) \log \frac{q_t(z'|x_\theta)\, q_t(z_t|x)}{q_t(z_t|x_\theta)\, q_t(z'|x)} \\
+&= w_t(z_t, x) \left( -\Dkl(q_t(\cdot|x) \| q_t(\cdot|x_\theta)) + \log \frac{q_t(z_t|x)}{q_t(z_t|x_\theta)} \right)
+\end{align*}
+\end{frame}
+
+\begin{frame}{GIDD ELBO: Proof Outline (2/2)}
+\textbf{Step 4}: Combine and use Lemma 4.1.
+
+After merging the two terms:
+\[
+-\log p(x) \leq \EE_{t, z_t}\!\left[ w_t \left( \Dkl + \frac{q_t(z_t|x)}{q_t(z_t|x_\theta)} - \log \frac{q_t(z_t|x)}{q_t(z_t|x_\theta)} \right) + \frac{\alpha_t'}{\alpha_t} \right] + C
+\]
+
+Since $\EE_{z_t}[w_t(z_t, x)] = -\frac{\alpha_t'}{\alpha_t}$, the constant term $\frac{\alpha_t'}{\alpha_t}$ is absorbed:
+\[
+-\log p(x) \leq \EE_{t, z_t}\!\left[ w_t \left( \Dkl + \underbrace{\frac{q_t(z_t|x)}{q_t(z_t|x_\theta)} - \log \frac{q_t(z_t|x)}{q_t(z_t|x_\theta)} - 1}_{= \Dis(q_t(z_t|x) \| q_t(z_t|x_\theta))} \right) \right] + C
+\]
+\hfill $\square$
+\end{frame}
+
+%% ========================================================================
+\section{Mixing Schedule}
+%% ========================================================================
+
+\begin{frame}{Mixing Schedule: Masking + Uniform Noise}
+\textbf{Goal}: Design a concrete mixing schedule combining mask and uniform noise.
+
+\vspace{0.5em}
+Define the schedule with normalization $C_t = 1 + c_t$:
+\[
+\alpha_t = \frac{1-t}{C_t}, \qquad \beta_t\, \pi_t = \frac{t}{C_t}\,\vm + \frac{c_t}{C_t}\,\vu
+\]
+
+where:
+\begin{itemize}
+    \item $\vm$ = one-hot vector for the \textcolor{red}{mask token}
+    \item $\vu$ = \textcolor{red}{uniform distribution} vector ($1/|V|$ for each entry)
+    \item $c_t = B\, t^{\gamma/2}\, (1-t)^{\gamma/2}$ controls the uniform noise level
+\end{itemize}
+
+\vspace{0.3em}
+\textbf{Interpretation}: At each time $t$, the noisy distribution is a mixture of data, mask, and uniform noise.
+\end{frame}
+
+\begin{frame}{Uniform Noise Ratio (Lemma H.7)}
+\begin{block}{Lemma 6.1 (Uniform Noise Ratio)}
+If $c_t = B\, t^{\gamma/2}\, (1-t)^{\gamma/2}$ with $B = 2^\gamma \frac{p_u}{1-p_u}$, then the maximum uniform noise ratio is $p_u$, achieved at $t = 1/2$.
+\end{block}
+
+\textbf{Proof}: The uniform noise ratio is $\frac{c_t}{1 + c_t}$.
+
+Since $t(1-t)$ is symmetric and maximized at $t = 1/2$:
+\[
+c_{1/2} = B\, (1/2)^\gamma = 2^\gamma \cdot \frac{p_u}{1-p_u} \cdot 2^{-\gamma} = \frac{p_u}{1-p_u}
+\]
+
+Maximum ratio:
+\[
+\frac{c_{1/2}}{1 + c_{1/2}} = \frac{p_u/(1-p_u)}{1 + p_u/(1-p_u)} = \frac{p_u}{1} = p_u \qquad \square
+\]
+\end{frame}
+
+\begin{frame}{ELBO Weight Function (Lemma H.8)}
+\begin{block}{Lemma 6.2 (GIDD ELBO Weights)}
+Under this mixing schedule, the weight function has closed form:
+\[
+w_t(z_t, x) = z_t^T \left( \frac{\vm + (c_t + (1-t)\,c_t')\,\vu}{(1-t)\bigl((1-t)\,\vx + t\,\vm + c_t\,\vu\bigr)} \right)
+\]
+\end{block}
+
+\textbf{Key derivations}:
+\begin{itemize}
+    \item $c_t' = \frac{\gamma}{2} \cdot \frac{1-2t}{t(1-t)} \cdot c_t$
+    \item $\frac{\alpha_t'}{\alpha_t} = -\frac{1}{1-t} - \frac{c_t'}{1+c_t}$
+    \item Core ratio: $\frac{\beta_t\,\pi_t}{\alpha_t} = \frac{t\,\vm + c_t\,\vu}{1-t}$
+    \item Its derivative: $\left(\frac{\beta_t\,\pi_t}{\alpha_t}\right)' = \frac{\vm + (c_t + (1-t)\,c_t')\,\vu}{(1-t)^2}$
+\end{itemize}
+\end{frame}
+
+%% ========================================================================
+\section{Summary}
+%% ========================================================================
+
+\begin{frame}{Summary of GIDD Framework}
 \begin{enumerate}
-    \item \textcolor{red}{Score function undefined}: $\nabla \log p(x)$ doesn't exist for discrete $x$
-    \item \textcolor{red}{Noise structure}: Gaussian noise doesn't preserve categorical structure
-    \item \textcolor{red}{Sampling complexity}: Discrete spaces have different geometry
-    \item \textcolor{red}{Training instability}: Continuous losses don't translate directly
+    \item \textcolor{red}{Forward process}: Interpolation $q_t(z_t|x) = \Cat(z_t;\; \alpha_t\,\vx + \beta_t\,\bar{\pi}_t)$
+
+    \vspace{0.3em}
+    \item \textcolor{red}{CTMC construction}: Transition matrix $Q_{t|s} = \alpha_{t|s}\,I + \beta_{t|s}\,\bar{\pi}_{t|s}\,\ones^T$
+
+    \vspace{0.3em}
+    \item \textcolor{red}{Forward rate}: $R_t(z_s, z_t) = \frac{\alpha_t'}{\alpha_t}\,\delta_{z_s,z_t} + z_t^T\!\left(\beta_t\,\bar{\pi}_t' - \frac{\alpha_t'}{\alpha_t}\,\bar{\pi}_t\right)$
+
+    \vspace{0.3em}
+    \item \textcolor{red}{Backward rate}: $\hat{R}_t^\theta(z_t, z_s) = R_t(z_s, z_t)\,\frac{q_t(z_s|x_\theta)}{q_t(z_t|x_\theta)}$ (for $z_s \neq z_t$)
+
+    \vspace{0.3em}
+    \item \textcolor{red}{ELBO}: $-\log p(x) \leq \EE_{t, z_t}\!\bigl[w_t \bigl(\Dkl + \Dis\bigr)\bigr] + C$
+
+    \vspace{0.3em}
+    \item \textcolor{red}{Mixing schedule}: Mask + uniform noise with tunable ratio $p_u$
 \end{enumerate}
-
-\textbf{Need}: New mathematical framework for discrete diffusion
 \end{frame}
 
-\section{Discrete Diffusion: Mathematical Foundation}
-
-\begin{frame}{Discrete state spaces and transition matrices}
-For discrete data $x \in \{1, 2, \ldots, K\}$, we need discrete transition probabilities.
-
-\textbf{Forward process}: Define transition matrix $\vQ_t$ such that
-\begin{equation}
-    q(x_t | x_{t-1}) = \vQ_t[x_{t-1}, x_t]
-\end{equation}
-
-\textbf{Key properties}:
+\begin{frame}{Key Takeaways}
 \begin{itemize}
-    \item $\vQ_t$ is a stochastic matrix: $\sum_{x_t} \vQ_t[x_{t-1}, x_t] = 1$
-    \item $\vQ_t[x_{t-1}, x_t] \geq 0$ for all $x_{t-1}, x_t$
-    \item Can be time-dependent: $\vQ_t$ changes with $t$
+    \item GIDD \textbf{generalizes} existing discrete diffusion models (MDM is a special case with $\bar{\pi}_t = \vm$)
+
+    \vspace{0.3em}
+    \item The framework supports \textbf{flexible noise types}: mask, uniform, or any mixture
+
+    \vspace{0.3em}
+    \item The ELBO decomposes into a \textbf{KL divergence} (global distribution matching) and an \textbf{Itakura--Saito divergence} (pointwise likelihood ratio matching)
+
+    \vspace{0.3em}
+    \item The weight function $w_t$ is \textbf{independent} of the specific mixing distribution $\bar{\pi}_t$ in expectation (Lemma 4.1)
+
+    \vspace{0.3em}
+    \item All derivations are \textbf{rigorous}: discrete grid induction $\to$ continuous-time limit via Kolmogorov equations
 \end{itemize}
-\end{frame}
-
-\begin{frame}{Discrete forward process}
-The discrete forward process is defined as:
-\begin{equation}
-    q(x_t | x_0) = \sum_{x_1, \ldots, x_{t-1}} \prod_{s=1}^t \vQ_s[x_{s-1}, x_s]
-\end{equation}
-
-For \textcolor{red}{uniform transitions} (common choice):
-\begin{equation}
-    \vQ_t = (1-\beta_t)\mathbf{I} + \beta_t \mathbf{1}\mathbf{1}^T/K
-\end{equation}
-where $\mathbf{I}$ is identity matrix and $\mathbf{1}\mathbf{1}^T$ is uniform transition matrix.
-
-\textbf{Interpretation}: With probability $(1-\beta_t)$, stay the same; with probability $\beta_t$, jump to any state uniformly.
-\end{frame}
-
-\begin{frame}{Discrete reverse process}
-The reverse process requires learning transition probabilities:
-\begin{equation}
-    p_\theta(x_{t-1} | x_t) = \text{Cat}(x_{t-1}; \boldsymbol{\pi}_\theta(x_t, t))
-\end{equation}
-
-where $\boldsymbol{\pi}_\theta(x_t, t) \in \mathbb{R}^K$ is a probability vector.
-
-\textbf{Training objective}: Learn to reverse the forward process
-\begin{equation}
-    \mathcal{L} = \mathbb{E}_{t, x_0, x_t} \left[ -\log p_\theta(x_{t-1} | x_t) \right]
-\end{equation}
-
-\textbf{Challenge}: How to parameterize $\boldsymbol{\pi}_\theta(x_t, t)$ effectively?
-\end{frame}
-
-\section{Score-based Discrete Diffusion}
-
-\begin{frame}{Discrete score function}
-For discrete data, we define the \textcolor{red}{discrete score function}:
-\begin{equation}
-    s(x, t) = \nabla \log p(x, t) = \frac{\partial \log p(x, t)}{\partial x}
-\end{equation}
-
-\textbf{Problem}: This is not well-defined for categorical $x$.
-
-\textbf{Solution}: Use \textcolor{red}{logits} instead of direct gradients:
-\begin{equation}
-    s(x, t) = \log p(x, t) - \log \sum_{x'} p(x', t)
-\end{equation}
-
-Or equivalently:
-\begin{equation}
-    s(x, t) = \log p(x, t) + C
-\end{equation}
-where $C$ is a constant that doesn't affect the relative probabilities.
-\end{frame}
-
-\begin{frame}{Discrete denoising score matching}
-For discrete data, the DSM loss becomes:
-\begin{equation}
-    \mathcal{L}_{DSM} = \mathbb{E}_{t, x_0, x_t} \left[ \|s_\theta(x_t, t) - \nabla_{x_t} \log q(x_t | x_0)\|^2 \right]
-\end{equation}
-
-\textbf{Key insight}: The score $\nabla_{x_t} \log q(x_t | x_0)$ can be computed analytically for discrete transitions.
-
-For uniform transitions:
-\begin{equation}
-    \nabla_{x_t} \log q(x_t | x_0) = \frac{\vQ_t[x_0, x_t]}{\sum_{x'} \vQ_t[x_0, x']} - \frac{1}{K}
-\end{equation}
-\end{frame}
-
-\section{Autoregressive vs Diffusion for Discrete Data}
-
-\begin{frame}{Autoregressive models for discrete data}
-Traditional approach for discrete data:
-\begin{equation}
-    p(x) = \prod_{i=1}^n p(x_i | x_{<i})
-\end{equation}
-
-\textbf{Advantages}:
-\begin{itemize}
-    \item Natural for discrete data
-    \item Easy to train with cross-entropy loss
-    \item Can model complex dependencies
-\end{itemize}
-
-\textbf{Disadvantages}:
-\begin{itemize}
-    \item Sequential generation (slow)
-    \item Order dependence
-    \item Hard to parallelize
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Discrete diffusion advantages}
-Discrete diffusion offers several advantages over autoregressive models:
-\begin{enumerate}
-    \item \textcolor{red}{Parallel generation}: All positions can be generated simultaneously
-    \item \textcolor{red}{Order independence}: No fixed generation order
-    \item \textcolor{red}{Flexible conditioning}: Easy to condition on partial information
-    \item \textcolor{red}{Unified framework}: Same principles as continuous diffusion
-\end{enumerate}
-
-\textbf{Trade-off}: More complex training but more flexible generation
-\end{frame}
-
-\section{Implementation Strategies}
-
-\begin{frame}{Discrete diffusion implementation}
-\textbf{Strategy 1: Direct parameterization}
-\begin{equation}
-    p_\theta(x_{t-1} | x_t) = \text{softmax}(f_\theta(x_t, t))
-\end{equation}
-where $f_\theta: \mathbb{R}^K \times \mathbb{R} \to \mathbb{R}^K$
-
-\textbf{Strategy 2: Score-based approach}
-\begin{equation}
-    s_\theta(x_t, t) = f_\theta(x_t, t) - \log \sum_{x'} \exp(f_\theta(x', t))
-\end{equation}
-
-\textbf{Strategy 3: Embedding approach}
-\begin{itemize}
-    \item Embed discrete states in continuous space
-    \item Apply continuous diffusion in embedding space
-    \item Project back to discrete space
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Training discrete diffusion models}
-\textbf{Training procedure}:
-\begin{enumerate}
-    \item Sample $x_0 \sim p_{data}$
-    \item Sample $t \sim \text{Uniform}(0, T)$
-    \item Sample $x_t \sim q(x_t | x_0)$ using forward process
-    \item Train model to predict $x_0$ or $x_{t-1}$ from $x_t$
-\end{enumerate}
-
-\textbf{Loss functions}:
-\begin{itemize}
-    \item Cross-entropy: $\mathcal{L} = -\log p_\theta(x_0 | x_t)$
-    \item Score matching: $\mathcal{L} = \|s_\theta(x_t, t) - s_{true}(x_t, t)\|^2$
-    \item Variational bound: $\mathcal{L} = \text{ELBO}(x_0, x_t)$
-\end{itemize}
-\end{frame}
-
-\section{Advanced Discrete Diffusion}
-
-\begin{frame}{Categorical diffusion}
-For categorical data with $K$ classes, use categorical distribution:
-\begin{equation}
-    q(x_t | x_{t-1}) = \text{Cat}(x_t; \boldsymbol{\alpha}_t)
-\end{equation}
-
-where $\boldsymbol{\alpha}_t$ is the concentration parameter.
-
-\textbf{Forward process}:
-\begin{equation}
-    \boldsymbol{\alpha}_t = (1-\beta_t) \mathbf{e}_{x_{t-1}} + \beta_t \mathbf{1}/K
-\end{equation}
-
-where $\mathbf{e}_{x_{t-1}}$ is the one-hot vector for $x_{t-1}$.
-\end{frame}
-
-\begin{frame}{Discrete diffusion with structure}
-For structured discrete data (e.g., molecules, graphs):
-\begin{itemize}
-    \item \textcolor{red}{Graph diffusion}: Diffuse over graph structure
-    \item \textcolor{red}{Hierarchical diffusion}: Multi-level discrete states
-    \item \textcolor{red}{Conditional diffusion}: Condition on partial structure
-\end{itemize}
-
-\textbf{Example}: Molecular generation
-\begin{equation}
-    p(\text{molecule}) = \prod_{t=1}^T p(\text{atom}_t | \text{atoms}_{<t}, \text{bonds}_{<t})
-\end{equation}
-
-\textbf{Challenge}: Maintaining chemical validity during diffusion
-\end{frame}
-
-\section{Applications and Examples}
-
-\begin{frame}{Text generation with discrete diffusion}
-\textbf{Token-level diffusion}:
-\begin{itemize}
-    \item Forward: Gradually replace tokens with noise
-    \item Reverse: Learn to denoise and recover original text
-    \item Training: Predict original tokens from noisy versions
-\end{itemize}
-
-\textbf{Advantages over autoregressive}:
-\begin{itemize}
-    \item Parallel generation
-    \item Better long-range dependencies
-    \item More flexible conditioning
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Image generation with discrete diffusion}
-\textbf{Pixel-level discrete diffusion}:
-\begin{itemize}
-    \item Treat pixel values as discrete categories
-    \item Forward: Gradually randomize pixel values
-    \item Reverse: Learn to recover original pixels
-\end{itemize}
-
-\textbf{Hybrid approaches}:
-\begin{itemize}
-    \item Continuous diffusion for low-level features
-    \item Discrete diffusion for high-level structure
-    \item Multi-scale discrete diffusion
-\end{itemize}
-\end{frame}
-
-\section{Theoretical Analysis}
-
-\begin{frame}{Discrete diffusion convergence}
-\textbf{Theorem}: Under certain conditions, discrete diffusion converges to the data distribution.
-
-\textbf{Key assumptions}:
-\begin{enumerate}
-    \item Forward process is ergodic
-    \item Reverse process is properly parameterized
-    \item Training loss is minimized
-\end{enumerate}
-
-\textbf{Proof sketch}:
-\begin{equation}
-    p_\theta(x_0) = \int p_\theta(x_0 | x_T) p(x_T) dx_T
-\end{equation}
-
-As $T \to \infty$, $p(x_T)$ approaches uniform distribution, and $p_\theta(x_0 | x_T)$ learns to recover the data distribution.
-\end{frame}
-
-\begin{frame}{Discrete vs continuous diffusion}
-\textbf{Comparison}:
-\begin{itemize}
-    \item \textcolor{red}{Continuous}: Smooth interpolation, gradient-based
-    \item \textcolor{red}{Discrete}: Categorical jumps, probability-based
-\end{itemize}
-
-\textbf{Mathematical differences}:
-\begin{itemize}
-    \item Score function: $\nabla \log p(x)$ vs $\log p(x)$
-    \item Noise: Gaussian vs categorical
-    \item Sampling: Langevin dynamics vs discrete transitions
-\end{itemize}
-
-\textbf{Unified view}: Both can be seen as special cases of a general diffusion framework
-\end{frame}
-
-\section{Challenges and Open Problems}
-
-\begin{frame}{Current challenges in discrete diffusion}
-\begin{enumerate}
-    \item \textcolor{red}{Training stability}: Discrete losses can be unstable
-    \item \textcolor{red}{Sampling efficiency}: Discrete sampling can be slow
-    \item \textcolor{red}{Model capacity}: Need large models for complex discrete data
-    \item \textcolor{red}{Evaluation metrics}: How to measure quality of discrete generation?
-\end{enumerate}
-
-\textbf{Open problems}:
-\begin{itemize}
-    \item Optimal transition matrices for different data types
-    \item Theoretical guarantees for discrete diffusion
-    \item Efficient sampling algorithms
-    \item Better loss functions for discrete data
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Future directions}
-\textbf{Research directions}:
-\begin{enumerate}
-    \item \textcolor{red}{Hybrid models}: Combine continuous and discrete diffusion
-    \item \textcolor{red}{Structured diffusion}: Incorporate domain knowledge
-    \item \textcolor{red}{Efficient algorithms}: Faster training and sampling
-    \item \textcolor{red}{Theoretical understanding}: Better mathematical foundations
-\end{enumerate}
-
-\textbf{Applications}:
-\begin{itemize}
-    \item Scientific discovery (molecules, materials)
-    \item Creative applications (music, art)
-    \item Natural language processing
-    \item Code generation
-\end{itemize}
-\end{frame}
-
-\section{Conclusion}
-
-\begin{frame}{Summary}
-Discrete diffusion models provide a powerful framework for generating discrete data:
-\begin{itemize}
-    \item \textcolor{red}{Mathematical foundation}: Discrete transition matrices and score functions
-    \item \textcolor{red}{Implementation strategies}: Direct parameterization, score-based, embedding-based
-    \item \textcolor{red}{Applications}: Text, images, molecules, and more
-    \item \textcolor{red}{Advantages}: Parallel generation, flexible conditioning, unified framework
-\end{itemize}
-
-\textbf{Key insight}: Discrete diffusion extends the power of continuous diffusion to categorical data while maintaining the core principles of iterative denoising.
 \end{frame}
 
 \begin{frame}{Questions}
-If you are interested in the questions, please feel free to write an email to me {\color{red}(\href{mailto:hpp@bimsa.cn}{hpp@bimsa.cn})} with your comments. 
+If you are interested in the questions, please feel free to write an email to me {\color{red}(\href{mailto:hpp@bimsa.cn}{hpp@bimsa.cn})} with your comments.
 \begin{enumerate}[(1.)]
-    \item How can we design optimal transition matrices for specific types of discrete data (e.g., text, molecules, graphs)?
-    \item What are the theoretical guarantees for convergence of discrete diffusion models?
-    \item How can we efficiently sample from discrete diffusion models while maintaining quality?
-    \item What are the best practices for training discrete diffusion models on large-scale datasets?
+    \item How does the choice of mixing distribution $\bar{\pi}_t$ affect generation quality for different data modalities?
+    \item What is the optimal balance between mask noise and uniform noise (choice of $p_u$ and $\gamma$)?
+    \item How does GIDD compare to autoregressive models for text generation in practice?
+    \item Can the CTMC framework be extended to structured discrete spaces (e.g., graphs, trees)?
 \end{enumerate}
 \end{frame}
 
-% Thank you slide  
-\begin{frame}{Welcome inputs}  
-  \centering  
+% Thank you slide
+\begin{frame}{Welcome inputs}
+  \centering
   Any comments?
   \\[2em]
-  Welcome your inputs!  
-\end{frame}  
-  
-\end{document}  
+  Welcome your inputs!
+\end{frame}
+
+\end{document}
