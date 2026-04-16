@@ -350,7 +350,11 @@ R_t(z_s, z_t) = \frac{\alpha_t'}{\alpha_t}\,\delta_{z_s,z_t} + z_t^T\!\left(\bet
 
 Substituting:
 \begin{align*}
-q_{s+\Delta|s}(z_t|z_s) &= \delta_{z_s,z_t} + \underbrace{\left[\frac{\alpha_s'}{\alpha_s}\,\delta_{z_s,z_t} + z_t^T\!\left(\beta_s\,\bar{\pi}_s' - \frac{\alpha_s'}{\alpha_s}\,\bar{\pi}_s\right)\right]}_{= R_s(z_s,z_t)}\,\Delta + o(\Delta)
+q_{s+\Delta|s}(z_t|z_s)
+&= \delta_{z_s,z_t} \\
+&\quad + \underbrace{\left[\frac{\alpha_s'}{\alpha_s}\,\delta_{z_s,z_t}
++ z_t^T\!\left(\beta_s\,\bar{\pi}_s' - \frac{\alpha_s'}{\alpha_s}\,\bar{\pi}_s\right)\right]}_{= R_s(z_s,z_t)}\,\Delta
++ o(\Delta)
 \end{align*}
 \hfill $\square$
 \end{frame}
@@ -475,7 +479,8 @@ For any CTMC diffusion process with marginal $q_t$, forward rate $R_t$, and back
 
 where $t \sim \mathcal{U}(0,1)$ and
 \[
-C = \EE_{q_0(z_0|x)}[\log p(x|z_0)] - \Dkl(q_1(z_1|x) \| p_1(z_1))
+C = \EE_{q_0(z_0|x)}[\log p(x|z_0)]
+ - \Dkl(q_1(z_1|x) \| p_1(z_1))
 \]
 \end{frame}
 
