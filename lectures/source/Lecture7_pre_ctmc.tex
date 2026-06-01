@@ -571,6 +571,192 @@ The state $i$ does not remember how long it has already been occupied; only the 
 \end{columns}
 \end{frame}
 
+\begin{frame}{Exit-rate / Jump-distribution Decomposition}
+\small
+\textbf{Core idea.} For a continuous-time Markov chain (CTMC), the transition rate from state $i$ to state $j$ can be decomposed as
+\[
+R_t(i,j)=\Lambda_t(i)\,r_t(j\mid i), \qquad j\neq i.
+\]
+
+Here:
+\begin{itemize}
+    \item $\Lambda_t(i)$: total exit rate from state $i$,
+    \item $r_t(j\mid i)$: conditional jump distribution.
+\end{itemize}
+
+This decomposition separates two different aspects of the dynamics:
+\begin{itemize}
+    \item \textbf{when to jump} --- governed by $\Lambda_t(i)$,
+    \item \textbf{where to jump} --- governed by $r_t(j\mid i)$.
+\end{itemize}
+
+\medskip
+Thus, the CTMC structure can be viewed as:
+\[
+\text{transition rate}
+=
+\text{jump timing intensity}
+\times
+\text{jump destination probability}.
+\]
+
+\end{frame}
+
+\begin{frame}{Definition of the Exit Rate}
+\small
+For $j\neq i$, the off-diagonal entries of the generator satisfy
+\[
+R_t(i,j)\ge 0.
+\]
+
+The total rate of leaving state $i$ is defined by
+\[
+\Lambda_t(i):=\sum_{j\neq i}R_t(i,j).
+\]
+
+Hence $\Lambda_t(i)$ measures the overall tendency of the process to leave $i$.
+
+\medskip
+In a short time interval $\Delta t$,
+\[
+\Prob(X_{t+\Delta t}\neq i \mid X_t=i)
+\approx
+\Lambda_t(i)\Delta t.
+\]
+
+Therefore, $\Lambda_t(i)$ controls the \textbf{jump timing}.
+
+\medskip
+If the chain is time-homogeneous, then the holding time at state $i$ is exponentially distributed with parameter $\Lambda_i$.
+
+\end{frame}
+
+\begin{frame}{Definition of the Jump Distribution}
+\small
+Assume that $\Lambda_t(i)>0$. Define
+\[
+r_t(j\mid i):=\frac{R_t(i,j)}{\Lambda_t(i)}, \qquad j\neq i.
+\]
+
+Equivalently,
+\[
+R_t(i,j)=\Lambda_t(i)\,r_t(j\mid i).
+\]
+
+\medskip
+This means:
+\begin{itemize}
+    \item $\Lambda_t(i)$ gives the \textbf{overall scale} of jumping,
+    \item $r_t(j\mid i)$ gives the \textbf{relative preference} among all possible destinations.
+\end{itemize}
+
+So, after separating out the total exit intensity $\Lambda_t(i)$, the remaining normalized quantity $r_t(j\mid i)$ describes \emph{where} the jump goes.
+
+\end{frame}
+
+\begin{frame}{Conditional-Probability Interpretation}
+\scriptsize
+For $j\neq i$, in a short time interval $\Delta t$,
+\[
+\Prob(X_{t+\Delta t}=j\mid X_t=i)
+=
+R_t(i,j)\Delta t+o(\Delta t),
+\]
+and
+\[
+\Prob(X_{t+\Delta t}\neq i\mid X_t=i)
+=
+\Lambda_t(i)\Delta t+o(\Delta t).
+\]
+
+Hence,
+\[
+\Prob(X_{t+\Delta t}=j \mid X_{t+\Delta t}\neq i,\;X_t=i)
+=
+\frac{\Prob(X_{t+\Delta t}=j\mid X_t=i)}
+{\Prob(X_{t+\Delta t}\neq i\mid X_t=i)}.
+\]
+
+Substituting the short-time expansions yields
+\[
+\frac{R_t(i,j)\Delta t+o(\Delta t)}
+{\Lambda_t(i)\Delta t+o(\Delta t)}
+\to
+\frac{R_t(i,j)}{\Lambda_t(i)}
+=
+r_t(j\mid i),
+\qquad \Delta t\to 0.
+\]
+
+\end{frame}
+
+\begin{frame}{Interpretation of $r_t(j\mid i)$}
+\small
+Therefore,
+\[
+r_t(j\mid i)
+=
+\lim_{\Delta t\to 0}
+\Prob\!\left(
+X_{t+\Delta t}=j
+\;\middle|\;
+X_{t+\Delta t}\neq i,\;X_t=i
+\right).
+\]
+
+This gives a very direct interpretation:
+
+\medskip
+\begin{quote}
+Starting from state $i$ at time $t$, if a jump does occur in the next infinitesimal time interval, then $r_t(j\mid i)$ is the probability that the jump lands in state $j$.
+\end{quote}
+
+\medskip
+So $r_t(j\mid i)$ is not merely defined by normalization; it is exactly the \textbf{conditional destination probability given that a jump occurs}.
+
+\end{frame}
+
+\begin{frame}{One-line Takeaway}
+\small
+The decomposition
+\[
+\boxed{
+R_t(i,j)=\Lambda_t(i)\,r_t(j\mid i)
+}
+\qquad (j\neq i)
+\]
+with
+\[
+\Lambda_t(i)=\sum_{j\neq i}R_t(i,j),
+\qquad
+r_t(j\mid i)=\frac{R_t(i,j)}{\Lambda_t(i)},
+\]
+captures the intrinsic two-step mechanism of a CTMC:
+
+\begin{enumerate}
+    \item decide \textbf{whether / when} to jump;
+    \item decide \textbf{where} to jump.
+\end{enumerate}
+
+Equivalently,
+\[
+\text{transition rate}
+=
+\text{total exit rate}
+\times
+\text{conditional jump probability}.
+\]
+
+\medskip
+In the time-homogeneous notation used earlier in this lecture, this becomes
+\[
+q_{ij}=\Lambda_i\,r(j\mid i),
+\qquad
+r(j\mid i)=\frac{q_{ij}}{\Lambda_i}.
+\]
+
+\end{frame}
+
 \begin{frame}{``When to jump'' and ``where to jump'' are different objects}
 \small
 The outgoing rates from state $i$ contain two different pieces of information.
