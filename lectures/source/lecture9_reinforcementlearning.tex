@@ -24,7 +24,6 @@
 \newcommand{\one}{\mathbf{1}}
 \newcommand{\Sspace}{\mathcal{S}}
 \newcommand{\Aspace}{\mathcal{A}}
-\newcommand{\Rspace}{\mathcal{R}}
 \newcommand{\red}[1]{\textcolor{red}{#1}}
 \DeclareMathOperator*{\argmax}{arg\,max}
 
@@ -90,6 +89,39 @@ Reinforcement learning is the study of \red{how an agent improves a policy from 
 \end{enumerate}
 \end{frame}
 
+\begin{frame}{The Logical Chain}
+\small
+The lecture follows one chain from interaction to an update rule:
+
+\vspace{0.7em}
+\begin{center}
+\begin{tikzpicture}[
+    node distance=0.8cm,
+    box/.style={draw, rounded corners=2pt, minimum width=2.05cm, minimum height=0.72cm, align=center, fill=blue!7},
+    arrow/.style={-Latex, thick}
+]
+\node[box] (interaction) {interaction\\$(S,A,R,S')$};
+\node[box, right=of interaction] (mdp) {MDP\\$p(s',r\mid s,a)$};
+\node[box, right=of mdp] (return) {return\\$G_t$};
+\node[box, right=of return] (value) {values\\$V,Q,A$};
+\node[box, below=of value] (bellman) {Bellman\\relation};
+\node[box, left=of bellman] (target) {sample\\target};
+\node[box, left=of target] (td) {TD\\update};
+\draw[arrow] (interaction) -- (mdp);
+\draw[arrow] (mdp) -- (return);
+\draw[arrow] (return) -- (value);
+\draw[arrow] (value) -- (bellman);
+\draw[arrow] (bellman) -- (target);
+\draw[arrow] (target) -- (td);
+\end{tikzpicture}
+\end{center}
+
+\vspace{0.7em}
+\begin{block}{Main idea}
+RL algorithms differ mainly in the target they use, how they estimate expectations, and how they change the policy.
+\end{block}
+\end{frame}
+
 \section{The Reinforcement Learning Problem}
 
 \begin{frame}{What Makes RL Different?}
@@ -130,10 +162,10 @@ At each time step: observe state, choose action, receive reward and next state.
 \begin{frame}{Four Elements of an RL Agent}
 \small
 \begin{itemize}
-    \item \red{Policy} $\pi$: the agent's behavior rule, often $\pi(a\mid s)$.
-    \item \red{Reward signal} $R_{t+1}$: immediate feedback that defines the task.
-    \item \red{Value function} $v_\pi, q_\pi$: prediction of long-term reward.
-    \item \red{Model} $p(s',r\mid s,a)$: optional prediction of environment response.
+    \item \red{Policy}: the agent's behavior rule.
+    \item \red{Reward signal}: immediate feedback that defines the task.
+    \item \red{Value function}: prediction of long-term consequence.
+    \item \red{Model}: optional prediction of environment response.
 \end{itemize}
 
 \vspace{0.8em}
@@ -167,9 +199,9 @@ Reward says what is good immediately. Value estimates what is good after future 
 \[
 \text{good action} \neq \argmax_a \EE[R_{t+1}\mid S_t=s,A_t=a]
 \]
-\[
-\text{good action} = \argmax_a \EE[G_t\mid S_t=s,A_t=a].
-\]
+
+\vspace{0.4em}
+A good action is one whose future consequences are good, not merely one whose immediate reward is high.
 \end{frame}
 
 \begin{frame}{Delayed Consequences}
@@ -205,18 +237,17 @@ The action at $s$ matters because it changes the distribution of future rewards.
 \end{itemize}
 
 \vspace{0.8em}
+One common behavior rule mixes the current best-looking action with random exploration:
 \[
-\text{Let }a^*(s)\in\argmax_b Q(s,b),\qquad
-\epsilon\text{-greedy:}\quad
-\pi(a\mid s)=
+A_t=
 \begin{cases}
-1-\epsilon+\epsilon/|\Aspace(s)|, & a=a^*(s),\\
-\epsilon/|\Aspace(s)|, & \text{otherwise.}
+\text{current best-looking action}, & \text{with probability }1-\epsilon,\\
+\text{random feasible action}, & \text{with probability }\epsilon.
 \end{cases}
 \]
 
 \vspace{0.4em}
-This simple rule is often enough to expose the exploration issue clearly.
+After action values are introduced, this becomes the usual $\epsilon$-greedy policy.
 \end{frame}
 
 \begin{frame}{Prediction and Control}
@@ -225,8 +256,8 @@ This simple rule is often enough to expose the exploration issue clearly.
 \begin{column}{0.48\textwidth}
 \textbf{Prediction}
 \begin{itemize}
-    \item Policy $\pi$ is fixed.
-    \item Learn $v_\pi$ or $q_\pi$.
+    \item The behavior rule is fixed.
+    \item Learn how good the fixed behavior is.
     \item Question: how good is this behavior?
 \end{itemize}
 \end{column}
@@ -254,9 +285,9 @@ Most tabular control algorithms repeatedly alternate between value estimation an
 \toprule
 Approach & What is learned or known & How actions improve \\
 \midrule
-Model-based & Estimate or use $p(s',r\mid s,a)$ & Plan by simulating backups \\
-Model-free & Estimate $v_\pi$ or $q_\pi$ directly & Improve policy from value estimates \\
-Policy search & Parameterize $\pi_\theta$ directly & Optimize expected return \\
+Model-based & Estimate or use an environment model & Plan by simulating backups \\
+Model-free & Estimate value directly from experience & Improve policy from value estimates \\
+Policy search & Parameterize the policy directly & Optimize expected return \\
 \bottomrule
 \end{tabular}
 
@@ -275,7 +306,8 @@ Sutton--Barto Chapters 6 and 7 focus on model-free value learning in the tabular
 
 \vspace{0.7em}
 \[
-V(S_t) \leftarrow V(S_t)+\alpha\bigl[V(S_{t+1})-V(S_t)\bigr]
+\text{Value}(S_t) \leftarrow
+\text{Value}(S_t)+\alpha\bigl[\text{Value}(S_{t+1})-\text{Value}(S_t)\bigr]
 \]
 
 \vspace{0.4em}
@@ -332,7 +364,7 @@ p(s',r\mid s,a),
 \]
 we often use derived quantities:
 \[
-p(s'\mid s,a)=\sum_{r\in\Rspace}p(s',r\mid s,a),
+p(s'\mid s,a)=\sum_r p(s',r\mid s,a),
 \]
 \[
 r(s,a)=\EE[R_{t+1}\mid S_t=s,A_t=a]
@@ -349,7 +381,9 @@ The joint form is the cleanest because reward and next state can be statisticall
 \small
 A policy defines behavior:
 \[
-\pi(a\mid s)=\PP(A_t=a\mid S_t=s).
+\pi(a\mid s)=\PP_\pi(A_t=a\mid S_t=s),
+\qquad
+\sum_{a\in\Aspace(s)}\pi(a\mid s)=1.
 \]
 
 \begin{itemize}
@@ -419,92 +453,209 @@ Reward is the external objective. Value is the agent's learned prediction of tha
 \end{block}
 \end{frame}
 
-\begin{frame}{State-Value Function}
+\begin{frame}{Value Notation: $V_\pi$, $Q_\pi$, and $A_\pi$}
 \small
-For a policy $\pi$, the value of state $s$ is
+After $\pi$ and $G_t$ are fixed, the prediction objects are
 \[
-v_\pi(s)
-=\EE_\pi[G_t\mid S_t=s].
+V_\pi(s)=\EE_\pi[G_t\mid S_t=s],
+\qquad
+Q_\pi(s,a)=\EE_\pi[G_t\mid S_t=s,A_t=a].
 \]
 
+\vspace{0.4em}
 \begin{itemize}
-    \item It answers: if we start here and follow $\pi$, how much return should we expect?
-    \item It is a prediction problem once $\pi$ is fixed.
-    \item It is the central object behind policy evaluation.
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Action-Value Function}
-\small
-For a policy $\pi$, the value of taking action $a$ in state $s$ is
-\[
-q_\pi(s,a)
-=\EE_\pi[G_t\mid S_t=s,A_t=a].
-\]
-
-\begin{itemize}
-    \item It answers: what if we force the first action to be $a$, then follow $\pi$?
-    \item It is more directly useful for control when the model is unknown.
-    \item A greedy policy can be read directly from $q$:
+    \item In $V_\pi(s)$, the current action is still sampled from $\pi(\cdot\mid s)$.
+    \item In $Q_\pi(s,a)$, the first action is clamped to $a$; later actions follow $\pi$.
+    \item The advantage compares a specified action with the policy's average action:
     \[
-    \pi_{\text{greedy}}(s)\in\argmax_a q(s,a).
+    A_\pi(s,a)=Q_\pi(s,a)-V_\pi(s).
     \]
 \end{itemize}
+
+\vspace{0.3em}
+Uppercase $V,Q$ will denote current tabular estimates of these quantities.
 \end{frame}
 
-\begin{frame}{Bellman Expectation Equation for $v_\pi$}
+\begin{frame}{Random Variables, Values, and Estimates}
 \small
-Split return into one reward plus discounted future return:
+There are three layers of notation.
+
+\vspace{0.5em}
+\begin{center}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.28\textwidth}
+                >{\raggedright\arraybackslash}p{0.28\textwidth}
+                >{\raggedright\arraybackslash}p{0.32\textwidth}}
+\toprule
+Layer & Symbols & Meaning \\
+\midrule
+Random variables & $S_t,A_t,R_{t+1},G_t$ & Quantities generated by interaction \\
+Realized values & $s,a,r,s'$ & Particular values in sums, probabilities, or code \\
+Exact value objects & $V_\pi,Q_\pi,A_\pi$ & True expectations under policy $\pi$ \\
+Learned estimates & $V,Q,\hat V,\hat Q$ & Tables or function approximators used by algorithms \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{0.6em}
+\begin{block}{Reading rule}
+Use $R_{t+1}$ for the reward random variable.  Use $r$ for a realized reward value, as in $p(s',r\mid s,a)$ or an algorithm sample.
+\end{block}
+\end{frame}
+
+\begin{frame}{The Conceptual Ladder}
+\small
+The next few equations answer four different questions:
+
+\vspace{0.4em}
+\begin{enumerate}
+    \item \textbf{Policy and return:} what behavior is being evaluated, and what objective is accumulated?
+    \item \textbf{Value functions:} how much future reward is expected from a state or a state--action pair?
+    \item \textbf{Bellman relations:} how can a long-horizon quantity be rewritten using one transition?
+    \item \textbf{Backups:} how can that relation become an update rule from data?
+\end{enumerate}
+
+\vspace{0.6em}
+This is the bridge from definitions to algorithms: replace an exact expectation by either a full model average or a sampled transition.
+\end{frame}
+
+\begin{frame}{Same-State Relation: Averaging over Actions}
+\small
+At a fixed state $s$, $V_\pi$ is the policy-weighted average of $Q_\pi$:
+\[
+V_\pi(s)=\EE_{a\sim\pi(\cdot\mid s)}[Q_\pi(s,a)]
+=\sum_{a\in\Aspace(s)}\pi(a\mid s)Q_\pi(s,a).
+\]
+
+\vspace{0.5em}
+Therefore
+\[
+A_\pi(s,a)
+=Q_\pi(s,a)
+-\sum_{\tilde a\in\Aspace(s)}\pi(\tilde a\mid s)Q_\pi(s,\tilde a).
+\]
+
+\vspace{0.4em}
+\begin{itemize}
+    \item Positive advantage: better than the policy's average action at $s$.
+    \item Negative advantage: worse than the policy's average action at $s$.
+    \item Centering property: $\sum_a \pi(a\mid s)A_\pi(s,a)=0$.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Transition Relation: From $Q_\pi$ to Next-State $V_\pi$}
+\small
+Split the return after one transition:
 \[
 G_t=R_{t+1}+\gamma G_{t+1}.
 \]
 
-Therefore
+\vspace{0.3em}
+For a fixed first action,
 \[
-v_\pi(s)=
-\sum_{a}\pi(a\mid s)\sum_{s',r}p(s',r\mid s,a)
-\bigl[r+\gamma v_\pi(s')\bigr].
+Q_\pi(s,a)=
+\EE_{r,s'\sim p(\cdot\mid s,a)}[r+\gamma V_\pi(s')].
 \]
 
-\vspace{0.6em}
-\begin{block}{Interpretation}
-Value is self-consistent: it equals expected immediate reward plus discounted value of the next state.
-\end{block}
+\vspace{0.5em}
+This is different from the same-state average:
+\[
+V_\pi(s)=\EE_{a\sim\pi(\cdot\mid s)}[Q_\pi(s,a)].
+\]
+
+\vspace{0.3em}
+One relation averages over actions at $s$; the other moves from $(s,a)$ to $s'$ through the environment.
 \end{frame}
 
-\begin{frame}{Bellman Expectation Equation for $q_\pi$}
+\begin{frame}{Do Not Mix the Two Relations}
 \small
+The two most important value relations answer different questions.
+
+\vspace{0.5em}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.48\textwidth}
+\textbf{Same state, different actions}
 \[
-q_\pi(s,a)=
+V_\pi(s)=\EE_{a\sim\pi(\cdot\mid s)}[Q_\pi(s,a)].
+\]
+\begin{itemize}
+    \item Stay at state $s$.
+    \item Average over actions chosen by $\pi$.
+    \item Explains why $A_\pi(s,a)$ compares an action with the policy average.
+\end{itemize}
+\end{column}
+\begin{column}{0.48\textwidth}
+\textbf{One transition, next state}
+\[
+Q_\pi(s,a)=
+\EE[R_{t+1}+\gamma V_\pi(S_{t+1})\mid S_t=s,A_t=a].
+\]
+\begin{itemize}
+    \item Take action $a$.
+    \item Move through the environment to $s'$.
+    \item Explains where TD targets come from.
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Bellman Expectation Equations}
+\small
+Combining action averaging with the transition relation gives
+\[
+V_\pi(s)=
+\sum_a\pi(a\mid s)\sum_{s',r}p(s',r\mid s,a)
+\bigl[r+\gamma V_\pi(s')\bigr].
+\]
+
+\vspace{0.4em}
+Substituting $V_\pi(s')=\sum_{a'}\pi(a'\mid s')Q_\pi(s',a')$ gives
+\[
+Q_\pi(s,a)=
 \sum_{s',r}p(s',r\mid s,a)
 \left[
-r+\gamma\sum_{a'}\pi(a'\mid s')q_\pi(s',a')
+r+\gamma\sum_{a'}\pi(a'\mid s')Q_\pi(s',a')
 \right].
 \]
 
-\vspace{0.8em}
-\begin{itemize}
-    \item The first action is fixed to $a$.
-    \item At the next state, actions follow $\pi$.
-    \item This equation underlies Sarsa.
-\end{itemize}
+\vspace{0.4em}
+These are fixed-point equations for prediction under a fixed policy.
+\end{frame}
+
+\begin{frame}{Advantage through the Transition Relation}
+\small
+Using the transition relation inside $A_\pi(s,a)=Q_\pi(s,a)-V_\pi(s)$:
+\[
+A_\pi(s,a)
+=\EE_{r,s'\sim p(\cdot\mid s,a)}
+\bigl[r+\gamma V_\pi(s')\bigr]
+-V_\pi(s).
+\]
+
+\vspace{0.5em}
+So in a multi-step MDP, advantage is not just
+\[
+r-V_\pi(s).
+\]
+
+\vspace{0.4em}
+The next-state value term $\gamma V_\pi(s')$ is part of the action comparison.
 \end{frame}
 
 \begin{frame}{Optimal Value Functions}
 \small
 \[
-v_*(s)=\max_\pi v_\pi(s),
+V_*(s)=\max_\pi V_\pi(s),
 \qquad
-q_*(s,a)=\max_\pi q_\pi(s,a).
+Q_*(s,a)=\max_\pi Q_\pi(s,a).
 \]
 
 \vspace{0.6em}
 \begin{itemize}
-    \item $v_*$ tells us the best achievable return from a state.
-    \item $q_*$ tells us the best achievable return after a specified first action.
-    \item Any policy greedy with respect to $q_*$ is optimal:
+    \item $V_*$ tells us the best achievable return from a state.
+    \item $Q_*$ tells us the best achievable return after a specified first action.
+    \item Any policy greedy with respect to $Q_*$ is optimal:
     \[
-    \pi_*(s)\in\argmax_a q_*(s,a).
+    \pi_*(s)\in\argmax_a Q_*(s,a).
     \]
 \end{itemize}
 \end{frame}
@@ -512,14 +663,14 @@ q_*(s,a)=\max_\pi q_\pi(s,a).
 \begin{frame}{Bellman Optimality Equations}
 \small
 \[
-v_*(s)=
+V_*(s)=
 \max_a \sum_{s',r}p(s',r\mid s,a)
-\bigl[r+\gamma v_*(s')\bigr],
+\bigl[r+\gamma V_*(s')\bigr],
 \]
 \[
-q_*(s,a)=
+Q_*(s,a)=
 \sum_{s',r}p(s',r\mid s,a)
-\bigl[r+\gamma\max_{a'}q_*(s',a')\bigr].
+\bigl[r+\gamma\max_{a'}Q_*(s',a')\bigr].
 \]
 
 \vspace{0.6em}
@@ -532,19 +683,24 @@ Finding an optimal policy can be reduced to finding the fixed point of an optima
 \small
 \textbf{For a fixed policy} $\pi$, the Bellman expectation equation is a linear system:
 \[
-\mathbf{v}_\pi=\mathbf{r}_\pi+\gamma P_\pi \mathbf{v}_\pi,
+\mathbf{V}_\pi=\mathbf{r}_\pi+\gamma P_\pi \mathbf{V}_\pi,
 \qquad
-(I-\gamma P_\pi)\mathbf{v}_\pi=\mathbf{r}_\pi.
+(I-\gamma P_\pi)\mathbf{V}_\pi=\mathbf{r}_\pi.
 \]
 \[
-\mathbf{v}_\pi=(I-\gamma P_\pi)^{-1}\mathbf{r}_\pi
+(P_\pi)_{ss'}=\sum_a\pi(a\mid s)p(s'\mid s,a),
+\qquad
+r_\pi(s)=\sum_a\pi(a\mid s)\sum_{s',r}r\,p(s',r\mid s,a).
+\]
+\[
+\mathbf{V}_\pi=(I-\gamma P_\pi)^{-1}\mathbf{r}_\pi
 \quad \text{if the inverse is feasible to compute.}
 \]
 
 \vspace{0.6em}
 \textbf{For control}, the optimal Bellman equation is nonlinear:
 \[
-v_* = T_* v_*,
+V_* = T_* V_*,
 \qquad
 (T_*V)(s)=\max_a\sum_{s',r}p(s',r\mid s,a)\bigl[r+\gamma V(s')\bigr].
 \]
@@ -574,7 +730,7 @@ Almost every tabular RL algorithm can be understood by three choices:
 
 \begin{frame}{Policy Evaluation}
 \small
-Given policy $\pi$, estimate $v_\pi$.
+Given policy $\pi$, estimate $V_\pi$.
 
 \vspace{0.5em}
 \textbf{Dynamic programming update when $p$ is known:}
@@ -590,15 +746,18 @@ This is a full-width Bellman expectation backup: average over all actions, next 
 
 \begin{frame}{Policy Improvement}
 \small
-Given $v_\pi$, choose actions greedily with respect to one-step lookahead:
+Given $V_\pi$, first form the one-step lookahead action value:
 \[
-\pi'(s)\in\argmax_a
-\sum_{s',r}p(s',r\mid s,a)\bigl[r+\gamma v_\pi(s')\bigr].
+Q_\pi(s,a)=\sum_{s',r}p(s',r\mid s,a)\bigl[r+\gamma V_\pi(s')\bigr].
+\]
+Then improve the policy greedily:
+\[
+\pi'(s)\in\argmax_a Q_\pi(s,a).
 \]
 
 \vspace{0.7em}
 \begin{itemize}
-    \item If $\pi'$ is greedy with respect to $v_\pi$, then it is no worse than $\pi$.
+    \item If $\pi'$ is greedy with respect to this $Q_\pi$, then it is no worse than $\pi$.
     \item Repeating evaluation and improvement leads to policy iteration.
 \end{itemize}
 \end{frame}
@@ -609,7 +768,7 @@ Given $v_\pi$, choose actions greedily with respect to one-step lookahead:
     box/.style={draw, rounded corners=2pt, minimum width=3.7cm, minimum height=1.1cm, align=center, thick},
     arrow/.style={-Latex, thick}
 ]
-\node[box, fill=blue!8] (eval) {Policy evaluation\\$V\approx v_\pi$ or $Q\approx q_\pi$};
+\node[box, fill=blue!8] (eval) {Policy evaluation\\$V\approx V_\pi$ or $Q\approx Q_\pi$};
 \node[box, fill=green!8, right=4.8cm of eval] (imp) {Policy improvement\\$\pi \leftarrow \text{greedy or soft-greedy}$};
 \draw[arrow, bend left=18] (eval) to node[above] {better estimates} (imp);
 \draw[arrow, bend left=18] (imp) to node[below] {changed policy} (eval);
@@ -627,10 +786,10 @@ Most practical RL algorithms interleave both processes.
 \textbf{Exact policy iteration}
 \begin{enumerate}
     \item Fix $\pi_k$.
-    \item Evaluate until $V\approx v_{\pi_k}$ is accurate.
+    \item Evaluate until $V\approx V_{\pi_k}$ is accurate.
     \item Improve once:
     \[
-    \pi_{k+1}(s)\in\argmax_a q_{\pi_k}(s,a).
+    \pi_{k+1}(s)\in\argmax_a Q_{\pi_k}(s,a).
     \]
 \end{enumerate}
 \end{column}
@@ -656,10 +815,10 @@ Policy evaluation asks ``how good is the current policy?'' Policy improvement as
 \begin{column}{0.48\textwidth}
 \textbf{Policy iteration solves}
 \[
-v_{\pi_k}=T_{\pi_k}v_{\pi_k}
+V_{\pi_k}=T_{\pi_k}V_{\pi_k}
 \]
 \begin{enumerate}
-    \item Evaluate $v_{\pi_k}$.
+    \item Evaluate $V_{\pi_k}$.
     \item Improve $\pi_k$ greedily.
     \item Stop when policy is stable.
 \end{enumerate}
@@ -667,7 +826,7 @@ v_{\pi_k}=T_{\pi_k}v_{\pi_k}
 \begin{column}{0.48\textwidth}
 \textbf{Value iteration solves}
 \[
-v_*=T_*v_*
+V_*=T_*V_*
 \]
 \[
 V_{k+1}(s)=\max_a\sum_{s',r}p(s',r\mid s,a)
@@ -745,6 +904,38 @@ Temporal difference & Sampled bootstrapped target & No & No \\
 TD learning is the central combination: \red{sampled transitions plus bootstrapped targets}.
 \end{frame}
 
+\begin{frame}{From Bellman Relation to TD Target}
+\small
+Start from the exact Bellman relation for a fixed policy:
+\[
+V_\pi(s)=\EE_\pi[R_{t+1}+\gamma V_\pi(S_{t+1})\mid S_t=s].
+\]
+
+\vspace{0.4em}
+In model-free learning, we do not compute this expectation directly.  We observe one transition:
+\[
+(S_t,A_t,R_{t+1},S_{t+1}).
+\]
+
+\vspace{0.4em}
+TD moves the current estimate $V(S_t)$ toward the one-step bootstrapped target:
+\[
+\underbrace{R_{t+1}+\gamma V(S_{t+1})}_{\text{TD target}}.
+\]
+
+\vspace{0.2em}
+This target uses the observed immediate reward and the current estimate of the next state.
+
+\vspace{0.3em}
+The temporal-difference error is target minus current prediction:
+\[
+\delta_t=
+\underbrace{R_{t+1}+\gamma V(S_{t+1})}_{\text{TD target}}
+-
+\underbrace{V(S_t)}_{\text{current prediction}}.
+\]
+\end{frame}
+
 \section{Temporal-Difference Learning}
 
 \begin{frame}{TD Prediction}
@@ -762,6 +953,7 @@ where
 \begin{itemize}
     \item $\delta_t$ is the temporal-difference error.
     \item It measures surprise relative to the current one-step prediction.
+    \item If $V\approx V_\pi$, then $\delta_t$ is a one-sample estimate of $A_\pi(S_t,A_t)$.
     \item It is also the learning signal used in many actor--critic algorithms.
 \end{itemize}
 \end{frame}
@@ -774,10 +966,10 @@ where
 \begin{enumerate}
     \item Initialize $S$ at the start of an episode.
     \item Choose $A\sim\pi(\cdot\mid S)$.
-    \item Take action $A$, observe $R$ and $S'$.
+    \item Take action $A$, observe $r$ and $S'$.
     \item Update
     \[
-    V(S)\leftarrow V(S)+\alpha\bigl[R+\gamma V(S')-V(S)\bigr].
+    V(S)\leftarrow V(S)+\alpha\bigl[r+\gamma V(S')-V(S)\bigr].
     \]
     \item Set $S\leftarrow S'$ and continue until termination.
 \end{enumerate}
@@ -814,7 +1006,7 @@ Bias from estimate & Lower & Higher \\
 \node[draw, circle, fill=blue!8, right=of B] (C) {$C$};
 \node[draw, circle, fill=blue!8, right=of C] (D) {$D$};
 \node[draw, circle, fill=blue!8, right=of D] (E) {$E$};
-\node[draw, circle, fill=green!8, right=of E] (R) {$1$};
+\node[draw, circle, fill=green!8, right=of E] (r) {$1$};
 \draw[arrow] (A) -- (L);
 \draw[arrow] (A) -- (B);
 \draw[arrow] (B) -- (A);
@@ -824,7 +1016,7 @@ Bias from estimate & Lower & Higher \\
 \draw[arrow] (D) -- (C);
 \draw[arrow] (D) -- (E);
 \draw[arrow] (E) -- (D);
-\draw[arrow] (E) -- (R);
+\draw[arrow] (E) -- (r);
 \end{tikzpicture}
 \end{center}
 
@@ -856,7 +1048,7 @@ If the Markov assumption is right, TD can generalize across repeated transitions
 
 \begin{frame}{From State Values to Action Values}
 \small
-For control without a model, it is convenient to learn $Q(s,a)$.
+For control without a model, it is convenient to learn a tabular estimate $Q(s,a)$ of an action-value function.
 
 \vspace{0.5em}
 \[
@@ -865,8 +1057,8 @@ Q(S_t,A_t)\leftarrow Q(S_t,A_t)+\alpha(\text{target}-Q(S_t,A_t)).
 
 \vspace{0.5em}
 \begin{itemize}
-    \item If the target follows the actually selected next action, we get \red{Sarsa}.
-    \item If the target uses the greedy next action, we get \red{Q-learning}.
+    \item Sarsa drives $Q$ toward the value of the policy actually followed: $Q_\pi$.
+    \item Q-learning drives $Q$ toward the optimal action-value function: $Q_*$.
     \item The difference is the difference between on-policy and off-policy control.
 \end{itemize}
 \end{frame}
@@ -894,13 +1086,14 @@ R_{t+1}+\gamma Q(S_{t+1},A_{t+1})-Q(S_t,A_t)
 \begin{enumerate}
     \item Initialize $Q(s,a)$.
     \item For each episode, initialize $S$ and choose $A$ from the current policy.
-    \item Take $A$, observe $R,S'$.
-    \item Choose $A'$ from the current policy at $S'$.
+    \item Take $A$, observe $r,S'$.
+    \item If $S'$ is nonterminal, choose $A'$ from the current policy at $S'$.
     \item Update
     \[
-    Q(S,A)\leftarrow Q(S,A)+\alpha[R+\gamma Q(S',A')-Q(S,A)].
+    Q(S,A)\leftarrow Q(S,A)+\alpha\bigl[r+\gamma Q(S',A')-Q(S,A)\bigr],
     \]
-    \item Set $S\leftarrow S'$, $A\leftarrow A'$ and repeat.
+    using $Q(S',A')=0$ when $S'$ is terminal.
+    \item Set $S\leftarrow S'$, $A\leftarrow A'$ if nonterminal, and repeat.
 \end{enumerate}
 \end{frame}
 
@@ -918,7 +1111,7 @@ R_{t+1}+\gamma\max_{a}Q(S_{t+1},a)-Q(S_t,A_t)
 \begin{itemize}
     \item Behavior policy may be exploratory.
     \item Target policy is greedy with respect to $Q$.
-    \item Learns an approximation to $q_*$ while behaving non-greedily.
+    \item Learns an approximation to $Q_*$ while behaving non-greedily.
 \end{itemize}
 \end{frame}
 
@@ -928,11 +1121,12 @@ R_{t+1}+\gamma\max_{a}Q(S_{t+1},a)-Q(S_t,A_t)
     \item Initialize $Q(s,a)$.
     \item For each episode, initialize $S$.
     \item Choose $A$ from a behavior policy, e.g. $\epsilon$-greedy from $Q$.
-    \item Take $A$, observe $R,S'$.
+    \item Take $A$, observe $r,S'$.
     \item Update
     \[
-    Q(S,A)\leftarrow Q(S,A)+\alpha[R+\gamma\max_a Q(S',a)-Q(S,A)].
+    Q(S,A)\leftarrow Q(S,A)+\alpha[r+\gamma\max_a Q(S',a)-Q(S,A)].
     \]
+    For terminal $S'$, use $\max_a Q(S',a)=0$.
     \item Set $S\leftarrow S'$ and repeat.
 \end{enumerate}
 \end{frame}
@@ -946,7 +1140,7 @@ R_{t+1}+\gamma\max_{a}Q(S_{t+1},a)-Q(S_t,A_t)
 Question & Sarsa & Q-learning \\
 \midrule
 Policy type & On-policy & Off-policy \\
-Target & $R+\gamma Q(S',A')$ & $R+\gamma\max_a Q(S',a)$ \\
+Target & $r+\gamma Q(S',A')$ & $r+\gamma\max_a Q(S',a)$ \\
 Learns value of & Exploratory behavior policy & Greedy target policy \\
 Risk-sensitive effect & Accounts for exploratory actions & Ignores future exploration in target \\
 \bottomrule
@@ -982,7 +1176,7 @@ R_{t+1}+\gamma\sum_a\pi(a\mid S_{t+1})Q(S_{t+1},a)-Q(S_t,A_t)
 \begin{itemize}
     \item Same target policy idea as Sarsa.
     \item Lower variance than sampling $A_{t+1}$.
-    \item Becomes Q-learning when $\pi$ is greedy in the target.
+    \item Becomes the Q-learning target when $\pi$ puts all mass on greedy actions with respect to $Q$.
 \end{itemize}
 \end{frame}
 
@@ -1043,6 +1237,7 @@ V(S_t)\leftarrow V(S_t)+\alpha\bigl[G_{t:t+n}-V(S_t)\bigr].
 \begin{itemize}
     \item $n=1$: TD(0).
     \item $n$ reaches terminal time: Monte Carlo target.
+    \item If $S_{t+n}$ is terminal, the bootstrap term $\gamma^n V(S_{t+n})$ is zero.
 \end{itemize}
 \end{frame}
 
@@ -1170,8 +1365,8 @@ When a surprising reward or transition occurs now, the trace sends credit backwa
 \begin{enumerate}
     \item Initialize $V(s)$.
     \item At the start of each episode, set $E(s)=0$ for all $s$.
-    \item At each step, observe $S,A,R,S'$ under policy $\pi$.
-    \item Compute $\delta=R+\gamma V(S')-V(S)$.
+    \item At each step, observe $S,A,r,S'$ under policy $\pi$.
+    \item Compute $\delta=r+\gamma V(S')-V(S)$, with $V(S')=0$ if terminal.
     \item Increase the trace of the visited state: $E(S)\leftarrow E(S)+1$.
     \item For all $s$:
     \[
@@ -1235,8 +1430,8 @@ Q(s,a)\leftarrow Q(s,a)+\alpha\delta_t E_t(s,a).
     \item Initialize $Q(s,a)$.
     \item At episode start, set all $E(s,a)=0$.
     \item Choose $A$ from the current behavior policy.
-    \item Take $A$, observe $R,S'$, choose $A'$.
-    \item Compute $\delta=R+\gamma Q(S',A')-Q(S,A)$.
+    \item Take $A$, observe $r,S'$; if $S'$ is nonterminal, choose $A'$.
+    \item Compute $\delta=r+\gamma Q(S',A')-Q(S,A)$, using $Q(S',A')=0$ if terminal.
     \item Set $E(S,A)\leftarrow E(S,A)+1$.
     \item For all $(s,a)$:
     \[
@@ -1288,7 +1483,7 @@ $\gamma\lambda$ is the decay rate of memory. A past state remains eligible only 
 ]
 \node[box, fill=blue!8] (rl) {Interaction\\$S,A,R,S'$};
 \node[box, fill=blue!8, right=0.8cm of rl] (mdp) {MDP\\$p(s',r\mid s,a)$};
-\node[box, fill=green!8, right=0.8cm of mdp] (value) {Value\\$v_\pi,q_\pi$};
+\node[box, fill=green!8, right=0.8cm of mdp] (value) {Value\\$V_\pi,Q_\pi,A_\pi$};
 \node[box, fill=green!8, right=0.8cm of value] (bellman) {Bellman\\backup};
 \node[box, fill=orange!12, below=0.8cm of value] (alg) {Algorithms\\DP, MC, TD};
 \node[box, fill=orange!12, right=0.8cm of alg] (traces) {Traces\\TD($\lambda$)};
@@ -1311,9 +1506,9 @@ Everything is organized around one idea: estimate long-term value from experienc
 Tabular methods store one number per state or state--action pair.
 
 \[
-V(s)\quad \longrightarrow \quad \hat v(s;w),
+V(s)\quad \longrightarrow \quad \hat V(s;w),
 \qquad
-Q(s,a)\quad \longrightarrow \quad \hat q(s,a;w).
+Q(s,a)\quad \longrightarrow \quad \hat Q(s,a;w).
 \]
 
 \begin{itemize}
@@ -1336,6 +1531,33 @@ Q(s,a)\quad \longrightarrow \quad \hat q(s,a;w).
 
 \vspace{0.7em}
 DQN, actor--critic, PPO, and many RLHF variants still inherit this conceptual skeleton.
+\end{frame}
+
+\begin{frame}{Advantage Estimates in Practice}
+\small
+The exact advantage
+\[
+A_\pi(s,a)=Q_\pi(s,a)-V_\pi(s)
+\]
+is usually unavailable, so algorithms use sampled estimates.
+
+\vspace{0.3em}
+\textbf{One-step TD estimate:}
+\[
+\widehat A_t^{\text{TD}}
+=R_{t+1}+\gamma V(S_{t+1})-V(S_t).
+\]
+
+\textbf{Monte Carlo estimate:}
+\[
+\widehat A_t^{\text{MC}}=G_t-V(S_t).
+\]
+
+\textbf{GAE-style estimate:}
+\[
+\widehat A_t^{\text{GAE}}
+=\sum_{\ell=0}^{\infty}(\gamma\lambda)^\ell \delta_{t+\ell}.
+\]
 \end{frame}
 
 \begin{frame}{A Minimal Bridge to Policy Gradient}
@@ -1369,7 +1591,7 @@ RL object & LLM post-training analogy \\
 State $S_t$ & Prompt plus generated context so far \\
 Action $A_t$ & Next token or higher-level response decision \\
 Policy $\pi_\theta$ & Language model distribution \\
-Reward $R$ & Human preference model, rule-based score, task metric \\
+Reward $r$ & Human preference model, rule-based score, task metric \\
 Return $G$ & Overall quality or task success of a response/trajectory \\
 Value/critic & Learned prediction of future reward or advantage \\
 \bottomrule
@@ -1395,18 +1617,21 @@ The tabular theory gives clean definitions; modern systems inherit the same issu
 
 \section{Summary}
 
-\begin{frame}{The Main Story in Five Equations}
+\begin{frame}{The Main Story in Six Equations}
 \small
 \[
 G_t=\sum_{k=0}^{\infty}\gamma^k R_{t+k+1}
 \]
 \[
-v_\pi(s)=\EE_\pi[G_t\mid S_t=s],
+V_\pi(s)=\EE_\pi[G_t\mid S_t=s],
 \qquad
-q_\pi(s,a)=\EE_\pi[G_t\mid S_t=s,A_t=a]
+Q_\pi(s,a)=\EE_\pi[G_t\mid S_t=s,A_t=a]
 \]
 \[
-v_\pi(s)=\sum_a\pi(a\mid s)\sum_{s',r}p(s',r\mid s,a)[r+\gamma v_\pi(s')]
+A_\pi(s,a)=Q_\pi(s,a)-V_\pi(s)
+\]
+\[
+V_\pi(s)=\sum_a\pi(a\mid s)\sum_{s',r}p(s',r\mid s,a)[r+\gamma V_\pi(s')]
 \]
 \[
 \delta_t=R_{t+1}+\gamma V(S_{t+1})-V(S_t)
