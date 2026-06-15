@@ -1581,6 +1581,206 @@ J(\theta)=\EE_{\tau\sim\pi_\theta}[G_0],
 \end{itemize}
 \end{frame}
 
+\begin{frame}{PPO: Why Clip the Policy Update?}
+\small
+Policy gradient uses samples from an old policy but updates a new policy.  PPO compares them through the probability ratio
+\[
+\rho_t(\theta)
+=
+\frac{\pi_\theta(A_t\mid S_t)}
+{\pi_{\theta_{\mathrm{old}}}(A_t\mid S_t)}.
+\]
+
+\vspace{0.4em}
+The unclipped surrogate objective is
+\[
+L^{\mathrm{PG}}(\theta)
+=
+\widehat{\EE}_t\!\left[\rho_t(\theta)\widehat A_t\right].
+\]
+
+\vspace{0.4em}
+If we optimize this too aggressively on the same batch, the new policy can move too far from the data-collecting policy.
+
+\begin{block}{PPO idea}
+Keep the simple first-order update, but remove the incentive for probability ratios to move too far from $1$.
+\end{block}
+\end{frame}
+
+\begin{frame}{PPO Clipped Surrogate Objective}
+\small
+PPO uses the clipped objective
+\[
+L^{\mathrm{CLIP}}(\theta)
+=
+\widehat{\EE}_t
+\left[
+\min\left(
+\rho_t(\theta)\widehat A_t,\,
+\operatorname{clip}(\rho_t(\theta),1-\epsilon,1+\epsilon)\widehat A_t
+\right)
+\right].
+\]
+
+\vspace{0.5em}
+\begin{itemize}
+    \item If $\widehat A_t>0$, increasing the action probability helps only until $\rho_t\approx 1+\epsilon$.
+    \item If $\widehat A_t<0$, decreasing the action probability helps only until $\rho_t\approx 1-\epsilon$.
+    \item The minimum gives a pessimistic surrogate: the clipped term is used only when it prevents an overly favorable update.
+\end{itemize}
+
+\vspace{0.4em}
+In practice PPO often combines this with a value loss and entropy bonus.
+\end{frame}
+
+\begin{frame}{PPO for LLM Fine-Tuning}
+\small
+For a prompt $q$ and output $o=(o_1,\ldots,o_T)$, the PPO ratio is token-level:
+\[
+\rho_t(\theta)
+=
+\frac{\pi_\theta(o_t\mid q,o_{<t})}
+{\pi_{\theta_{\mathrm{old}}}(o_t\mid q,o_{<t})}.
+\]
+
+\vspace{0.4em}
+The clipped objective is averaged over output tokens:
+\[
+\frac{1}{T}\sum_{t=1}^{T}
+\min\left(
+\rho_t\widehat A_t,\,
+\operatorname{clip}(\rho_t,1-\epsilon,1+\epsilon)\widehat A_t
+\right).
+\]
+
+\vspace{0.5em}
+\begin{itemize}
+    \item A reward model scores the sampled output or reasoning process.
+    \item A value model estimates token-level baselines for $\widehat A_t$, often with GAE.
+    \item A KL penalty to a reference model discourages the policy from drifting too far.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{GRPO: Motivation}
+\small
+Group Relative Policy Optimization (GRPO) modifies PPO for LLM post-training.
+
+\vspace{0.4em}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.48\textwidth}
+\textbf{PPO}
+\begin{itemize}
+    \item Actor--critic method.
+    \item Needs a learned value model $V_\psi$.
+    \item Advantage uses reward plus value baseline.
+    \item In LLMs, the critic can be another large model.
+\end{itemize}
+\end{column}
+\begin{column}{0.48\textwidth}
+\textbf{GRPO}
+\begin{itemize}
+    \item Samples a group of outputs for the same prompt.
+    \item Uses group reward statistics as the baseline.
+    \item Avoids training a separate value model.
+    \item Fits comparative reward modeling naturally.
+\end{itemize}
+\end{column}
+\end{columns}
+
+\vspace{0.5em}
+\begin{block}{Key change}
+Replace a learned critic baseline by a group-relative baseline.
+\end{block}
+\end{frame}
+
+\begin{frame}{GRPO: Group-Relative Advantage}
+\small
+For one prompt $q$, sample a group of outputs from the old policy:
+\[
+o_1,\ldots,o_G \sim \pi_{\theta_{\mathrm{old}}}(\cdot\mid q).
+\]
+
+A reward model gives scores
+\[
+r_1,\ldots,r_G.
+\]
+
+\vspace{0.4em}
+Normalize scores within the group:
+\[
+\widetilde r_i
+=
+\frac{r_i-\operatorname{mean}(r_1,\ldots,r_G)}
+{\operatorname{std}(r_1,\ldots,r_G)}.
+\]
+
+\vspace{0.4em}
+For outcome-level supervision, GRPO assigns the same relative advantage to every token in output $o_i$:
+\[
+\widehat A_{i,t}=\widetilde r_i.
+\]
+
+An output better than its sibling samples gets positive advantage; a worse one gets negative advantage.
+\end{frame}
+
+\begin{frame}{GRPO Objective}
+\small
+Define the token ratio for output $o_i$:
+\[
+\rho_{i,t}(\theta)
+=
+\frac{\pi_\theta(o_{i,t}\mid q,o_{i,<t})}
+{\pi_{\theta_{\mathrm{old}}}(o_{i,t}\mid q,o_{i,<t})}.
+\]
+
+\vspace{0.3em}
+GRPO keeps PPO's clipped ratio but uses group-relative advantages:
+\[
+\frac{1}{G}\sum_{i=1}^{G}\frac{1}{|o_i|}
+\sum_{t=1}^{|o_i|}
+\min\left(
+\rho_{i,t}\widehat A_{i,t},\,
+\operatorname{clip}(\rho_{i,t},1-\epsilon,1+\epsilon)\widehat A_{i,t}
+\right).
+\]
+
+\vspace{0.3em}
+The paper regularizes directly toward a reference model:
+\[
+L_{\mathrm{GRPO}}(\theta)
+=
+L_{\mathrm{clip,group}}(\theta)
+-
+\beta\,D_{\mathrm{KL}}(\pi_\theta\Vert \pi_{\mathrm{ref}}).
+\]
+
+\vspace{0.2em}
+So GRPO is still a clipped policy-gradient method, but the advantage no longer comes from a learned critic.
+\end{frame}
+
+\begin{frame}{PPO and GRPO in This Lecture's Language}
+\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.23\textwidth}
+                >{\raggedright\arraybackslash}p{0.32\textwidth}
+                >{\raggedright\arraybackslash}p{0.32\textwidth}}
+\toprule
+Question & PPO & GRPO \\
+\midrule
+What is updated? & Policy model $\pi_\theta$ & Policy model $\pi_\theta$ \\
+What is the target signal? & Advantage $\widehat A_t$ from rewards and critic & Group-relative advantage $\widehat A_{i,t}$ \\
+How is update size controlled? & Clipped ratio and often KL penalty & Clipped ratio plus reference KL term \\
+What extra model is needed? & Usually a value model $V_\psi$ & No separate value model \\
+Best mental model & Actor--critic with conservative policy updates & PPO-style update with group baseline \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.6em}
+Both methods are modern instances of the same old structure:
+\[
+\text{sample behavior} \quad\rightarrow\quad \text{estimate advantage} \quad\rightarrow\quad \text{improve policy carefully}.
+\]
+\end{frame}
+
 \begin{frame}{LLM Post-Training Through the RL Lens}
 \small
 \begin{tabular}{>{\raggedright\arraybackslash}p{0.27\textwidth}
@@ -1656,6 +1856,8 @@ TD(0) & One-step sampled Bellman target & Online model-free prediction \\
 Sarsa & On-policy action-value TD target & Online exploratory control \\
 Q-learning & Greedy off-policy TD target & Learning greedy target policy \\
 TD($\lambda$) & Mixture of $n$-step targets & Faster temporal credit assignment \\
+PPO & Clipped advantage-weighted ratio & Stable policy-gradient fine-tuning \\
+GRPO & PPO-style target with group-relative advantages & Critic-free LLM post-training \\
 \bottomrule
 \end{tabular}
 \end{frame}
