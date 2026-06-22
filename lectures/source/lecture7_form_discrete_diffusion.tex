@@ -1,0 +1,1930 @@
+\documentclass[aspectratio=169]{beamer}
+
+% ==== Theme & basic look ====
+\usetheme{Madrid}
+\usecolortheme{seahorse}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+
+% Packages for mathematics
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tikz}
+\usepackage{CJKutf8}
+
+% Proof environment for beamer, consistent with lecture1
+\providecommand{\proofname}{Proof}
+\newenvironment<>{proofs}[1][\proofname]{%
+    \par
+    \def\insertproofname{#1.}%
+    \usebeamertemplate{proof begin}#2}
+  {\usebeamertemplate{proof end}}
+\makeatother
+
+% ---------- Math helpers ----------
+\DeclareMathOperator{\Cat}{Cat}
+\DeclareMathOperator{\KL}{D_{KL}}
+\DeclareMathOperator{\DIS}{D_{IS}}
+\DeclareMathOperator{\softmax}{softmax}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\newcommand{\Prob}{\mathrm{P}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\dd}{\,\mathrm{d}}
+\newcommand{\cV}{\mathcal{V}}
+\newcommand{\one}{\mathbf{1}}
+\newcommand{\mvec}{\mathbf{m}}
+\newcommand{\uvec}{\mathbf{u}}
+\newcommand{\xvec}{\mathbf{x}}
+\newcommand{\Rhat}{\widehat R}
+\newcommand{\DeltaV}{\Delta^{|\cV|-1}}
+\newcommand{\const}{\mathrm{const}}
+
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+
+\title[Discrete Diffusion]{Lecture 7: Formal Discrete Diffusion}
+\subtitle{From CTMC reverse rates to SEDD and GIDD}
+\author{Pipi Hu}
+\institute[BIMSA]{Beijing Institute of Mathematical Sciences and Applications}
+\date{\today}
+
+\pgfdeclareimage[width=2cm]{logo}{../figures/logo.png}
+\logo{\pgfuseimage{logo}}
+
+\setbeamertemplate{navigation symbols}{}
+
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>{Outline}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+\AtBeginSubsection[]
+{
+  \begin{frame}<beamer>{Outline}
+    \tableofcontents[currentsection,currentsubsection]
+  \end{frame}
+}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{Roadmap}
+\small
+\begin{block}{Logical dependency}
+The lecture has one backbone:
+\[
+\text{forward CTMC}
+\Longrightarrow
+\text{true reverse rate}
+\Longrightarrow
+\begin{cases}
+\text{score entropy for SEDD},\\
+\text{CT-ELBO likelihood view}.
+\end{cases}
+\]
+\end{block}
+
+\begin{columns}[T,totalwidth=\textwidth]
+\column{0.50\textwidth}
+\begin{alertblock}{Part I: Shared mathematics}
+\begin{enumerate}
+  \item column-vector CTMC notation
+  \item small-time reverse posterior
+  \item continuous-time ELBO
+\end{enumerate}
+\end{alertblock}
+
+\column{0.46\textwidth}
+\begin{block}{Part II: Model families}
+\begin{enumerate}
+  \item SEDD: score entropy for probability ratios
+  \item GIDD: interpolating marginals and posterior denoising
+  \item training, sampling, and comparison
+\end{enumerate}
+\end{block}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Outline}
+  \tableofcontents
+\end{frame}
+
+% ======================================================================
+\section{CTMC Backbone}
+% ======================================================================
+
+\begin{frame}{Finite-state CTMC: column-vector convention}
+\small
+Let one token take values in a finite set
+\[
+  \cV=\{1,\ldots,N\}.
+\]
+We write probability distributions as column vectors. Matrix entries use conditional-probability order:
+\[
+R_t(y,x)\quad\text{is the transition rate from source }x\text{ to destination }y.
+\]
+Thus, for $y\neq x$,
+\[
+R_t(y,x)\ge 0,
+\qquad
+R_t(x,x)=-\sum_{y\neq x}R_t(y,x).
+\]
+
+\begin{block}{Small-time transition}
+\[
+\Prob(X_{t+\Delta}=y\mid X_t=x)
+=\delta_{y,x}+\Delta R_t(y,x)+o(\Delta).
+\]
+\end{block}
+
+\begin{alertblock}{Forward equation}
+\[
+\dot p_t(y)=\sum_{x\in\cV}R_t(y,x)p_t(x),
+\qquad
+\dot p_t=R_tp_t.
+\]
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{Proof of the forward equation: expansion}
+\scriptsize
+\begin{proof}
+Use total probability over the previous state at time $t$:
+\[
+p_{t+\Delta}(y)
+=\sum_{x\in\cV}\Prob(X_{t+\Delta}=y\mid X_t=x)p_t(x).
+\]
+Substitute the small-time transition formula:
+\[
+p_{t+\Delta}(y)
+=\sum_{x\in\cV}
+\left(\delta_{y,x}+\Delta R_t(y,x)+o(\Delta)\right)p_t(x).
+\]
+Since the state space is finite, the $o(\Delta)$ terms can be summed:
+\[
+p_{t+\Delta}(y)
+=p_t(y)+\Delta\sum_{x\in\cV}R_t(y,x)p_t(x)+o(\Delta).
+\]
+\end{proof}
+\end{frame}
+
+\begin{frame}{Proof of the forward equation: limit}
+\scriptsize
+\begin{proofs}[\proofname\ (Cont)]
+Subtract $p_t(y)$, divide by $\Delta$, and let $\Delta\to0$:
+\[
+\frac{p_{t+\Delta}(y)-p_t(y)}{\Delta}
+=\sum_{x\in\cV}R_t(y,x)p_t(x)+\frac{o(\Delta)}{\Delta}.
+\]
+Since $o(\Delta)/\Delta\to0$,
+\[
+\dot p_t(y)=
+\lim_{\Delta\to0}\frac{p_{t+\Delta}(y)-p_t(y)}{\Delta}
+=\sum_{x\in\cV}R_t(y,x)p_t(x).
+\]
+Collecting all $y\in\cV$ gives the column-vector form
+\[
+\dot p_t=R_tp_t.
+\]
+\end{proofs}
+\end{frame}
+
+\begin{frame}{When the generator has a fixed shape}
+\scriptsize
+Many discrete diffusion models choose
+\[
+R_t=\dot\sigma(t)G,
+\qquad
+\sigma(t)=\int_0^t\dot\sigma(s)\,\dd s.
+\]
+If $G$ is time-independent, then
+\[
+p_t=\exp(\sigma(t)G)p_0.
+\]
+The transition matrix over $[0,t]$ is $\exp(\sigma(t)G)$.
+
+\begin{block}{Interpretation}
+$G$ chooses the allowed token changes. The scalar schedule $\dot\sigma(t)$ is an isotropic speed: it scales all rates in $G$ by the same amount.
+\end{block}
+
+\begin{alertblock}{Convention}
+The first matrix index is always the destination state and the second index is the source state:
+\[
+R_t(y,x)\quad\text{is the rate from }x\text{ to }y.
+\]
+This matches the order of the conditional probability $\Prob(X_t=y\mid X_s=x)$ and keeps the forward equation as $\dot p_t=R_tp_t$.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{Sequence state space}
+\small
+For a length-$L$ sequence,
+\[
+X=(X^{(1)},\ldots,X^{(L)})\in\cV^L.
+\]
+The forward corruption is usually token-wise independent:
+\[
+q_t(Z_t\mid X)=\prod_{i=1}^Lq_t\!\left(Z_t^{(i)}\mid X^{(i)}\right).
+\]
+
+\begin{block}{Why this still models context}
+The corruption process factorizes, but the denoising network sees the whole noisy sequence $Z_t$. It can predict each position using all other positions as context.
+\end{block}
+
+\begin{alertblock}{Locality of the CTMC}
+With token-wise generators, a single CTMC jump changes one token. Hence the reverse rate only needs probability ratios between sequences at Hamming distance one.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{Reverse posterior: keep the time labels}
+\small
+Fix a clean datum $x_0$ and write $q_t(z)=q_t(z\mid x_0)$.
+Let
+\[
+s=t-\Delta,\qquad X_s=y,\qquad X_t=z.
+\]
+Bayes' rule gives the true one-step reverse posterior:
+\[
+q_{s|t}(y\mid z,x_0)
+=\frac{\Prob(X_t=z\mid X_s=y)q_s(y\mid x_0)}{q_t(z\mid x_0)}.
+\]
+
+\begin{alertblock}{Why the time labels matter}
+$y$ lives at the earlier time $s=t-\Delta$, while $z$ lives at the later time $t$. The term $q_s(y)$ must be Taylor expanded around time $t$:
+\[
+q_s(y)=q_{t-\Delta}(y)=q_t(y)-\Delta\dot q_t(y)+o(\Delta).
+\]
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{Reverse posterior: off-diagonal case}
+\scriptsize
+\begin{proof}
+Assume the earlier state differs from the current state: $y\neq z$. Then
+\[
+\Prob(X_t=z\mid X_{t-\Delta}=y)=\Delta R_t(z,y)+o(\Delta).
+\]
+Using the Taylor expansion of the earlier marginal,
+\[
+q_{t-\Delta}(y)=q_t(y)-\Delta\dot q_t(y)+o(\Delta).
+\]
+Therefore
+\[
+q_{t-\Delta|t}(y\mid z,x_0)
+=
+\frac{(\Delta R_t(z,y)+o(\Delta))(q_t(y)-\Delta\dot q_t(y)+o(\Delta))}
+{q_t(z)}.
+\]
+The derivative term is multiplied by $\Delta$, so it contributes only $O(\Delta^2)$:
+\[
+q_{t-\Delta|t}(y\mid z,x_0)
+=\Delta R_t(z,y)\frac{q_t(y)}{q_t(z)}+o(\Delta).
+\]
+\end{proof}
+\end{frame}
+
+\begin{frame}{Reverse posterior: diagonal case}
+\scriptsize
+\begin{proofs}[\proofname\ (Cont)]
+Now the earlier and current state are the same token value: $y=z$. Then
+\[
+\Prob(X_t=z\mid X_{t-\Delta}=z)=1+\Delta R_t(z,z)+o(\Delta),
+\]
+and
+\[
+q_{t-\Delta}(z)=q_t(z)-\Delta\dot q_t(z)+o(\Delta).
+\]
+Substitute into Bayes' rule:
+\[
+q_{t-\Delta|t}(z\mid z,x_0)
+=
+\frac{(1+\Delta R_t(z,z)+o(\Delta))(q_t(z)-\Delta\dot q_t(z)+o(\Delta))}
+{q_t(z)}.
+\]
+Expanding to first order,
+\[
+q_{t-\Delta|t}(z\mid z,x_0)
+=1+\Delta\left(R_t(z,z)-\frac{\dot q_t(z)}{q_t(z)}\right)+o(\Delta).
+\]
+\end{proofs}
+\end{frame}
+
+\begin{frame}{True reverse rates}
+\small
+The off-diagonal expansion defines the true reverse jump rate from the current state $z$ at time $t$ to the earlier state $y$ at time $t-\Delta$:
+\[
+a_t(y,z):=R_t(z,y)\frac{q_t(y\mid x_0)}{q_t(z\mid x_0)},
+\qquad y\neq z.
+\]
+The order is destination first: $a_t(y,z)$ is the reverse-time rate from source $z$ to destination $y$.
+The diagonal coefficient is
+\[
+a_t(z,z):=R_t(z,z)-\frac{\dot q_t(z)}{q_t(z)}.
+\]
+
+\begin{block}{Use the forward equation}
+\[
+\dot q_t(z)=R_t(z,z)q_t(z)+\sum_{y\neq z}R_t(z,y)q_t(y).
+\]
+Thus
+\[
+a_t(z,z)
+=-\sum_{y\neq z}R_t(z,y)\frac{q_t(y)}{q_t(z)}
+=-\sum_{y\neq z}a_t(y,z).
+\]
+\end{block}
+\end{frame}
+
+\begin{frame}{A unified isotropic token generator}
+\small
+Let $\pi$ be a chosen prior distribution on $\cV$. Define the matrix
+\[
+\Pi_\pi(y,x)=\pi(y),
+\]
+so every column of $\Pi_\pi$ equals the column vector $\pi$. The isotropic redraw generator is
+\[
+G_\pi=\Pi_\pi-I.
+\]
+
+\begin{block}{Two important choices}
+\begin{itemize}
+  \item Uniform corruption: $\pi(b)=1/N$.
+  \item Absorbing MASK corruption: $\pi=\delta_m$.
+\end{itemize}
+\end{block}
+
+In both cases, $R_t=\dot\sigma(t)G_\pi$ and
+\[
+\text{the transition matrix over }[0,t]\text{ is }\exp(\sigma(t)G_\pi).
+\]
+\end{frame}
+
+\begin{frame}{Why the matrix exponential simplifies}
+\scriptsize
+Start from a clean token $x_0$, represented by the column one-hot vector $e_{x_0}$.
+Decompose it into stationary and transient parts:
+\[
+e_{x_0}=\pi+(e_{x_0}-\pi).
+\]
+For any column vector $v$,
+\[
+\Pi_\pi v=\pi(\one^\top v).
+\]
+Hence $\Pi_\pi\pi=\pi$ and
+\[
+G_\pi\pi=(\Pi_\pi-I)\pi=0.
+\]
+Also, because $\one^\top(e_{x_0}-\pi)=0$,
+\[
+\Pi_\pi(e_{x_0}-\pi)=0,
+\qquad
+G_\pi(e_{x_0}-\pi)=-(e_{x_0}-\pi).
+\]
+Thus $e_{x_0}-\pi$ is a right eigenvector of $G_\pi$ with eigenvalue $-1$.
+\end{frame}
+
+\begin{frame}{Using the Taylor series of the matrix exponential}
+\scriptsize
+By the Taylor expansion,
+\[
+\exp(\sigma G_\pi)
+=I+\sigma G_\pi+\frac{\sigma^2}{2!}G_\pi^2+\cdots.
+\]
+Apply this to the two components:
+\[
+\exp(\sigma G_\pi)\pi=\pi,
+\]
+because $G_\pi^k\pi=0$ for $k\ge1$. For the transient component,
+\[
+\exp(\sigma G_\pi)(e_{x_0}-\pi)
+=\sum_{k=0}^\infty\frac{\sigma^k}{k!}G_\pi^k(e_{x_0}-\pi)
+=\sum_{k=0}^\infty\frac{\sigma^k}{k!}(-1)^k(e_{x_0}-\pi).
+\]
+Therefore
+\[
+\exp(\sigma G_\pi)(e_{x_0}-\pi)=e^{-\sigma}(e_{x_0}-\pi).
+\]
+\end{frame}
+
+\begin{frame}{Closed-form token corruption}
+\small
+Combining the two components gives
+\[
+\exp(\sigma(t)G_\pi)e_{x_0}
+=\pi+e^{-\sigma(t)}(e_{x_0}-\pi).
+\]
+Equivalently,
+\[
+p_{t|0}(\cdot\mid x_0)
+=e^{-\sigma(t)}e_{x_0}
++(1-e^{-\sigma(t)})\pi.
+\]
+
+\begin{block}{Interpretation}
+At noise level $\sigma(t)$, the token keeps its clean identity with weight $e^{-\sigma(t)}$ and is redrawn from the prior $\pi$ with weight $1-e^{-\sigma(t)}$.
+\end{block}
+
+This single formula covers both the uniform prior and the absorbing MASK prior.
+\end{frame}
+
+% ======================================================================
+\section{Continuous-time ELBO}
+% ======================================================================
+
+\begin{frame}{Forward path: Markov before conditioning}
+\small
+Discretize $0=t_0<t_1<\cdots<t_K=1$ and write $z_i=z_{t_i}$.
+The forward noising transition itself does not depend on knowing the clean datum:
+\[
+q_{i|i-1}(z_i\mid z_{i-1}).
+\]
+For the likelihood bound of a particular datum $x$, however, the proposal is the clean-conditioned forward path:
+\[
+q(z_{0:K}\mid x)
+=q_0(z_0\mid x)\prod_{i=1}^K q_{i|i-1}(z_i\mid z_{i-1}).
+\]
+
+\begin{alertblock}{The subtle point}
+The forward chain is Markov regardless of $x$. The reverse factors used in the ELBO are posterior factors under $q(z_{0:K}\mid x)$, so they depend on $x$.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{Reverse posterior only after fixing $x$}
+\scriptsize
+For a fixed clean datum $x$, define the one-step reverse posterior by Bayes' rule:
+\[
+q_{i-1|i}(z_{i-1}\mid z_i,x)
+=
+\frac{q_{i|i-1}(z_i\mid z_{i-1})q_{i-1}(z_{i-1}\mid x)}
+{q_i(z_i\mid x)}.
+\]
+
+\begin{block}{Conditioned reverse factorization}
+\[
+q(z_{0:K}\mid x)
+=q_K(z_K\mid x)\prod_{i=1}^Kq_{i-1|i}(z_{i-1}\mid z_i,x).
+\]
+\end{block}
+
+\begin{alertblock}{Why this is the right object}
+The ELBO for $\log p_\theta(x)$ uses $q(z_{0:K}\mid x)$ as the proposal. Therefore the exact reverse factors are $x$-conditioned denoising posteriors, not unconditional reverse transitions.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{Proof of the conditioned reverse factorization}
+\scriptsize
+\begin{proof}
+Substitute Bayes' rule into the proposed reverse product:
+\[
+q_K(z_K\mid x)\prod_{i=1}^K q_{i-1|i}(z_{i-1}\mid z_i,x)
+\]
+\[
+=q_K(z_K\mid x)\prod_{i=1}^K
+\frac{q_{i|i-1}(z_i\mid z_{i-1})q_{i-1}(z_{i-1}\mid x)}
+{q_i(z_i\mid x)}.
+\]
+The marginal factors telescope:
+\[
+q_K\cdot\frac{q_0q_1\cdots q_{K-1}}{q_1q_2\cdots q_K}
+=q_0,
+\]
+where every $q_i$ is shorthand for $q_i(z_i\mid x)$.
+Thus
+\[
+q_K(z_K\mid x)\prod_{i=1}^Kq_{i-1|i}(z_{i-1}\mid z_i,x)
+=q_0(z_0\mid x)\prod_{i=1}^Kq_{i|i-1}(z_i\mid z_{i-1})
+=q(z_{0:K}\mid x).
+\]
+\end{proof}
+\end{frame}
+
+\begin{frame}{What is structural here?}
+\small
+\begin{block}{A conditional-path statement}
+Once $x$ is fixed, the conditional path law $q(z_{0:K}\mid x)$ has two equivalent factorizations:
+\[
+q_0(z_0\mid x)\prod_i q_{i|i-1}(z_i\mid z_{i-1})
+\quad\text{and}\quad
+q_K(z_K\mid x)\prod_i q_{i-1|i}(z_{i-1}\mid z_i,x).
+\]
+\end{block}
+
+\begin{alertblock}{Modeling implication}
+During training, $x$ is known, so the exact posterior $q_{i-1|i}(\cdot\mid z_i,x)$ can be computed or simplified. During generation, $x$ is unknown, so $p^\theta_{i-1|i}(\cdot\mid z_i)$ learns to replace this family of $x$-conditioned posteriors.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{Start from a discrete-time ELBO}
+\small
+Use the exact reverse factorization as the variational proposal:
+\[
+q(z_{0:K}\mid x)=q_K(z_K\mid x)\prod_{i=1}^K
+q_{i-1|i}(z_{i-1}\mid z_i,x).
+\]
+Let the model approximate these reverse posteriors by
+$p^\theta_{i-1|i}(z_{i-1}\mid z_i)$.
+
+\begin{block}{Discrete ELBO}
+\[
+\log p_\theta(x)\ge C_{\log}
+-\sum_{i=1}^K
+\E_{z_i\sim q_i(\cdot\mid x)}
+\KL\!\left(
+q_{i-1|i}(\cdot\mid z_i,x)
+\|p^\theta_{i-1|i}(\cdot\mid z_i)
+\right).
+\]
+\end{block}
+
+\[
+C_{\log}=\E_{q_0(z_0\mid x)}[\log p_\theta(x\mid z_0)]
+-\KL(q_1(\cdot\mid x)\|p_1).
+\]
+\end{frame}
+
+\begin{frame}{Discrete ELBO proof: Jensen step}
+\scriptsize
+\begin{proof}
+Define the model path distribution
+\[
+p_\theta(x,z_{0:K})
+=p_1(z_K)\prod_{i=1}^K
+p^\theta_{i-1|i}(z_{i-1}\mid z_i)\,p_\theta(x\mid z_0).
+\]
+Insert the forward path distribution as a proposal:
+\[
+\log p_\theta(x)
+=\log\sum_{z_{0:K}}q(z_{0:K}\mid x)
+\frac{p_\theta(x,z_{0:K})}{q(z_{0:K}\mid x)}.
+\]
+By Jensen's inequality,
+\[
+\log p_\theta(x)
+\ge
+\E_{q(z_{0:K}\mid x)}
+\left[
+\log\frac{p_\theta(x,z_{0:K})}{q(z_{0:K}\mid x)}
+\right].
+\]
+\end{proof}
+\end{frame}
+
+\begin{frame}{Discrete ELBO proof: collecting KL terms}
+\scriptsize
+\begin{proofs}[\proofname\ (Cont)]
+Substitute the two path factorizations:
+\[
+\log\frac{p_\theta(x,z_{0:K})}{q(z_{0:K}\mid x)}
+=\log p_\theta(x\mid z_0)
++\log\frac{p_1(z_K)}{q_1(z_K\mid x)}
++\sum_{i=1}^K
+\log
+\frac{p^\theta_{i-1|i}(z_{i-1}\mid z_i)}
+{q_{i-1|i}(z_{i-1}\mid z_i,x)}.
+\]
+Taking expectation under $q(z_{0:K}\mid x)$ gives
+\[
+\E[\log p_\theta(x\mid z_0)]
+-\KL(q_1(\cdot\mid x)\|p_1)
+\]
+\[
+-\sum_{i=1}^K
+\E_{z_i\sim q_i(\cdot\mid x)}
+\KL\!\left(
+q_{i-1|i}(\cdot\mid z_i,x)
+\|p^\theta_{i-1|i}(\cdot\mid z_i)
+\right).
+\]
+This proves the discrete-time ELBO stated on the previous slide.
+\end{proofs}
+\end{frame}
+
+\begin{frame}{Why only $z_i$ remains outside the KL}
+\scriptsize
+For the $i$-th reverse term, start from the path expectation:
+\[
+\E_{q(z_{0:K}\mid x)}
+\left[
+\log
+\frac{p^\theta_{i-1|i}(z_{i-1}\mid z_i)}
+{q_{i-1|i}(z_{i-1}\mid z_i,x)}
+\right].
+\]
+The integrand depends only on $(z_{i-1},z_i)$, so marginalize all other variables:
+\[
+\sum_{z_{i-1},z_i}q(z_{i-1},z_i\mid x)
+\log
+\frac{p^\theta_{i-1|i}(z_{i-1}\mid z_i)}
+{q_{i-1|i}(z_{i-1}\mid z_i,x)}.
+\]
+Now split the pair marginal as
+\[
+q(z_{i-1},z_i\mid x)
+=q_i(z_i\mid x)q_{i-1|i}(z_{i-1}\mid z_i,x).
+\]
+\end{frame}
+
+\begin{frame}{Why only $z_i$ remains outside the KL (Cont)}
+\scriptsize
+\begin{proofs}[\proofname\ (Cont)]
+Substitute the pair factorization:
+\[
+\sum_{z_i}q_i(z_i\mid x)
+\sum_{z_{i-1}}q_{i-1|i}(z_{i-1}\mid z_i,x)
+\log
+\frac{p^\theta_{i-1|i}(z_{i-1}\mid z_i)}
+{q_{i-1|i}(z_{i-1}\mid z_i,x)}.
+\]
+The inner sum is the negative KL:
+\[
+\sum_{z_{i-1}}q_{i-1|i}(z_{i-1}\mid z_i,x)
+\log
+\frac{p^\theta_{i-1|i}(z_{i-1}\mid z_i)}
+{q_{i-1|i}(z_{i-1}\mid z_i,x)}
+\]
+\[
+=-\KL\!\left(
+q_{i-1|i}(\cdot\mid z_i,x)
+\|p^\theta_{i-1|i}(\cdot\mid z_i)
+\right).
+\]
+Therefore only the outer marginal $q_i(z_i\mid x)$ remains outside the KL.
+\end{proofs}
+\end{frame}
+
+\begin{frame}{Small-time model reverse kernel}
+\small
+Let the model reverse CTMC have rate $\Rhat_t^\theta(y,z)$ from reverse source $z$ to reverse destination $y$. Write
+\[
+b_t(y,z):=\Rhat_t^\theta(y,z).
+\]
+For $s=t-\Delta$,
+\[
+p^\theta_{s|t}(y\mid z)
+=
+\begin{cases}
+1+\Delta b_t(z,z)+o(\Delta),& y=z,\\
+\Delta b_t(y,z)+o(\Delta),& y\neq z,
+\end{cases}
+\]
+where
+\[
+b_t(z,z)=-\sum_{y\neq z}b_t(y,z).
+\]
+
+\begin{alertblock}{What the ELBO will compare}
+For each current state $z$, the true reverse rates $a_t(y,z)$ are compared with the model reverse rates $b_t(y,z)$ over all possible destinations $y$.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{Single-step KL expansion}
+\small
+Use the true and model small-time kernels:
+\[
+q_{s|t}(y\mid z,x)=
+\begin{cases}
+1+\Delta a_t(z,z)+o(\Delta),&y=z,\\
+\Delta a_t(y,z)+o(\Delta),&y\neq z,
+\end{cases}
+\]
+\[
+p^\theta_{s|t}(y\mid z)=
+\begin{cases}
+1+\Delta b_t(z,z)+o(\Delta),&y=z,\\
+\Delta b_t(y,z)+o(\Delta),&y\neq z.
+\end{cases}
+\]
+
+\begin{block}{First-order term}
+\[
+\KL_\Delta(z)
+=\Delta\left[
+a_t(z,z)-b_t(z,z)
++\sum_{y\neq z}a_t(y,z)
+\log\frac{a_t(y,z)}{b_t(y,z)}
+\right]+o(\Delta).
+\]
+\end{block}
+
+\begin{alertblock}{Key point}
+Each reverse-posterior KL is $O(\Delta)$, so the sum over $1/\Delta$ time steps becomes an integral.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{Single-step KL proof: diagonal term}
+\scriptsize
+\begin{proof}
+Let
+\[
+\KL_\Delta(z)=
+\KL(q_{s|t}(\cdot\mid z,x)\|p^\theta_{s|t}(\cdot\mid z)).
+\]
+The diagonal contribution is
+\[
+(1+\Delta a_t(z,z)+o(\Delta))
+\log
+\frac{1+\Delta a_t(z,z)+o(\Delta)}
+{1+\Delta b_t(z,z)+o(\Delta)}.
+\]
+Using $\log(1+\Delta c+o(\Delta))=\Delta c+o(\Delta)$, this equals
+\[
+(1+\Delta a_t(z,z)+o(\Delta))
+\bigl[\Delta(a_t(z,z)-b_t(z,z))+o(\Delta)\bigr]
+\]
+\[
+=\Delta(a_t(z,z)-b_t(z,z))+o(\Delta).
+\]
+\end{proof}
+\end{frame}
+
+\begin{frame}{Single-step KL proof: off-diagonal terms}
+\scriptsize
+\begin{proofs}[\proofname\ (Cont)]
+For $y\neq z$, the contribution is
+\[
+(\Delta a_t(y,z)+o(\Delta))
+\log
+\frac{\Delta a_t(y,z)+o(\Delta)}
+{\Delta b_t(y,z)+o(\Delta)}.
+\]
+The factor $\Delta$ cancels inside the logarithm, so
+\[
+\log
+\frac{\Delta a_t(y,z)+o(\Delta)}
+{\Delta b_t(y,z)+o(\Delta)}
+=\log\frac{a_t(y,z)}{b_t(y,z)}+o(1).
+\]
+Therefore the off-diagonal sum is
+\[
+\Delta\sum_{y\neq z}a_t(y,z)
+\log\frac{a_t(y,z)}{b_t(y,z)}
++o(\Delta).
+\]
+Combining with the diagonal term proves the single-step expansion.
+\end{proofs}
+\end{frame}
+
+\begin{frame}{From the KL expansion to the CT-ELBO}
+\scriptsize
+\begin{proofs}[\proofname\ (Cont)]
+Let $t_i-t_{i-1}=\Delta$. The discrete ELBO contains
+\[
+\sum_{i=1}^K\E_{z_i\sim q_{t_i}}\KL_\Delta(z_i).
+\]
+Using the first-order expansion,
+\[
+\KL_\Delta(z_i)
+=\Delta F_{t_i}(z_i)+o(\Delta),
+\]
+where
+\[
+F_t(z)=a_t(z,z)-b_t(z,z)
++\sum_{y\neq z}a_t(y,z)\log\frac{a_t(y,z)}{b_t(y,z)}.
+\]
+Thus
+\[
+\sum_{i=1}^K\E_{q_{t_i}}\KL_\Delta
+\to
+\int_0^1\E_{z\sim q_t}F_t(z)\,\dd t.
+\]
+Substituting this limit into the discrete ELBO gives the CT-ELBO.
+\end{proofs}
+\end{frame}
+
+\begin{frame}{CT-ELBO in rate form}
+\small
+Taking the continuous-time limit gives
+\[
+\log p_\theta(x)\ge C_{\log}
+-\int_0^1
+\E_{z\sim q_t(\cdot\mid x)}
+\left[
+a_t(z,z)-b_t(z,z)
++\sum_{y\neq z}a_t(y,z)
+\log\frac{a_t(y,z)}{b_t(y,z)}
+\right]\dd t.
+\]
+
+\begin{block}{Trainable negative CT-ELBO}
+After removing terms independent of $\theta$,
+\[
+\mathcal L_{\mathrm{CT}}(\theta)
+=\int_0^1\E_{z\sim q_t}
+\left[
+\sum_{y\neq z}b_t(y,z)
+-\sum_{y\neq z}a_t(y,z)\log b_t(y,z)
+\right]\dd t+\const.
+\]
+\end{block}
+\end{frame}
+
+\begin{frame}{Standard forward/backward-rate form}
+\scriptsize
+Substitute
+\[
+a_t(y,z)=R_t(z,y)\frac{q_t(y\mid x)}{q_t(z\mid x)},
+\qquad
+b_t(y,z)=\Rhat_t^\theta(y,z).
+\]
+Then
+\[
+\log p_\theta(x)\ge C_{\log}+\int_0^1
+\E_{z\sim q_t(\cdot\mid x)}
+\biggl[
+\Rhat_t^\theta(z,z)-R_t(z,z)
+\]
+\[
+\qquad
++\sum_{y\neq z}R_t(z,y)\frac{q_t(y\mid x)}{q_t(z\mid x)}
+\log
+\frac{\Rhat_t^\theta(y,z)q_t(z\mid x)}
+{R_t(z,y)q_t(y\mid x)}
+\biggr]\dd t.
+\]
+
+\begin{alertblock}{Likelihood-bound view}
+\begin{itemize}
+  \item If SEDD chooses $\Rhat_t^\theta(y,z)=R_t(z,y)s_\theta(z,t)_y$, CT-ELBO recovers a diffusion-weighted score entropy objective.
+  \item GIDD chooses $\Rhat_t^\theta(y,z)=R_t(z,y)q_t(y\mid x_\theta)/q_t(z\mid x_\theta)$.
+\end{itemize}
+\end{alertblock}
+\end{frame}
+
+% ======================================================================
+\section{SEDD}
+% ======================================================================
+
+\begin{frame}{SEDD: modeling the reverse rate by ratios}
+\small
+SEDD learns the concrete score
+\[
+s_\theta(z,t)_y\approx \frac{p_t(y)}{p_t(z)},
+\qquad y\neq z.
+\]
+The model reverse rate is
+\[
+\Rhat_t^\theta(y,z)=R_t(z,y)s_\theta(z,t)_y,
+\qquad y\neq z.
+\]
+
+\begin{block}{Why this is natural}
+The true reverse rate is
+\[
+a_t(y,z)=R_t(z,y)\frac{p_t(y)}{p_t(z)}.
+\]
+Thus SEDD separates the known forward edge $R_t(z,y)$ from the unknown probability ratio. This edge is the forward transition from the earlier candidate $y$ to the current token $z$.
+\end{block}
+
+\begin{alertblock}{Sequence interpretation}
+$s_\theta(Z_t,t)_{i,y}$ estimates the ratio between the current sequence and the sequence obtained by replacing token $i$ by $y$.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{SEDD forward processes}
+\small
+Take
+\[
+R_t=\dot\sigma(t)G_\pi,
+\qquad
+G_\pi=\Pi_\pi-I.
+\]
+For a clean token $x_0$,
+\[
+p_{t|0}(\cdot\mid x_0)
+=\exp(\sigma(t)G_\pi)e_{x_0}.
+\]
+
+\begin{block}{Closed form}
+Using the eigen-decomposition from the CTMC backbone,
+\[
+p_{t|0}(\cdot\mid x_0)
+=e^{-\sigma(t)}e_{x_0}
++(1-e^{-\sigma(t)})\pi.
+\]
+\end{block}
+
+\begin{alertblock}{Examples}
+\begin{itemize}
+  \item Uniform SEDD: choose $\pi$ uniform on $\cV$.
+  \item Absorbing/MASK SEDD: choose $\pi=\delta_m$.
+\end{itemize}
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{Score entropy}
+\scriptsize
+For a fully supported distribution $p$, weights $w_{xy}\ge0$, and positive scores $s_\theta(x)_y>0$, define
+\[
+L_{SE}(\theta;p,w)=
+\E_{x\sim p}
+\sum_{y\neq x}w_{xy}
+\left[
+s_\theta(x)_y-\frac{p(y)}{p(x)}\log s_\theta(x)_y
+ +K\!\left(\frac{p(y)}{p(x)}\right)
+\right],
+\]
+where
+\[
+K(r)=r(\log r-1).
+\]
+
+\begin{block}{Nonnegative pointwise gap}
+Let $r=p(y)/p(x)$. Then
+\[
+s-r\log s+K(r)
+=r\left(\frac{s}{r}-1-\log\frac{s}{r}\right)\ge0.
+\]
+\end{block}
+
+\begin{alertblock}{Consistent minimizer}
+The unique minimizer is
+\[
+s_\theta^*(x)_y=\frac{p(y)}{p(x)}.
+\]
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{From implicit to denoising score entropy}
+\small
+The implicit form contains an unknown ratio:
+\[
+\E_{x\sim p}\sum_{y\neq x}w_{xy}\frac{p(y)}{p(x)}
+\log s_\theta(x)_y.
+\]
+If $p$ is generated by corrupting clean data,
+\[
+p(x)=\sum_{x_0}p(x\mid x_0)p_0(x_0),
+\]
+then the denoising identity gives
+\[
+\E_{x\sim p}\sum_{y\neq x}\frac{p(y)}{p(x)}f(x,y)
+=
+\E_{x_0\sim p_0,\;x\sim p(\cdot\mid x_0)}
+\sum_{y\neq x}\frac{p(y\mid x_0)}{p(x\mid x_0)}f(x,y).
+\]
+
+\begin{block}{Benefit}
+The conditional ratio $p(y\mid x_0)/p(x\mid x_0)$ is computable from the forward corruption kernel, while $s_\theta(x)_y$ comes from one network forward pass.
+\end{block}
+\end{frame}
+
+\begin{frame}{Standalone SEDD loss: denoising score entropy}
+\scriptsize
+The SEDD loss can be derived without any likelihood-bound argument.
+Apply score entropy to the noisy marginal $p_t$ and use the denoising identity:
+\[
+L_{DSE}(\theta;t)
+=
+\E_{x_0\sim p_0,\;z\sim p_{t|0}(\cdot\mid x_0)}
+\sum_{y\neq z}w_t(z,y)
+\left[
+s_\theta(z,t)_y
+-\frac{p_{t|0}(y\mid x_0)}{p_{t|0}(z\mid x_0)}
+\log s_\theta(z,t)_y
+\right]+\const.
+\]
+
+\begin{block}{What has been used}
+Only two ingredients are needed:
+\begin{enumerate}
+  \item score entropy is minimized at the probability ratio $p_t(y)/p_t(z)$;
+  \item the denoising identity replaces the unknown marginal ratio by the computable conditional ratio.
+\end{enumerate}
+\end{block}
+\end{frame}
+
+\begin{frame}{Diffusion-weighted DSE}
+\scriptsize
+For a diffusion process, it is natural to weight only edges that can occur under the forward CTMC. With the column-vector convention, choose
+\[
+w_t(z,y)=R_t(z,y).
+\]
+Then the standalone denoising score-entropy objective becomes
+\[
+L_{DWDSE}(x_0)
+=\int_0^T\E_{z\sim p_{t|0}}
+\sum_{y\neq z}R_t(z,y)
+\left[
+s_\theta(z,t)_y
+-\frac{p_{t|0}(y\mid x_0)}{p_{t|0}(z\mid x_0)}
+\log s_\theta(z,t)_y
+\right]\dd t+\const.
+\]
+
+\begin{alertblock}{Important point}
+This is already a valid SEDD training objective from score-entropy ratio estimation. CT-ELBO is a separate route that explains when the same weighted objective is also the trainable part of a likelihood lower bound.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{CT-ELBO connection for DWDSE}
+\small
+Condition on clean $x_0$. The true and model reverse rates are
+\[
+a_t(y,z)=R_t(z,y)
+\frac{p_{t|0}(y\mid x_0)}{p_{t|0}(z\mid x_0)},
+\qquad
+b_t(y,z)=R_t(z,y)s_\theta(z,t)_y.
+\]
+Substituting into the trainable CT-NELBO gives, up to constants,
+\[
+L_{DWDSE}(x_0)
+=\int_0^T\E_{z\sim p_{t|0}}
+\sum_{y\neq z}R_t(z,y)
+\left[
+s_\theta(z,t)_y
+-\frac{p_{t|0}(y\mid x_0)}{p_{t|0}(z\mid x_0)}
+\log s_\theta(z,t)_y
+\right]\dd t.
+\]
+
+\begin{alertblock}{How to read the connection}
+Score entropy gives SEDD a ratio-estimation loss directly. CT-ELBO shows that choosing the diffusion weight $R_t(z,y)$ makes that loss coincide with the rate-level likelihood bound, up to constants.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{SEDD sequence training}
+\small
+Sample clean sequences $X_0\sim p_{\mathrm{data}}$ and time $t\sim U(0,T)$. Then corrupt independently:
+\[
+X_t^{(i)}\sim p_{t|0}^{\mathrm{tok}}(\cdot\mid X_0^{(i)}).
+\]
+The network outputs positive scores
+\[
+s_\theta(X_t,t)\in\mathbb R_+^{L\times N}.
+\]
+
+\begin{block}{Single-sample sequence loss}
+\[
+\widehat L_{DWDSE}^{\mathrm{seq}}
+=\dot\sigma(t)\sum_{i=1}^L\sum_{y\neq X_t^{(i)}}
+G(X_t^{(i)},y)
+\left[
+s_\theta(X_t,t)_{i,y}
+-\frac{p_{t|0}^{\mathrm{tok}}(y\mid X_0^{(i)})}
+{p_{t|0}^{\mathrm{tok}}(X_t^{(i)}\mid X_0^{(i)})}
+\log s_\theta(X_t,t)_{i,y}
+\right].
+\]
+\end{block}
+\end{frame}
+
+\begin{frame}{SEDD sampling: Euler and tau-leaping}
+\small
+For a single token, reverse Euler from $t$ to $s=t-\Delta t$ uses
+\[
+\Prob_\theta(X_s=y\mid X_t=z)\approx
+\begin{cases}
+\Delta t\,R_t(z,y)s_\theta(z,t)_y,&y\neq z,\\
+1-\Delta t\sum_{u\neq z}R_t(z,u)s_\theta(z,t)_u,&y=z.
+\end{cases}
+\]
+
+\begin{block}{Tau-leaping for sequences}
+For each position $i$,
+\[
+\pi_i(y)=
+\begin{cases}
+\Delta t\,R_t(z_t^{(i)},y)s_\theta(Z_t,t)_{i,y},&y\neq z_t^{(i)},\\
+1-\Delta t\sum_{u\neq z_t^{(i)}}R_t(z_t^{(i)},u)s_\theta(Z_t,t)_{i,u},&y=z_t^{(i)}.
+\end{cases}
+\]
+After clipping and normalization, sample positions independently.
+\end{block}
+
+\begin{alertblock}{Practical meaning}
+Euler is rate-based and local in time. Tau-leaping trades exact one-jump CTMC semantics for many parallel token updates.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{Discrete Tweedie update}
+\small
+If the forward process is $p_t=e^{\sigma(t)G}p_0$ and we know all ratios
+\[
+r_z(i)=\frac{p_t(i)}{p_t(z)},
+\]
+Bayes' rule and $p_0=e^{-\sigma(t)G}p_t$ give the one-token identity
+\[
+p_{0|t}(x_0\mid z)
+=
+\left[e^{-\sigma(t)G}r_z\right]_{x_0}
+\left[e^{\sigma(t)G}\right]_{z,x_0}.
+\]
+
+\begin{block}{Tweedie tau-leaping}
+For a step of size $\Delta\sigma_t=\sigma(t)-\sigma(t-\Delta t)$, set $r_i(y)=s_\theta(Z_t,t)_{i,y}$ and $r_i(z_t^{(i)})=1$. Then
+\[
+\tilde\pi_i(y)
+=
+\left[e^{-\Delta\sigma_tG}r_i\right]_y
+\left[e^{\Delta\sigma_tG}\right]_{z_t^{(i)},y}.
+\]
+Normalize $\tilde\pi_i$ and sample each position.
+\end{block}
+\end{frame}
+
+\begin{frame}{Why SEDD supports infilling}
+\small
+Let $\Omega$ be positions to generate and $\Omega^c$ be fixed prompt positions.
+For two candidate fills $z,z'$,
+\[
+\frac{p_t(X_\Omega=z'\mid X_{\Omega^c}=y)}
+{p_t(X_\Omega=z\mid X_{\Omega^c}=y)}
+=
+\frac{p_t(X_\Omega=z',X_{\Omega^c}=y)}
+{p_t(X_\Omega=z,X_{\Omega^c}=y)}.
+\]
+
+\begin{block}{Consequence}
+The unconditional score ratio is already the conditional score ratio for changes inside $\Omega$.
+\end{block}
+
+\begin{alertblock}{Inference rule}
+Keep prompt positions fixed. Apply Euler or Tweedie tau-leaping only to the generated positions.
+\end{alertblock}
+\end{frame}
+
+% ======================================================================
+\section{GIDD}
+% ======================================================================
+
+\begin{frame}{GIDD: interpolating marginals}
+\small
+GIDD starts by specifying the marginal forward distribution:
+\[
+q_t(z\mid x)=\alpha_t\delta_{z,x}+\beta_t\pi_t(z),
+\qquad
+\beta_t=1-\alpha_t.
+\]
+Here
+\[
+\alpha_0=1,\qquad \alpha_1=0,\qquad \pi_t\in\DeltaV.
+\]
+
+\begin{block}{Interpretation}
+At time $t$, a token is a linear interpolation between the clean one-hot token and a possibly time-varying mixing distribution.
+\end{block}
+
+\begin{alertblock}{Special case}
+If $\pi_t=\mvec$ is the MASK point mass, GIDD reduces to masked diffusion.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{Constructing forward transition probabilities}
+\small
+For $0\le s\le t\le1$, define
+\[
+\alpha_{t|s}:=\frac{\alpha_t}{\alpha_s},
+\qquad
+v_{t|s}(b):=\beta_t\pi_t(b)-\frac{\alpha_t}{\alpha_s}\beta_s\pi_s(b).
+\]
+Then set
+\[
+\Prob(X_t=b\mid X_s=a)=\alpha_{t|s}\delta_{b,a}+v_{t|s}(b).
+\]
+
+\begin{block}{Equivalent mixture form}
+If $\beta_{t|s}=1-\alpha_{t|s}$ and $\pi_{t|s}=v_{t|s}/\beta_{t|s}$,
+\[
+\Prob(X_t=b\mid X_s=a)=\alpha_{t|s}\delta_{b,a}+\beta_{t|s}\pi_{t|s}(b).
+\]
+\end{block}
+
+\begin{alertblock}{Marginal check}
+Setting $s=0$ gives
+\[
+\Prob(X_t=z\mid X_0=x)=\alpha_t\delta_{z,x}+\beta_t\pi_t(z)=q_t(z\mid x).
+\]
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{Proof: transition probabilities are valid}
+\scriptsize
+\begin{proof}
+First check normalization over destination states. For any source state $a$,
+\[
+\sum_b\Prob(X_t=b\mid X_s=a)
+=\sum_b\left(\frac{\alpha_t}{\alpha_s}\delta_{a,b}
++\beta_t\pi_t(b)-\frac{\alpha_t}{\alpha_s}\beta_s\pi_s(b)\right).
+\]
+Since $\sum_b\pi_t(b)=\sum_b\pi_s(b)=1$,
+\[
+\sum_b\Prob(X_t=b\mid X_s=a)
+=\frac{\alpha_t}{\alpha_s}
++\beta_t-\frac{\alpha_t}{\alpha_s}\beta_s
+=\frac{\alpha_t}{\alpha_s}(1-\beta_s)+\beta_t
+=\alpha_t+\beta_t=1.
+\]
+Under the admissibility condition $v_{t|s}(b)\ge0$, all entries are nonnegative.
+Hence these probabilities define a valid Markov transition law.
+\end{proof}
+\end{frame}
+
+\begin{frame}{Proof: marginal consistency}
+\scriptsize
+\begin{proofs}[\proofname\ (Cont)]
+At $s=0$, the boundary conditions give $\alpha_0=1$ and $\beta_0=0$. Therefore
+\[
+\alpha_{t|0}=\alpha_t,
+\qquad
+v_{t|0}(z)=\beta_t\pi_t(z).
+\]
+Thus
+\[
+\Prob(X_t=z\mid X_0=x)
+=\alpha_t\delta_{z,x}+\beta_t\pi_t(z)
+=q_t(z\mid x).
+\]
+This proves that the constructed CTMC has exactly the prescribed GIDD marginal.
+\end{proofs}
+\end{frame}
+
+\begin{frame}{Proof: Chapman--Kolmogorov equation}
+\scriptsize
+\begin{proofs}[\proofname\ (Cont)]
+Let $s\le t\le u$ and write
+\[
+\Prob(X_t=c\mid X_s=a)=\alpha_{t|s}\delta_{c,a}+v_{t|s}(c),
+\quad
+\Prob(X_u=b\mid X_t=c)=\alpha_{u|t}\delta_{b,c}+v_{u|t}(b).
+\]
+Then
+\begin{align*}
+\sum_c\Prob(X_u=b\mid X_t=c)\Prob(X_t=c\mid X_s=a)
+&=\alpha_{t|s}\alpha_{u|t}\delta_{a,b}
++\alpha_{t|s}v_{u|t}(b)\\
+&\quad+\alpha_{u|t}v_{t|s}(b)
++v_{u|t}(b)\sum_cv_{t|s}(c).
+\end{align*}
+Because $\sum_cv_{t|s}(c)=1-\alpha_{t|s}$, this becomes
+\[
+\alpha_{t|s}\alpha_{u|t}\delta_{a,b}
++v_{u|t}(b)+\alpha_{u|t}v_{t|s}(b).
+\]
+\end{proofs}
+\end{frame}
+
+\begin{frame}{Proof: Chapman--Kolmogorov equation (Cont)}
+\scriptsize
+\begin{proofs}[\proofname\ (Cont)]
+The first coefficient telescopes:
+\[
+\alpha_{t|s}\alpha_{u|t}
+=\frac{\alpha_t}{\alpha_s}\frac{\alpha_u}{\alpha_t}
+=\frac{\alpha_u}{\alpha_s}
+=\alpha_{u|s}.
+\]
+For the vector term,
+\[
+v_{u|t}+\alpha_{u|t}v_{t|s}
+=\left(\beta_u\pi_u-\frac{\alpha_u}{\alpha_t}\beta_t\pi_t\right)
++\frac{\alpha_u}{\alpha_t}
+\left(\beta_t\pi_t-\frac{\alpha_t}{\alpha_s}\beta_s\pi_s\right).
+\]
+The middle terms cancel:
+\[
+v_{u|t}+\alpha_{u|t}v_{t|s}
+=\beta_u\pi_u-\frac{\alpha_u}{\alpha_s}\beta_s\pi_s
+=v_{u|s}.
+\]
+Therefore
+\[
+\sum_c\Prob(X_u=b\mid X_t=c)\Prob(X_t=c\mid X_s=a)
+=\Prob(X_u=b\mid X_s=a).
+\]
+\end{proofs}
+\end{frame}
+
+\begin{frame}{Grid proof and telescoping}
+\scriptsize
+For a single grid step, define
+\[
+\dot\alpha_t=\frac{\alpha_{t+\Delta}}{\alpha_t},
+\qquad
+\dot v_t
+=\beta_{t+\Delta}\pi_{t+\Delta}
+-\frac{\alpha_{t+\Delta}}{\alpha_t}\beta_t\pi_t.
+\]
+The Chapman--Kolmogorov calculation gives
+\[
+\alpha_{t+\Delta|s}=\dot\alpha_t\alpha_{t|s},
+\qquad
+v_{t+\Delta|s}=\dot v_t+\dot\alpha_t v_{t|s}.
+\]
+Iterating,
+\[
+\alpha_{t|s}
+=\prod_i\frac{\alpha_{t_{i+1}}}{\alpha_{t_i}}
+=\frac{\alpha_t}{\alpha_s},
+\]
+and
+\[
+v_{t|s}
+=\sum_i\frac{\alpha_t}{\alpha_{t_{i+1}}}
+\left(\beta_{t_{i+1}}\pi_{t_{i+1}}
+-\frac{\alpha_{t_{i+1}}}{\alpha_{t_i}}\beta_{t_i}\pi_{t_i}\right)
+=\beta_t\pi_t-\frac{\alpha_t}{\alpha_s}\beta_s\pi_s.
+\]
+\end{frame}
+
+\begin{frame}{GIDD forward rate}
+\small
+Let $t\to t+\Delta$. Taylor expansion of the kernel gives
+\[
+\alpha_{t+\Delta|t}
+=1+\frac{\alpha_t'}{\alpha_t}\Delta+o(\Delta),
+\]
+\[
+v_{t+\Delta|t}(z)
+=\left(\beta_t\pi_t'(z)-\frac{\alpha_t'}{\alpha_t}\pi_t(z)\right)\Delta+o(\Delta).
+\]
+
+\begin{block}{Forward rate}
+\[
+R_t(z,y)=\frac{\alpha_t'}{\alpha_t}\delta_{z,y}+h_t(z),
+\qquad
+h_t(z):=\beta_t\pi_t'(z)-\frac{\alpha_t'}{\alpha_t}\pi_t(z).
+\]
+\end{block}
+
+\begin{alertblock}{Important structure}
+For source $y$ and destination $z$ with $y\neq z$, the rate $R_t(z,y)=h_t(z)$ depends on the destination $z$, not on the source $y$.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{GIDD backward parameterization}
+\small
+GIDD predicts a clean token distribution
+\[
+x_\theta(Z_t,t)\in\DeltaV.
+\]
+It then defines the model-induced marginal
+\[
+q_t(z\mid x_\theta)=\alpha_t x_\theta(z)+\beta_t\pi_t(z).
+\]
+
+\begin{block}{Posterior-form backward transition}
+\[
+p_\theta(z_s=y\mid z_t=z)
+=\Prob(X_t=z\mid X_s=y)
+\frac{q_s(y\mid x_\theta)}{q_t(z\mid x_\theta)}.
+\]
+\end{block}
+
+\begin{alertblock}{Backward rate}
+For $y\neq z$,
+\[
+\Rhat_t^\theta(y,z)
+=R_t(z,y)
+\frac{q_t(y\mid x_\theta)}{q_t(z\mid x_\theta)}.
+\]
+The diagonal is determined by the total rate leaving the current reverse state.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{Proof: GIDD backward rate}
+\scriptsize
+\begin{proof}
+Set $s=t-\Delta$. From the posterior-form backward transition,
+\[
+p_\theta(z_s=y\mid z_t=z)
+=\Prob(X_t=z\mid X_s=y)\frac{q_s(y\mid x_\theta)}{q_t(z\mid x_\theta)}.
+\]
+For $y\neq z$,
+\[
+\Prob(X_t=z\mid X_s=y)=\Delta R_t(z,y)+o(\Delta),
+\qquad
+q_s(y\mid x_\theta)=q_t(y\mid x_\theta)+o(1).
+\]
+Therefore
+\[
+p_\theta(z_s=y\mid z_t=z)
+=\Delta R_t(z,y)
+\frac{q_t(y\mid x_\theta)}{q_t(z\mid x_\theta)}
++o(\Delta).
+\]
+Comparing with
+\[
+p_\theta(z_s=y\mid z_t=z)
+=\Delta\Rhat_t^\theta(y,z)+o(\Delta)
+\]
+gives the off-diagonal backward rate.
+\end{proof}
+\end{frame}
+
+\begin{frame}{Proof: diagonal backward rate}
+\scriptsize
+\begin{proofs}[\proofname\ (Cont)]
+For $y=z$,
+\[
+p_\theta(z_s=z\mid z_t=z)
+=1+\Delta\Rhat_t^\theta(z,z)+o(\Delta).
+\]
+Since the backward kernel must sum to one,
+\[
+0=\sum_y\Rhat_t^\theta(y,z)
+=\Rhat_t^\theta(z,z)
++\sum_{y\neq z}R_t(z,y)
+\frac{q_t(y\mid x_\theta)}{q_t(z\mid x_\theta)}.
+\]
+Hence
+\[
+\Rhat_t^\theta(z,z)
+=-\sum_{y\neq z}R_t(z,y)
+\frac{q_t(y\mid x_\theta)}{q_t(z\mid x_\theta)}.
+\]
+This is the diagonal part used in the CT-NELBO derivation.
+\end{proofs}
+\end{frame}
+
+\begin{frame}{GIDD CT-NELBO proof: setup}
+\scriptsize
+\begin{proof}
+Write
+\[
+q_z=q_t(z\mid x),\quad
+\tilde q_z=q_t(z\mid x_\theta),\quad
+h_z=h_t(z),\quad
+w_z=\frac{h_z}{q_z}.
+\]
+For $y\neq z$, the GIDD forward rate and model reverse rate are
+\[
+R_t(z,y)=h_z,
+\qquad
+\Rhat_t^\theta(y,z)=h_z\frac{\tilde q_y}{\tilde q_z}.
+\]
+The CT-ELBO integrand for a fixed current state $z$ is
+\[
+I(z)=\Rhat_t^\theta(z,z)-R_t(z,z)
++\sum_{y\neq z}h_z\frac{q_y}{q_z}
+\log
+\frac{\Rhat_t^\theta(y,z)q_z}
+{h_zq_y}.
+\]
+\end{proof}
+\end{frame}
+
+\begin{frame}{GIDD CT-NELBO proof: diagonal term}
+\scriptsize
+\begin{proofs}[\proofname\ (Cont)]
+From the forward rate,
+\[
+R_t(z,z)=\frac{\alpha_t'}{\alpha_t}+h_z.
+\]
+The model diagonal rate is fixed by the total leaving rate:
+\[
+\Rhat_t^\theta(z,z)
+=-\sum_{y\neq z}h_z\frac{\tilde q_y}{\tilde q_z}
+=-h_z\frac{1-\tilde q_z}{\tilde q_z}
+=h_z-\frac{h_z}{\tilde q_z}.
+\]
+Therefore
+\[
+\Rhat_t^\theta(z,z)-R_t(z,z)
+=-\frac{h_z}{\tilde q_z}-\frac{\alpha_t'}{\alpha_t}.
+\]
+\end{proofs}
+\end{frame}
+
+\begin{frame}{GIDD CT-NELBO proof: logarithmic term}
+\tiny
+\begin{proofs}[\proofname\ (Cont)]
+For $y\neq z$,
+\[
+\log
+\frac{\Rhat_t^\theta(y,z)q_z}{h_zq_y}
+=
+\log\frac{\tilde q_y}{q_y}
++\log\frac{q_z}{\tilde q_z}.
+\]
+Hence
+\begin{align*}
+&\sum_{y\neq z}h_z\frac{q_y}{q_z}
+\log
+\frac{\Rhat_t^\theta(y,z)q_z}{h_zq_y}\\
+&=w_z\sum_{y\neq z}q_y
+\left(
+\log\frac{\tilde q_y}{q_y}
++\log\frac{q_z}{\tilde q_z}
+\right).
+\end{align*}
+Since
+\[
+\sum_{y\neq z}q_y\log\frac{\tilde q_y}{q_y}
+=-\KL(q\|\tilde q)+q_z\log\frac{\tilde q_z}{q_z},
+\]
+the whole logarithmic term is
+\[
+w_z\left[-\KL(q\|\tilde q)+\log\frac{q_z}{\tilde q_z}\right].
+\]
+\end{proofs}
+\end{frame}
+
+\begin{frame}{GIDD CT-NELBO proof: combine terms}
+\scriptsize
+\begin{proofs}[\proofname\ (Cont)]
+Combine the diagonal term and the logarithmic term:
+\[
+I(z)
+=-\frac{\alpha_t'}{\alpha_t}
+-\frac{h_z}{\tilde q_z}
++w_z\left[-\KL(q\|\tilde q)+\log\frac{q_z}{\tilde q_z}\right].
+\]
+Because $h_z=w_zq_z$,
+\[
+\frac{h_z}{\tilde q_z}=w_z\frac{q_z}{\tilde q_z}.
+\]
+Thus
+\[
+I(z)
+=-\frac{\alpha_t'}{\alpha_t}
+-w_z\left[
+\KL(q\|\tilde q)
++\frac{q_z}{\tilde q_z}
+-\log\frac{q_z}{\tilde q_z}
+\right].
+\]
+\end{proofs}
+\end{frame}
+
+\begin{frame}{GIDD CT-NELBO proof: weight identity}
+\scriptsize
+\begin{proofs}[\proofname\ (Cont)]
+The weight has expectation
+\[
+\E_{z\sim q}[w_z]
+=\sum_zq_z\frac{h_z}{q_z}
+=\sum_zh_z.
+\]
+Using
+\[
+h_z=\beta_t\pi_t'(z)-\frac{\alpha_t'}{\alpha_t}\pi_t(z),
+\]
+we get
+\[
+\sum_zh_z
+=\beta_t\frac{\dd}{\dd t}\sum_z\pi_t(z)
+-\frac{\alpha_t'}{\alpha_t}\sum_z\pi_t(z)
+=-\frac{\alpha_t'}{\alpha_t}.
+\]
+Taking $-\E_{z\sim q}[I(z)]$ and substituting this identity gives
+\[
+\E_{z\sim q}w_z
+\left[
+\KL(q\|\tilde q)
++\frac{q_z}{\tilde q_z}
+-\log\frac{q_z}{\tilde q_z}
+-1
+\right].
+\]
+\end{proofs}
+\end{frame}
+
+\begin{frame}{GIDD CT-NELBO proof: final loss}
+\scriptsize
+\begin{proofs}[\proofname\ (Cont)]
+By definition,
+\[
+\DIS(a\|b)=\frac{a}{b}-\log\frac{a}{b}-1.
+\]
+Therefore the negative CT-ELBO integrand becomes
+\[
+w_t(z,x)\left[
+\KL(q_t(\cdot\mid x)\|q_t(\cdot\mid x_\theta))
++\DIS(q_t(z\mid x)\|q_t(z\mid x_\theta))
+\right],
+\]
+where
+\[
+w_t(z,x)=
+\frac{1}{q_t(z\mid x)}
+\left(\beta_t\pi_t'(z)-\frac{\alpha_t'}{\alpha_t}\pi_t(z)\right).
+\]
+Integrating over $t$ and $z\sim q_t(\cdot\mid x)$ gives
+\[
+-\log p_\theta(x)
+\le
+\E_{t,\;z\sim q_t(\cdot\mid x)}
+\left[
+w_t(z,x)
+\left(
+\KL(q_t(\cdot\mid x)\|q_t(\cdot\mid x_\theta))
++\DIS(q_t(z\mid x)\|q_t(z\mid x_\theta))
+\right)
+\right]+C.
+\]
+\end{proofs}
+\end{frame}
+
+\begin{frame}{Mask-only special case}
+\small
+Let $\pi_t=\mvec$ be the MASK point mass. Then $\pi_t'=0$ and
+\[
+q_t(m\mid x)=1-\alpha_t.
+\]
+The weight becomes
+\[
+w_t(z,x)=
+-\frac{\alpha_t'}{\alpha_t(1-\alpha_t)}\delta_{z,m}.
+\]
+
+\begin{block}{The loss reduces to masked reconstruction}
+When $z=m$,
+\[
+\KL(q_t(\cdot\mid x)\|q_t(\cdot\mid x_\theta))
++\DIS(q_t(m\mid x)\|q_t(m\mid x_\theta))
+=-\alpha_t\log x_\theta(x).
+\]
+Therefore
+\[
+-\log p_\theta(x)
+\le
+\E_{t,z_t}
+\left[
+\frac{\alpha_t'}{1-\alpha_t}\delta_{z_t,m}
+\log x_\theta(x\mid Z_t,t)
+\right]+C.
+\]
+\end{block}
+\end{frame}
+
+\begin{frame}{Mask plus uniform schedule}
+\small
+GIDD can keep the final prior as all MASK while injecting uniform noise in the middle:
+\[
+\alpha_t=\frac{1-t}{C_t},
+\qquad
+\beta_t\pi_t
+=\frac{t}{C_t}\mvec+\frac{c_t}{C_t}\uvec,
+\qquad
+C_t=1+c_t.
+\]
+Here
+\[
+\uvec=\frac{1}{N-1}(\one-\mvec),
+\qquad
+c_t=B\,t^{\gamma/2}(1-t)^{\gamma/2}.
+\]
+
+\begin{block}{Choosing the maximum uniform ratio}
+If the desired maximum uniform mass is $p_u$, choose
+\[
+B=2^\gamma\frac{p_u}{1-p_u}.
+\]
+Then $c_t/(1+c_t)$ is maximized at $t=1/2$ with value $p_u$.
+\end{block}
+\end{frame}
+
+\begin{frame}{Closed-form weights for mask plus uniform}
+\scriptsize
+For the mask plus uniform schedule,
+\[
+c_t'=\frac{\gamma}{2}\frac{1-2t}{t(1-t)}c_t,
+\qquad
+\frac{\alpha_t'}{\alpha_t}
+=-\frac{1}{1-t}-\frac{c_t'}{1+c_t}.
+\]
+The numerator of the ELBO weight simplifies to
+\[
+\beta_t\pi_t'-\frac{\alpha_t'}{\alpha_t}\pi_t
+=\frac{\mvec+(c_t+(1-t)c_t')\uvec}{C_t(1-t)}.
+\]
+Hence
+\[
+w_t(z,x)
+=e_z^\top
+\left[
+\frac{\mvec+(c_t+(1-t)c_t')\uvec}
+{(1-t)((1-t)\xvec+t\mvec+c_t\uvec)}
+\right].
+\]
+
+\begin{alertblock}{Training note}
+The exact ELBO weights can be large near the endpoints. Practical GIDD variants often clip or dynamically reweight them to improve gradient stability.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{GIDD sequence training}
+\small
+For each clean sequence $X=(x^{(1)},\ldots,x^{(L)})$:
+\[
+Z_t^{(i)}\sim
+\Cat\!\left(\alpha_t e_{x^{(i)}}+\beta_t\pi_t\right).
+\]
+The network predicts
+\[
+x_\theta^{(i)}(Z_t,t)\in\DeltaV.
+\]
+Define
+\[
+q_t^{(i)}=\alpha_t e_{x^{(i)}}+\beta_t\pi_t,
+\qquad
+q_{\theta,t}^{(i)}=\alpha_t x_\theta^{(i)}+\beta_t\pi_t.
+\]
+
+\begin{block}{Sequence loss}
+\[
+\widehat L_{\mathrm{GIDD}}^{\mathrm{seq}}
+=\sum_{i=1}^L
+w_t(z_t^{(i)},x^{(i)})
+\left[
+\KL(q_t^{(i)}\|q_{\theta,t}^{(i)})
++\DIS(q_t^{(i)}(z_t^{(i)})\|q_{\theta,t}^{(i)}(z_t^{(i)}))
+\right].
+\]
+\end{block}
+\end{frame}
+
+\begin{frame}{GIDD sampling}
+\small
+Choose a grid
+\[
+0\approx t_0<t_1<\cdots<t_K\approx1.
+\]
+Since the practical schedule has $\pi_1=\mvec$, initialize from the all-MASK sequence.
+
+\begin{block}{Ancestral step}
+For $s<t$,
+\[
+p_\theta(z_s=y\mid z_t=z)
+=\Prob(X_t=z\mid X_s=y)
+\frac{q_s(y\mid x_\theta(Z_t,t))}
+{q_t(z\mid x_\theta(Z_t,t))}.
+\]
+For the forward transition probability,
+\[
+\Prob(X_t=z\mid X_s=y)
+=\frac{\alpha_t}{\alpha_s}\delta_{z,y}
++\beta_t\pi_t(z)
+-\frac{\alpha_t}{\alpha_s}\beta_s\pi_s(z).
+\]
+\end{block}
+
+All positions can be updated in parallel after clipping numerical negatives and normalizing.
+\end{frame}
+
+\begin{frame}{Self-correction in GIDD}
+\scriptsize
+The uniform component means the model sees non-MASK but incorrect tokens during training. This enables post-denoising correction.
+
+\begin{block}{One-token correction loop}
+Given a nearly clean sequence $Z$, compute
+\[
+x_\theta^{(1:L)}=\softmax(f_\theta(Z,t)/\tau)
+\]
+at small $t$. Sample candidates $z'^{(i)}\sim\Cat(x_\theta^{(i)})$ and define
+\[
+S=\{i:z'^{(i)}\neq z^{(i)}\}.
+\]
+If $S$ is nonempty, update only
+\[
+j=\argmax_{i\in S}x_\theta^{(i)}(z'^{(i)}),
+\qquad
+z^{(j)}\leftarrow z'^{(j)}.
+\]
+\end{block}
+
+\begin{alertblock}{Reason for one-at-a-time updates}
+Changing one token reduces the risk of introducing multiple incompatible edits at once.
+\end{alertblock}
+\end{frame}
+
+% ======================================================================
+\section{Comparison}
+% ======================================================================
+
+\begin{frame}{SEDD and GIDD side by side}
+\scriptsize
+\begin{tabular}{@{}L{0.17\textwidth}L{0.36\textwidth}L{0.36\textwidth}@{}}
+\toprule
+Aspect & SEDD & GIDD \\
+\midrule
+Forward process &
+General CTMC, often $R_t=\dot\sigma(t)G_\pi$ with uniform or MASK prior $\pi$. &
+Specify $q_t=\alpha_tx+\beta_t\pi_t$, then construct a compatible CTMC. \\
+\addlinespace
+Network output &
+Concrete score $s_\theta(z,t)_y\approx p_t(y)/p_t(z)$. &
+Clean token distribution $x_\theta(Z_t,t)$. \\
+\addlinespace
+Reverse rate &
+$\Rhat_t^\theta(y,z)=R_t(z,y)s_\theta(z,t)_y$. &
+$\Rhat_t^\theta(y,z)=R_t(z,y)q_t(y\mid x_\theta)/q_t(z\mid x_\theta)$. \\
+\addlinespace
+Training &
+Score entropy gives ratio estimation directly; DWDSE uses the reverse-edge forward rate. &
+Closed-form CT-NELBO with KL plus pointwise IS divergence. \\
+\addlinespace
+Sampling &
+Euler, tau-leaping, and Tweedie tau-leaping. &
+Posterior-form ancestral sampling and optional self-correction. \\
+\bottomrule
+\end{tabular}
+\end{frame}
+
+\begin{frame}{The conceptual difference}
+\small
+\begin{columns}[T,totalwidth=\textwidth]
+\column{0.48\textwidth}
+\begin{block}{SEDD}
+SEDD asks the model to learn the ratio that the reverse CTMC needs:
+\[
+\frac{p_t(y)}{p_t(z)}.
+\]
+This directly matches the true reverse rate identity and naturally supports conditional sampling through ratio cancellation.
+\end{block}
+
+\column{0.48\textwidth}
+\begin{alertblock}{GIDD}
+GIDD asks the model to predict the clean token distribution:
+\[
+x_\theta(Z_t,t).
+\]
+The reverse kernel is then obtained by plugging this prediction into the exact posterior formula for the chosen interpolating marginal.
+\end{alertblock}
+\end{columns}
+
+\vspace{0.25cm}
+Both use the same reverse-rate identity. SEDD has a standalone score-entropy derivation; CT-ELBO gives its likelihood-bound interpretation. GIDD is derived by plugging its posterior-form rate into CT-ELBO.
+\end{frame}
+
+\begin{frame}{Core formulas to remember}
+\scriptsize
+\begin{enumerate}
+	  \item True reverse rate:
+	  \[
+	  a_t(y,z)=R_t(z,y)\frac{q_t(y\mid x)}{q_t(z\mid x)},\qquad y\neq z.
+	  \]
+
+  \item Trainable CT-NELBO:
+  \[
+  \int\E_{z\sim q_t}
+  \left[\sum_{y\neq z}b_t(y,z)-\sum_{y\neq z}a_t(y,z)\log b_t(y,z)\right]\dd t+\const.
+  \]
+
+	  \item SEDD:
+	  \[
+	  b_t(y,z)=R_t(z,y)s_\theta(z,t)_y.
+	  \]
+
+  \item GIDD:
+  \[
+	  q_t(z\mid x)=\alpha_t\delta_{z,x}+\beta_t\pi_t(z),
+	  \qquad
+	  b_t(y,z)=R_t(z,y)\frac{q_t(y\mid x_\theta)}{q_t(z\mid x_\theta)}.
+	  \]
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{Summary}
+\scriptsize
+\begin{block}{Shared foundation}
+Discrete diffusion can be treated as a CTMC. The single most important identity is the reverse jump rate:
+\[
+a_t(y,z)=R_t(z,y)\frac{q_t(y\mid x)}{q_t(z\mid x)}.
+\]
+\end{block}
+
+\begin{alertblock}{Model design choices}
+\begin{itemize}
+  \item SEDD learns the ratio in this identity and trains it with score entropy; CT-ELBO is an additional likelihood interpretation of the diffusion-weighted version.
+  \item GIDD designs an interpolating marginal and predicts clean distributions, yielding a closed-form weighted CT-NELBO.
+  \item Sequence implementations rely on token-wise corruption but context-aware denoisers.
+\end{itemize}
+\end{alertblock}
+
+\begin{block}{Practical takeaway}
+Once the forward CTMC and the reverse-rate parameterization are clear, the training losses and samplers are consequences rather than separate tricks.
+\end{block}
+\end{frame}
+
+\begin{frame}[allowframebreaks]{References}
+\small
+\begin{thebibliography}{9}
+\bibitem{lou2024sedd}
+Aaron Lou, Chenlin Meng, and Stefano Ermon.
+\newblock Discrete Diffusion Modeling by Estimating the Ratios of the Data Distribution.
+\newblock ICML 2024.
+
+\bibitem{vonrutte2025gidd}
+Dimitri von R\"utte, Janis Fluri, Yuhui Ding, Antonio Orvieto, Bernhard Sch\"olkopf, and Thomas Hofmann.
+\newblock Generalized Interpolating Discrete Diffusion.
+\newblock ICML 2025.
+
+\bibitem{campbell2022ct}
+Andrew Campbell, Joe Benton, Valentin De Bortoli, Tom Rainforth, George Deligiannidis, and Arnaud Doucet.
+\newblock A Continuous Time Framework for Discrete Denoising Models.
+\newblock 2022.
+\end{thebibliography}
+\end{frame}
+
+\end{document}
