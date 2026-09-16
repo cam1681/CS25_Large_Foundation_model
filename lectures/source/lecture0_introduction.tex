@@ -1,561 +1,1415 @@
-\documentclass[aspectratio=169]{beamer}
+% !TeX program = xelatex
+% Large Foundation Models — Lecture 0. Adapted from lecture01.tex. Compile twice with XeLaTeX.
+% All charts are native vector PGFPlots; no external fonts are distributed.
+% To show speaker notes, replace "hide notes" below with "show notes".
+\RequirePackage{fix-cm}
+\documentclass[UTF8,aspectratio=169,11pt,fontset=none]{ctexbeamer}
+\usepackage{amsmath,amssymb,bm,mathtools,lmodern}
+\usepackage{booktabs,tabularx,array}
+\usepackage{tikz,pgfplots}
+\usepackage[most]{tcolorbox}
+\usepackage{listings}
+\usetikzlibrary{arrows.meta,positioning,calc,decorations.pathreplacing,shapes.geometric}
+\pgfplotsset{compat=1.18}
 
-% ==== Theme & basic look ====
-\usetheme{Madrid}
-\usecolortheme{seahorse}
-\setbeamertemplate{navigation symbols}{}
-\setbeamertemplate{footline}[frame number]
 
-% ==== Packages ====
-\usepackage[T1]{fontenc}
-\usepackage[utf8]{inputenc}
-\usepackage{amsmath, amssymb}
-\usepackage{lmodern}
-\usepackage{booktabs}
-\usepackage{graphicx}
-\usepackage{xcolor}
-\usepackage{adjustbox}
-\usepackage{tikz}
-\usetikzlibrary{arrows.meta,positioning,calc,fit,shadows}
-% scale all TikZ a bit smaller to avoid overflow
-\tikzset{every picture/.style={scale=0.9, transform shape}}
 
-% ==== Colors & helpers ====
-\definecolor{myblue}{RGB}{13,71,161}
-\definecolor{mygreen}{RGB}{27,94,32}
-\definecolor{myorange}{RGB}{230,81,0}
-\definecolor{myviolet}{RGB}{94,53,177}
-\definecolor{mygray}{RGB}{97,97,97}
-
-\newcommand{\placeholderfig}{% 
-  \begin{center}
-    \begin{adjustbox}{max size={\linewidth}{.65\textheight}}
-      \begin{tikzpicture}[x=1cm,y=1cm]
-        \draw[rounded corners, dash pattern=on 4pt off 2pt, line width=0.8pt, mygray] (0,0) rectangle (6,3.5);
-        \node[mygray] at (3,1.8) {Add your figure here};
-      \end{tikzpicture}%
-    \end{adjustbox}
-  \end{center}%
+\setbeameroption{hide notes}
+\usefonttheme{professionalfonts}
+\DeclareFontShape{OT1}{cmr}{bx}{n}{<->ssub*lmr/bx/n}{}
+\IfFontExistsTF{Noto Sans CJK SC}{
+  \setCJKsansfont{Noto Sans CJK SC}
+  \setCJKmainfont{Noto Sans CJK SC}
+  \setCJKmonofont{Noto Sans CJK SC}
+}{
+  \setCJKsansfont{FandolHei-Regular}[BoldFont=FandolHei-Bold]
+  \setCJKmainfont{FandolSong-Regular}[BoldFont=FandolSong-Bold]
+  \setCJKmonofont{FandolFang-Regular}
 }
+\setsansfont{lmsans10-regular.otf}[BoldFont=lmsans10-bold.otf,ItalicFont=lmsans10-oblique.otf,BoldItalicFont=lmsans10-boldoblique.otf]
+\setmonofont{lmmono10-regular.otf}[ItalicFont=lmmono10-italic.otf]
 
-% Small checkmark and cross
-\newcommand{\cmark}{\textcolor{mygreen}{\ensuremath{\checkmark}}}
-\newcommand{\xmark}{\textcolor{red}{\ensuremath{\times}}}
+% Edit these metadata fields for future offerings.
+\newcommand{\CourseName}{高性能计算与人工智能应用}
+\newcommand{\LectureTitle}{从数学走近生成式人工智能}
+\newcommand{\TeacherName}{胡丕丕}
+\newcommand{\CourseTerm}{2026 年秋季}
+\newcommand{\SchoolName}{清华大学求真书院}
 
-% Title page details:   
-\title[Large Foundation models]{Large Foundation Models: Mathematics, Algorithms, and Applications
-}  
-\author{Pipi Hu}  
-\institute[BIMSA]{Beijing Institute of Mathematical Sciences and Applications}  
-\date{\today}  
-
-\pgfdeclareimage[width=2cm]{logo}{../figures/logo.png}
-\logo{\pgfuseimage{logo}{\vspace{-6pt}}}
+\definecolor{ink}{HTML}{182231}
+\definecolor{accent}{HTML}{6B4095}
+\definecolor{muted}{HTML}{667085}
+\definecolor{paper}{HTML}{F4F2F8}
+\definecolor{linegray}{HTML}{DFE3E8}
+\definecolor{softblue}{HTML}{EDF3F6}
+\setbeamercolor{normal text}{fg=ink,bg=white}
+\setbeamercolor{structure}{fg=accent}
+\setbeamercolor{frametitle}{fg=ink,bg=white}
+\setbeamercolor{alerted text}{fg=accent}
+\setbeamercolor{block title}{fg=accent,bg=paper}
+\setbeamercolor{block body}{fg=ink,bg=paper}
+\setbeamerfont{normal text}{size=\normalsize}
+\setbeamerfont{frametitle}{size=\fontsize{18}{22}\selectfont,series=\bfseries}
+\setbeamerfont{block title}{size=\normalsize,series=\bfseries}
+\setbeamersize{text margin left=0.72cm,text margin right=0.72cm}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{headline}{}
+\setbeamertemplate{frametitle}{
+  \vspace{0.18cm}
+  {\fontsize{6.7}{8}\selectfont\color{accent}\bfseries MATH ON AI\hspace{0.2cm}\textcolor{muted}{/\hspace{0.15cm}\insertsectionhead}\par}
+  \vspace{0.12cm}
+  \insertframetitle\par
+  \vspace{0.12cm}
+  {\color{linegray}\hrule height 0.4pt}
+}
+% Reserve a clear strip for the logo; no footer text or page numbers.
+\setbeamertemplate{footline}{\vspace{0.5cm}}
+\AddToHook{shipout/foreground}{%
+  \begin{tikzpicture}[remember picture,overlay]
+    \node[anchor=south east,inner sep=0pt]
+      at ($(current page.south east)+(-0.2cm,0.12cm)$)
+      {\includegraphics[width=0.95cm]{../figures/logo.png}};
+  \end{tikzpicture}%
+}
+\setlength{\parskip}{0.30em}
+\setlength{\abovedisplayskip}{0.45em}
+\setlength{\belowdisplayskip}{0.45em}
+\setlength{\abovedisplayshortskip}{0.30em}
+\setlength{\belowdisplayshortskip}{0.30em}
+\renewcommand{\arraystretch}{1.3}
+\newcommand{\E}{\mathbb E}
+\newcommand{\R}{\mathbb R}
+\newcommand{\KL}{\operatorname{KL}}
+\newcommand{\pdata}{p_{\mathrm{data}}}
+\newcommand{\N}{\mathcal N}
+\newcommand{\given}{\,\vert\,}
+\newcommand{\head}[1]{{\color{accent}\bfseries #1}\par\vspace{0.07cm}}
+\newcommand{\mutedtext}[1]{{\small\color{muted}#1}}
+\newcommand{\takeaway}[1]{\begin{tcolorbox}[enhanced,colback=paper,colframe=paper,boxrule=0pt,arc=1.5mm,left=2.5mm,right=2.5mm,top=1.7mm,bottom=1.7mm,before skip=2mm,after skip=1mm]\small #1\end{tcolorbox}}
+\newcommand{\source}[1]{\vfill{\fontsize{6.3}{7.8}\selectfont\color{muted}#1\par}}
+\newcommand{\refpaper}[3]{\href{#3}{#1. \textit{#2}.}}
+\tikzset{
+  box/.style={draw=linegray,fill=paper,rounded corners=2pt,align=center,inner sep=6pt},
+  plainbox/.style={draw=linegray,rounded corners=2pt,align=center,inner sep=6pt},
+  arr/.style={-{Stealth[length=2mm]},thick,draw=accent},
+  lab/.style={font=\scriptsize,text=muted,align=center}
+}
+\pgfplotsset{lecture axis/.style={
+  axis lines=left, tick label style={font=\scriptsize},label style={font=\scriptsize},
+  legend style={font=\scriptsize,draw=none,fill=none},
+  title style={font=\small}, grid=none,
+  every axis plot/.append style={thick,mark=none},
+  scaled ticks=false,
+}}
+\lstset{language=Python,basicstyle=\ttfamily\fontsize{8.2}{11}\selectfont,
+  keywordstyle={},commentstyle=\itshape,showstringspaces=false,
+  frame=none,columns=fullflexible,keepspaces=true,breaklines=true,tabsize=4}
+\hypersetup{colorlinks=true,linkcolor=accent,urlcolor=accent,pdftitle={\CourseName：课程导论},pdfauthor={\TeacherName},pdfsubject={Math on AI — generative models, probability, dynamics and computation}}
 
 \begin{document}
 
-% ---------------- Title Page ----------------
-\begin{frame}
-  \titlepage
+% =============================================================
+% 01 — Opening (roughly 10–12 minutes, adjustable).
+% =============================================================
+\section{课程导论}
+\begin{frame}[plain]
+\begin{tikzpicture}[remember picture,overlay]
+  \fill[paper] ($(current page.north east)+(-5.0cm,0)$) rectangle (current page.south east);
+  \fill[accent] ($(current page.north west)+(0.72cm,-0.55cm)$) rectangle ++(0.65cm,-0.08cm);
+  \foreach \i in {0,...,10}{
+    \draw[accent,opacity=0.13,line width=0.6pt]
+      ($(current page.south east)+(-5.1cm,{1.1cm+0.46cm*\i})$)
+      .. controls ($(current page.south east)+(-3.3cm,{2.0cm+0.17cm*\i})$)
+      and ($(current page.south east)+(-2.8cm,{0.7cm+0.57cm*\i})$)
+      .. ($(current page.south east)+(-0.4cm,{1.2cm+0.45cm*\i})$);
+  }
+  \node[anchor=north east,align=left,text=accent,font=\fontsize{25}{31}\selectfont]
+    at ($(current page.north east)+(-0.7cm,-1.8cm)$) {$p_\theta(x)$\\[0.65cm]$\mathrm dX_t$\\[0.65cm]$\nabla_\theta\mathcal L$};
+\end{tikzpicture}\par
+\vspace{0.5cm}
+{\fontsize{9}{12}\selectfont\color{accent}\bfseries \SchoolName\quad /\quad \CourseTerm\par}
+\vspace{0.35cm}
+{\fontsize{12}{16}\selectfont\CourseName\par}
+\vspace{0.24cm}
+{\fontsize{22}{27}\selectfont\color{accent}\bfseries Math on AI\par}
+\vspace{0.12cm}
+{\fontsize{25}{33}\selectfont\bfseries 从数学走近\\生成式人工智能\par}
+\vspace{0.34cm}
+{\fontsize{12}{16}\selectfont\color{muted}第零讲\quad 课程导论\par}
+\vspace{0.35cm}
+{\large \TeacherName}
+\vspace{0.17cm}
+
+{\small\color{muted}概率\quad$\times$\quad 动力学\quad$\times$\quad 计算}
+\note{开场介绍课程目标：理解大模型的数学原理，并实现和检验相应算法。Math on AI 表示本课的教学视角。}
 \end{frame}
 
-% ---- Learning Objectives ----
-\begin{frame}{Learning Objectives}
-\small
-By the end of this course you will be able to:
+% 02
+\begin{frame}{课程信息与学习目标}
+\head{上课时间与地点}
+第1--16周星期四第2节\qquad 清华大学六教6B404\par
+\vspace{0.20cm}
+\head{\CourseName}
 \begin{itemize}
-  \item Explain what it means to learn a data distribution $p_\theta(\mathbf{x})$ or a conditional $p_\theta(\mathbf{x}\mid\mathbf{c})$.
-  \item Compare the five major families: Autoregressive, VAE, GAN, Normalizing Flows, Diffusion/Flow Matching.
-  \item Relate their training objectives to a unifying divergence/likelihood view.
-  \item Distinguish training vs. sampling costs and typical latency/quality trade-offs.
-  \item Choose an appropriate model family for a task, and see how world models connect to these tools.
-  \item Understanding how the reinforcement learning works.
-  \item Construct your own Models.
+  \item 从概率分布、目标函数和采样算法三个层面理解生成模型。
+  \item 比较不同模型的数学构造、表达约束与训练和生成成本。
+  \item 从头实现小模型，用推导、反例和对照实验解释结果。
+  \item 理解生成建模与世界模型、强化学习、推理、智能体和科学应用的联系。
 \end{itemize}
+\takeaway{本讲介绍课程内容与生成模型的基本思路，后续课程展开推导和实践。}
 \end{frame}
 
-% ---------------- Agenda ----------------
-\begin{frame}{Agenda}
-  \tableofcontents
+\begin{frame}{欢迎：希望大家学得开心，也学得扎实}
+\begin{minipage}{0.91\linewidth}
+\large 首先欢迎各位同学选修这门课。希望一个学期以后，大家能理解大模型的工作原理，了解它的适用条件与局限。
+
+\vspace{0.32cm}
+\normalsize 我本人也是清华的数学博士。这门课会尽量从数学人熟悉的语言出发，把抽象概念与模型、代码和实验连接起来。
+
+\vspace{0.18cm}
+这是一个仍在快速发展的领域。我们可以一起推导、一起实验，也可以对同一个问题持有不同看法。
+\end{minipage}
+\vspace{0.20cm}
+\takeaway{\textbf{欢迎有依据的不同意见。}你不需要因为与老师看法不同，而担心成绩。}
+\note{鼓励学生讨论论文和课堂观点，给出推导、反例或实验。平时成绩和课程大作业各占一半，详见考核方式页。}
 \end{frame}
 
-% ---- New Prologue slide inserted here ----
-\begin{frame}{Preliminary: The Bitter Lesson (Sutton)}
-\small
-\textbf{Thesis.} Hand-crafted domain knowledge scales poorly; progress comes from \textit{general-purpose} methods that learn directly from data with lots of compute. Design \textbf{mathematical learning algorithms} so models \textit{acquire} the distribution, rather than hard-coding it.
+% 03
+\begin{frame}{从一次亲历的转折，开始这门课}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.59\textwidth}
+\head{2022 年前后：从研究模型到日常工具}
+我在微软研究院工作时，近距离感受了从 GPT-3.5 系列到 ChatGPT 的这一转折。此前主要出现在研究讨论中的能力，开始以对话的方式进入更多人的日常工作。
 
-\vspace{0.35em}
-\textbf{Implications for deep generative modeling}
-\begin{itemize}
-  \item Prefer scalable objectives: maximize $\log p_\theta(\mathbf{x})$ or minimize a divergence $D( p_{\text{data}} \Vert p_\theta )$; use variational bounds/score objectives.
-  \item Use generic, data-driven representations (Transformers, CNNs, U-Nets, invertible nets) \textit{+} self-supervision.
-  \item Scale data/compute; reduce bespoke heuristics and narrow domain rules (\xmark \; brittle, hard to scale).
-\end{itemize}
-
-\vspace{0.35em}
-\begin{center}
-\begin{adjustbox}{max size={\linewidth}{.45\textheight}}
-  \begin{tikzpicture}[node distance=1.4cm]
-    \tikzstyle{box}=[draw, rounded corners, minimum width=2.2cm, minimum height=0.9cm, align=center]
-    \node[box, fill=myblue!10] (data) {\textbf{Data} $p_{\text{data}}$};
-    \node[box, right=1.8cm of data, fill=myviolet!10] (model) {Generic model $p_\theta$};
-    \node[box, right=1.8cm of model, fill=mygreen!10] (learn) {Learning objective\\$\max_\theta \; \mathbb{E}[\log p_\theta(\mathbf{x})]$\\ or score/flow matching};
-    \draw[-{Latex}] (data) -- (model);
-    \draw[-{Latex}] (model) -- (learn);
-    \node[below=1.1cm of model, box, fill=gray!15] (rules) {Hand-crafted rules\ (domain heuristics) \xmark};
-    \draw[-{Latex}, dashed] (rules.north) -- (model.south);
-  \end{tikzpicture}
-\end{adjustbox}
-\end{center}
-
-\end{frame}
-
-% ================= Section ==================
-\section{What is Generative Modeling?}
-
-\begin{frame}{Definition and Why It Matters}
-Generative models learn a distribution $p(\mathbf{x})$ (or $p(\mathbf{x}\,|\,\mathbf{c})$) over complex data (images, text, audio, video, 3D, proteins), enabling:
-\begin{itemize}
-  \item \textbf{Synthesis} (sample new $\mathbf{x}$), \textbf{imputation}, \textbf{editing}, \textbf{control}, \textbf{compression}.
-  \item As world-model primitives for \textbf{simulation}, \textbf{planning}, \textbf{data augmentation}.
-\end{itemize}
-\vspace{0.5em}
-Two big families of objectives:
-\begin{enumerate}
-  \item \textbf{Likelihood/variational} training (maximize $\log p_\theta(\mathbf{x})$ or its bound).
-  \item \textbf{Adversarial/implicit} training (match data distribution without tractable likelihood).
-\end{enumerate}
-\end{frame}
-
-% ---- Notation & Setup ----
-\begin{frame}{Notation \& Setup}
-\small
-\begin{itemize}
-  \item Data: $\mathcal{D}=\{\mathbf{x}^{(i)},\mathbf{c}^{(i)}\}_{i=1}^N$, variables may be continuous \emph{or} discrete.
-  \item Parameters: $\theta$; latent variables (when present): $\mathbf{z}$; tokenizer/codebook: $\mathcal{Z}$.
-  \item Objectives: maximize $\log p_\theta$, minimize divergence $D( p_{\text{data}} \Vert p_\theta )$, or match a transport/flow.
-  \item Inference artifacts: decoders, samplers, inverse maps; report both \textit{train cost} and \textit{sample latency}.
-\end{itemize}
-\end{frame}
-
-% ---- Unifying View ----
-\begin{frame}{A Unifying Objective View}
-\begin{table}
-\centering
-\begin{tabular}{@{}l l@{}}
-\toprule
-Family & Canonical objective (sketch) \\
-\midrule
-Autoregressive & $\max_\theta \sum_i \log p_\theta(x_i \mid x_{<i})$ (exact NLL) \\
-VAE & ELBO: $\mathbb{E}_{q_\phi}[\log p_\theta(\mathbf{x}\mid\mathbf{z})]-\mathrm{KL}[q_\phi(\mathbf{z}\mid\mathbf{x})\Vert p(\mathbf{z})]$ \\
-GAN & $\min_G \max_D$ JS/$f$-divergence matching (implicit likelihood) \\
-Flows & $\log p_\theta(\mathbf{x})=\log p(\mathbf{z})+\log \lvert \det \partial f/\partial \mathbf{x} \rvert$ \\
-Diffusion/Score & Denoising/score matching; flow/consistency matching \\
-\bottomrule
-\end{tabular}
-\end{table}
-\vspace{2em}
-\textbf{Takeaway:} same destination (match $p_\theta$ to data), different parameterizations and training signals.
-\end{frame}
-
-% ---- Training vs Sampling ----
-\begin{frame}{Training vs. Sampling Pipelines}
-\small
-\begin{itemize}
-  \item \textbf{Autoregressive:} train once (teacher forcing); sample sequentially (slow, exact likelihood).
-  \item \textbf{Diffusion:} train denoiser/score; sample iteratively (few-step via distillation/consistency/flow matching).
-  \item \textbf{Flows:} train invertible map; sample in one inverse pass (exact likelihood).
-  \item \textbf{VAE:} train encoder/decoder; sample via prior $p(\mathbf{z})$ and decode.
-  \item \textbf{GAN:} min-max training; fast single-pass sampling.
-\end{itemize}
-\centering
-\begin{adjustbox}{max size={\linewidth}{.45\textheight}}
-  \begin{tikzpicture}[node distance=1.3cm]
-    \tikzstyle{b}=[draw, rounded corners, minimum width=2.2cm, minimum height=0.9cm, align=center]
-    \node[b, fill=myblue!10] (obj) {Objective};
-    \node[b, right=1.8cm of obj, fill=myviolet!10] (train) {Training};
-    \node[b, right=1.8cm of train, fill=mygreen!10] (artifact) {Model Artifact};
-    \node[b, right=1.8cm of artifact, fill=myorange!10] (sample) {Sampler/Latency};
-    \draw[-{Latex}] (obj) -- (train);
-    \draw[-{Latex}] (train) -- (artifact);
-    \draw[-{Latex}] (artifact) -- (sample);
-  \end{tikzpicture}
-\end{adjustbox}
-\end{frame}
-
-\begin{frame}{A Landscape View}
-\centering
-\begin{adjustbox}{max size={\linewidth}{.70\textheight}}\begin{tikzpicture}[node distance=1.0cm, every node/.style={font=\small}]
-  % Axes
-  \draw[->,thick] (0,0) -- (10,0) node[below right]{\footnotesize Sampling quality/realism $\rightarrow$};
-  \draw[->,thick] (0,0) -- (0,5) node[above left]{\footnotesize Likelihood tractability $\uparrow$};
-
-  % Buckets
-  \node[draw, rounded corners, fill=myblue!10, align=center, minimum width=2.5cm, minimum height=0.9cm] (AR) at (2.0,4.2) {Autoregressive\\(PixelCNN, Transformer)};
-  \node[draw, rounded corners, fill=myviolet!10, align=center, minimum width=2.5cm, minimum height=0.9cm] (VAE) at (4.2,3.9) {VAE/Hier. VAE};
-  \node[draw, rounded corners, fill=myorange!10, align=center, minimum width=2.5cm, minimum height=0.9cm] (FLOW) at (6.0,3.8) {Normalizing\\Flows};
-  \node[draw, rounded corners, fill=mygreen!10, align=center, minimum width=2.5cm, minimum height=0.9cm] (DIFF) at (8.2,2.7) {Diffusion/Score\\(DDPM, LDM, FM)};
-  \node[draw, rounded corners, fill=gray!15, align=center, minimum width=2.5cm, minimum height=0.9cm] (GAN) at (6.5,1.1) {GAN/Consistency\\(implicit)};
-
-  % Labels
-  \node at (2.0,4.9) {\footnotesize exact factorizations};
-  \node at (8.5,0.4) {\footnotesize often best visuals at scale};
-\end{tikzpicture}\end{adjustbox}
-\end{frame}
-
-% ================= Section ==================
-\section{Autoregressive (AR) Models}
-
-\begin{frame}{Auto regressive modeling}
-\textbf{Factorization:}
-\begin{equation*}
-  p(\mathbf{x}) = \prod_{i=1}^{D} p\big(x_i\mid x_{<i}\big), \quad \text{with an order over dimensions/tokens.}
-\end{equation*}
-\vspace{-0.3em}
-\begin{itemize}
-  \item Image: raster-scan pixels (PixelRNN/CNN); Text/Code: token-by-token (Transformers);
-  \item Audio: next-sample prediction (WaveNet); Vision tokens via VQ-VAE + Transformer.
-\end{itemize}
-\vspace{0.5em}
-\textbf{Training:} teacher forcing, \textbf{objective} $\sum_i \log p_\theta(x_i\mid x_{<i})$.
-\end{frame}
-
-\begin{frame}{Tiny Graphical Intuition}
-\centering
-\begin{adjustbox}{max size={\linewidth}{.70\textheight}}\begin{tikzpicture}[node distance=0.8cm]
-  \tikzstyle{var}=[circle, draw, minimum size=6mm, font=\small]
-  \node[var] (x1) {$x_1$};
-  \node[var, right=of x1] (x2) {$x_2$};
-  \node[var, right=of x2] (x3) {$x_3$};
-  \node[var, right=of x3] (x4) {$x_4$};
-  \draw[-{Latex}] (x1) -- (x2);
-  \draw[-{Latex}] (x2) -- (x3);
-  \draw[-{Latex}] (x3) -- (x4);
-  \node[below=0.7cm of x2, align=center] {Left-to-right factorization\\and teacher forcing};
-\end{tikzpicture}\end{adjustbox}
-\vspace{0.7em}
-\begin{itemize}
-  \item \textbf{Pros:} exact likelihood, strong modeling of local dependencies, state-of-the-art in text/code.
-  \item \textbf{Cons:} slow sampling (sequential), exposure bias; 2D structure needs careful ordering.
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Masked vs. AR, and Speed-ups}
-\begin{itemize}
-  \item \textbf{Masked language modeling (MLM)} learns to fill blanks; not strictly AR but can be combined (e.g., \emph{prefix-decoding}, parallel decoding with iterative refinement).
-  \item \textbf{Parallel/Speculative decoding, KV caching, medusa heads} reduce latency.
-  \item \textbf{Discretization pipelines:} VQ-VAE/tokenizers + AR over tokens for images/audio/video.
-\end{itemize}
-\end{frame}
-
-% ================= Section ==================
-\section{Variational Autoencoders (VAE)}
-
-\begin{frame}{VAE: Idea and Objective}
-\centering
-\begin{adjustbox}{max size={\linewidth}{.50\textheight}}
-  \begin{tikzpicture}[node distance=1.0cm]
-    \tikzstyle{box}=[draw, rounded corners, minimum width=1.6cm, minimum height=0.9cm, align=center]
-    \node[box, fill=myblue!15] (x) {$\mathbf{x}$};
-    \node[box, right=1.6cm of x, fill=myviolet!15] (enc) {Encoder\\$q_\phi(\mathbf{z}|\mathbf{x})$};
-    \node[box, right=1.6cm of enc, fill=myviolet!15] (z) {$\mathbf{z}$};
-    \node[box, right=1.6cm of z, fill=myblue!15] (dec) {Decoder\\$p_\theta(\mathbf{x}|\mathbf{z})$};
-    \draw[-{Latex}] (x) -- (enc);
-    \draw[-{Latex}] (enc) -- (z);
-    \draw[-{Latex}] (z) -- (dec);
-  \end{tikzpicture}
-\end{adjustbox}
-
-\vspace{0.6em}
-\begin{columns}[T]
-  \begin{column}{0.98\linewidth}
-    \textbf{Encoder--Decoder with latent $\mathbf{z}$}
-    \begin{equation*}
-      \log p_\theta(\mathbf{x}) \ge \underbrace{\mathbb{E}_{q_\phi(\mathbf{z}|\mathbf{x})}[\log p_\theta(\mathbf{x}|\mathbf{z})]}_{\text{reconstruction}} - \underbrace{\mathrm{KL}\big(q_\phi(\mathbf{z}|\mathbf{x})\,\Vert\,p(\mathbf{z})\big)}_{\text{regularization}}
-    \end{equation*}
-  \end{column}
+\vspace{0.15cm}
+\head{这段经历带来的问题}
+为什么一个统计学习系统，能够展现出超出单个训练任务直观描述的行为？这些行为可以怎样解释和验证？从专有模型到大模型。
+\end{column}
+\begin{column}{0.35\textwidth}
+\begin{tcolorbox}[colback=paper,colframe=paper,boxrule=0pt,arc=2mm,left=3mm,right=3mm,top=4mm,bottom=4mm]
+{\fontsize{23}{28}\selectfont\color{accent}\bfseries 2022.11.30}\par
+\vspace{0.14cm}
+ChatGPT 公开发布\par
+\vspace{0.20cm}
+\small 原始版本基于 GPT-3.5 系列模型微调，并采用人类反馈强化学习等训练环节。
+\end{tcolorbox}
+\end{column}
 \end{columns}
-\vspace{0.3em}
-\textbf{Notes:} hierarchical VAEs, \emph{\!\!$\beta$\!-VAE}, vector-quantized VAEs (VQ-VAE), diffusion/AR decoders.
+\takeaway{这门课重点介绍大模型背后的\textbf{数学原理与研究方法}。}
+\source{历史信息：OpenAI, \href{https://openai.com/index/chatgpt/}{Introducing ChatGPT}, 2022-11-30。}
+\note{可补充本人在微软研究院的实际经历。历史日期和训练方法见所列来源，模型行为的解释留作课程讨论。}
 \end{frame}
 
-% ================= Section ==================
-\section{GANs (Implicit Models)}
+% 04
+\begin{frame}{Math on AI：用数学理解模型}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.31\textwidth}
+\head{把现象变成问题}
+从“模型生成得不好”，变成：目标函数不合适，还是采样过程有偏差？
 
-\begin{frame}{GANs: Adversarial Training}
-\begin{equation*}
-  \min_G \max_D \; \mathbb{E}_{\mathbf{x}\sim p_{\text{data}}}[\log D(\mathbf{x})] + \mathbb{E}_{\mathbf{z}\sim p(\mathbf{z})}[\log (1 - D(G(\mathbf{z})))]
-\end{equation*}
-\begin{itemize}
-  \item \textbf{Pros:} often sharp, realistic samples; once trained, fast sampling.
-  \item \textbf{Cons:} no tractable likelihood; training instabilities; mode collapse; harder conditioning.
-\end{itemize}
+\vspace{0.18cm}
+{\Large\color{accent}$\text{现象}\to\text{问题}$}
+\end{column}
+\begin{column}{0.31\textwidth}
+\head{把结构变成算法}
+用条件概率、变分原理与随机过程，理解模型到底在学习什么。
+
+\vspace{0.18cm}
+{\Large\color{accent}$\text{结构}\to\text{算法}$}
+\end{column}
+\begin{column}{0.31\textwidth}
+\head{分析实验结果}
+推导之外，还要做对照、找反例、测误差，并记录计算代价。
+
+\vspace{0.18cm}
+{\Large\color{accent}$\text{结果}\to\text{证据}$}
+\end{column}
+\end{columns}
+\vspace{0.34cm}
+\takeaway{数学帮助我们表述问题、构造算法和分析结果。}
+\note{结合学生的数学基础讲解。数学表达影响算法实现，工程测量也能检验简化假设；AI 可辅助推导和实现。}
 \end{frame}
 
-% ================= Section ==================
-\section{Normalizing Flows}
+% 05
+\begin{frame}{今天，我们沿着三个问题前进}
+\begin{tikzpicture}
+\node[box,text width=3.5cm,minimum height=2.65cm] (a) at (0,0) {\centering\textcolor{accent}{\large\bfseries 01}\par\vspace{0.12cm}\textbf{生成模型\\在学什么？}\par\small 从一个数，到一个分布};
+\node[box,text width=3.5cm,minimum height=2.65cm,right=0.5cm of a] (b) {\centering\textcolor{accent}{\large\bfseries 02}\par\vspace{0.12cm}\textbf{怎样从随机性\\生成数据？}\par\small 概率结构与动力学};
+\node[box,text width=3.5cm,minimum height=2.65cm,right=0.5cm of b] (c) {\centering\textcolor{accent}{\large\bfseries 03}\par\vspace{0.12cm}\textbf{怎样知道它\\真的有效？}\par\small 代码、误差与计算成本};
+\draw[arr] (a)--(b);\draw[arr] (b)--(c);
+\end{tikzpicture}\par
+\vspace{0.46cm}
+今天概览七类生成模型，并用双峰分布说明训练与采样的基本过程。详细推导将在后续课程展开。
+\note{建议本讲按约 90 分钟组织，实际速度可以调整。今天的成功标准是学生能够区分分布与点预测、训练与采样，并理解至少一种从噪声到数据的机制。可先请学生用一句话说出自己希望这门课回答的问题。}
+\end{frame}
 
-\begin{frame}{Normalizing Flows: Invertible Transformations}
-\centering
-\begin{adjustbox}{max size={\linewidth}{.50\textheight}}
-  \begin{tikzpicture}[node distance=1.1cm]
-    \tikzstyle{box}=[draw, rounded corners, minimum width=1.8cm, minimum height=0.9cm, align=center]
-    \node[box, fill=myblue!15] (x) {$\mathbf{x}$};
-    \node[box, right=1.6cm of x, fill=myorange!15] (f) {$f_\theta$\\invertible};
-    \node[box, right=1.6cm of f, fill=myblue!15] (z) {$\mathbf{z}\sim p(\mathbf{z})$};
-    \draw[-{Latex}] (x) -- (f);
-    \draw[-{Latex}] (f) -- (z);
-    \draw[-{Latex}, dashed] (z.south) .. controls +(0,-1.0) and +(0,-1.0) .. (x.south)
-      node[midway, below] {sample via $f_\theta^{-1}$};
-  \end{tikzpicture}
-\end{adjustbox}
+% =============================================================
+\section{苦涩的教训：全文共读}
+% User-supplied Chinese text; verbatim except pagination and paragraph wrapping.
+\begin{frame}[t]{苦涩的教训（1/13）}
+\relax
+{\small\color{accent}Rich Sutton\quad 2019 年 3 月 13 日}\par
+\vspace{0.22cm}
+\begingroup
+\fontsize{12}{20}\selectfont
+从过去七十年的人工智能研究中，我们能够读出的最大教训是：那些能够利用计算规模的一般方法，最终才是最有效的方法，而且优势极其显著。其根本原因在于摩尔定律，或者更准确地说，是计算单位成本持续指数级下降这一更一般的趋势。大多数人工智能研究一直好像默认智能体可用的计算量是固定不变的；在这种假设下，利用人类知识几乎就成了提升性能的唯一办法。然而，只要时间尺度稍微拉长到超过一个典型研究项目的周期，就会不可避免地出现数量级更大的计算资源。
+\par\endgroup
+\end{frame}
 
-\vspace{0.55em}
-\textbf{Log-likelihood}
+\begin{frame}[t]{苦涩的教训（2/13）}
+\relax
+{\small\color{accent}Rich Sutton\quad 2019 年 3 月 13 日}\par
+\vspace{0.22cm}
+\begingroup
+\fontsize{12}{20}\selectfont
+研究者为了追求短期内可见的改进，往往试图利用自己对于领域的理解；但从长期来看，唯一真正重要的是对计算能力的利用。二者在原则上并不必然冲突，但在实践中却常常相互牵制。花在一种路线上的时间，就是没有花在另一种路线上的时间。研究者也会在心理上投入并固守某一种路线。更重要的是，基于人类知识的方法往往会把系统弄得更复杂，从而使其更不适合利用那些能够随计算规模扩展的一般方法。人工智能研究者迟迟才学会这一苦涩教训的例子有很多，回顾其中一些最突出的案例，是很有启发意义的。
+\par\endgroup
+\end{frame}
+
+\begin{frame}[t]{苦涩的教训（3/13）}
+\relax
+{\small\color{accent}Rich Sutton\quad 2019 年 3 月 13 日}\par
+\vspace{0.22cm}
+\begingroup
+\fontsize{12}{20}\selectfont
+在计算机国际象棋中，1997 年击败世界冠军卡斯帕罗夫的方法，是建立在大规模、深度搜索之上的。当时，绝大多数计算机象棋研究者都长期致力于利用人类对国际象棋特殊结构的理解，因此他们对此感到失望。当一种更简单的、基于搜索的方法，借助专门的硬件和软件，证明远比那些方法有效时，这些依赖人类知识的象棋研究者并不是体面的失败者。他们说，“暴力”搜索这次也许赢了，但它不是一种通用策略，而且无论如何，这也不是人类下棋的方式。这些研究者希望基于人类输入的方法获胜，而当它们没有获胜时，他们感到失望。
+\par\endgroup
+\end{frame}
+
+\begin{frame}[t]{苦涩的教训（4/13）}
+\relax
+{\small\color{accent}Rich Sutton\quad 2019 年 3 月 13 日}\par
+\vspace{0.22cm}
+\begingroup
+\fontsize{12}{20}\selectfont
+类似的研究进展模式也出现在计算机围棋中，只不过又晚了二十年。早期大量努力都投入到了避免搜索上，研究者试图利用人类知识，或者利用围棋这一游戏的特殊性质；但一旦搜索被有效地、大规模地应用，这些努力就显得无关紧要，甚至适得其反。同样重要的是，通过自我对弈学习价值函数的方法；这一点在许多其他游戏中也很重要，在国际象棋中也如此，尽管学习在 1997 年首次击败世界冠军的程序中并没有发挥主要作用。自我对弈学习，以及更一般意义上的学习，和搜索一样，都是把海量计算资源真正用起来的途径。
+\par\endgroup
+\end{frame}
+
+\begin{frame}[t]{苦涩的教训（5/13）}
+\relax
+{\small\color{accent}Rich Sutton\quad 2019 年 3 月 13 日}\par
+\vspace{0.22cm}
+\begingroup
+\fontsize{12}{20}\selectfont
+搜索和学习，是人工智能研究中利用大规模计算的两类最重要技术。在计算机围棋中，正如在计算机国际象棋中一样，研究者最初的努力都集中在利用人类理解上，也就是希望因此减少对搜索的依赖；而直到很久以后，当人们拥抱搜索和学习时，才取得了远大得多的成功。
+\par\endgroup
+\end{frame}
+
+\begin{frame}[t]{苦涩的教训（6/13）}
+\relax
+{\small\color{accent}Rich Sutton\quad 2019 年 3 月 13 日}\par
+\vspace{0.22cm}
+\begingroup
+\fontsize{12}{20}\selectfont
+在语音识别中，20 世纪 70 年代曾有一场由 DARPA 赞助的早期竞赛。参赛者包括大量特殊方法，它们试图利用人类知识，例如关于词语、音素、人类发声器官等方面的知识。另一边则是一些较新的、更偏统计性质的方法，它们基于隐马尔可夫模型，使用了更多计算。结果再一次是，统计方法战胜了基于人类知识的方法。这引发了自然语言处理领域的一场重大转向：在随后几十年中，统计和计算逐渐主导了整个领域。近年来深度学习在语音识别中的兴起，只是这一持续方向上的最新一步。
+\par\endgroup
+\end{frame}
+
+\begin{frame}[t]{苦涩的教训（7/13）}
+\relax
+{\small\color{accent}Rich Sutton\quad 2019 年 3 月 13 日}\par
+\vspace{0.22cm}
+\begingroup
+\fontsize{12}{20}\selectfont
+深度学习方法更少依赖人类知识，使用更多计算，并在巨大训练集上学习，从而产生了性能显著更好的语音识别系统。就像在游戏领域一样，研究者总是试图构造一种按照他们认为自己的头脑工作方式来运行的系统——他们试图把这种知识放进系统里。但从长远来看，当摩尔定律带来了大规模计算能力，并且人们找到了利用这些计算能力的方法后，这种做法最终被证明是适得其反的，也是对研究者时间的巨大浪费。
+\par\endgroup
+\end{frame}
+
+\begin{frame}[t]{苦涩的教训（8/13）}
+\relax
+{\small\color{accent}Rich Sutton\quad 2019 年 3 月 13 日}\par
+\vspace{0.22cm}
+\begingroup
+\fontsize{12}{20}\selectfont
+在计算机视觉中，也出现了相似的模式。早期方法把视觉理解为寻找边缘，或者寻找广义圆柱体，或者使用 SIFT 特征。但如今，这些东西基本都被抛弃了。现代深度学习神经网络只使用卷积以及某些类型的不变性概念，却取得了远好得多的效果。
+\par\endgroup
+\end{frame}
+
+\begin{frame}[t]{苦涩的教训（9/13）}
+\relax
+{\small\color{accent}Rich Sutton\quad 2019 年 3 月 13 日}\par
+\vspace{0.22cm}
+\begingroup
+\fontsize{12}{20}\selectfont
+这是一个重大的教训。作为一个领域，我们至今仍然没有彻底学会它，因为我们还在不断犯同一类错误。为了看清这一点，并有效抵抗这种倾向，我们必须理解这些错误为何如此有吸引力。我们必须学会这个苦涩的教训：把“我们以为自己如何思考”的方式内置到系统中，从长远来看是行不通的。
+\par\endgroup
+\end{frame}
+
+\begin{frame}[t]{苦涩的教训（10/13）}
+\relax
+{\small\color{accent}Rich Sutton\quad 2019 年 3 月 13 日}\par
+\vspace{0.22cm}
+\begingroup
+\fontsize{12}{20}\selectfont
+这个苦涩的教训基于如下历史观察：第一，人工智能研究者常常试图把知识直接构建进他们的智能体中；第二，这种做法在短期内总是有帮助的，而且会让研究者本人感到满足；第三，但从长期来看，它会达到平台期，甚至会阻碍进一步进步；第四，真正的突破最终来自相反的路线，也就是通过搜索和学习来扩展计算规模。最终的成功带着苦涩的意味，也常常没有被完全消化，因为这种成功是对一种备受偏爱的、以人为中心的方法的胜利。
+\par\endgroup
+\end{frame}
+
+\begin{frame}[t]{苦涩的教训（11/13）}
+\relax
+{\small\color{accent}Rich Sutton\quad 2019 年 3 月 13 日}\par
+\vspace{0.22cm}
+\begingroup
+\fontsize{12}{20}\selectfont
+我们应当从这个苦涩教训中学到的一点，是通用方法的巨大力量；也就是说，那些即使在可用计算量已经变得极其巨大时，仍能随着计算增加而继续扩展的方法，才真正强大。看起来能够以这种方式近乎任意扩展的两类方法，就是搜索和学习。
+\par\endgroup
+\end{frame}
+
+\begin{frame}[t]{苦涩的教训（12/13）}
+\relax
+{\small\color{accent}Rich Sutton\quad 2019 年 3 月 13 日}\par
+\vspace{0.22cm}
+\begingroup
+\fontsize{12}{20}\selectfont
+我们还应当从这个苦涩教训中学到第二个普遍要点：心智的实际内容极其复杂，而且无可救药地复杂。我们应该停止试图寻找一些简单方式来描述心智内容，例如关于空间、物体、多个智能体或对称性的简单观念。所有这些，都是任意而内在复杂的外部世界的一部分。它们不应该被直接内置进系统，因为它们的复杂性没有尽头；相反，我们应该内置的，只是那些能够发现并捕捉这种任意复杂性的元方法。这些方法的关键在于，它们能够找到良好的近似；但寻找这些近似的过程，应该由我们的方法来完成，而不是由我们亲自完成。
+\par\endgroup
+\end{frame}
+
+\begin{frame}[t]{苦涩的教训（13/13）}
+\relax
+{\small\color{accent}Rich Sutton\quad 2019 年 3 月 13 日}\par
+\vspace{0.22cm}
+\begingroup
+\fontsize{12}{20}\selectfont
+我们想要的是能够像我们一样发现的人工智能体，而不是只包含我们已经发现之物的人工智能体。把我们的发现直接内置进去，只会让我们更难看清发现过程本身究竟如何能够实现。
+\par\endgroup
+\end{frame}
+
+\begin{frame}{读完以后：把观点变成可以检验的问题}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.47\textwidth}
+\head{方法能否继续利用更多计算？}
+增加数据、训练或搜索预算后，误差怎样变化？性能提升是否达到平台？成本是否可承受？
+\vspace{0.16cm}
+\head{我们设计的是答案，还是发现答案的方法？}
+哪些结构帮助学习，哪些规则把系统限制在已有经验里？能否通过对照区分二者？
+\end{column}
+\begin{column}{0.47\textwidth}
+\head{怎样理解文中的强判断？}
+这是 Sutton 在 2019 年提出的历史论述与研究主张。具体任务仍须明确资源、数据与评价条件。
+\vspace{0.16cm}
+\head{数学在这里做什么？}
+定义目标、构造可扩展算法、分析误差，并设计能够推翻错误解释的实验。
+\end{column}
+\end{columns}
+\takeaway{\textbf{课堂讨论：}在相同预算下有效的方法，是否也最适合更大的预算？可以设计什么实验来比较？}
+\end{frame}
+
+\section{从一个数到一个分布}
+% 06
+\begin{frame}{一个小问题：最好的预测，为什么可能很不像数据？}
+\begin{columns}[c,onlytextwidth]
+\begin{column}{0.55\textwidth}
+\begin{tikzpicture}
+\begin{axis}[lecture axis,width=7.8cm,height=4.8cm,xmin=-4,xmax=4,ymin=0,ymax=0.85,xlabel={$x$},ylabel={概率密度},xtick={-2,0,2},ytick={0,0.3,0.6}]
+\addplot[domain=-4:4,samples=201] {0.5/(0.35*sqrt(2*pi))*(exp(-0.5*((x+2)/0.35)^2)+exp(-0.5*((x-2)/0.35)^2))};
+\addplot[dashed] coordinates {(0,0) (0,0.65)};
+\node[font=\small,anchor=south] at (axis cs:0,0.65) {$\E[X]=0$};
+\end{axis}
+\end{tikzpicture}\par
+\end{column}
+\begin{column}{0.42\textwidth}
+\head{数据来自两个峰}
+\small
 \[
-  \log p_\theta(\mathbf{x})=\log p(\mathbf{z})+
-  \log\left|\det \frac{\partial f_\theta(\mathbf{x})}{\partial \mathbf{x}}\right|,\quad
-  \mathbf{z}=f_\theta(\mathbf{x}).
+X\sim\tfrac12\N(-2,0.35^2)+\tfrac12\N(2,0.35^2).
 \]
-\textbf{Notes:} RealNVP/Glow (coupling), spline flows, CNFs/Neural ODEs.
+\normalsize
+如果只能输出一个数 $a$，并最小化
+\[
+\E\big[(X-a)^2\big],
+\]
+最优解是 $a=0$，却落在低密度区域。
+
+\textbf{课堂问题：}这是平方损失“错了”，还是我们问错了问题？
+\end{column}
+\end{columns}
+\source{本讲构造的合成分布；图中曲线由解析概率密度绘制。}
+\note{给学生 30–60 秒思考。均值是平方损失下最优的点预测，生成任务则要求恢复分布。这里比较概率密度；连续分布每个单点的概率均为零。}
 \end{frame}
 
-% ================= Section ==================
-\section{Diffusion / Score-based Models}
+% 07
+\begin{frame}{点预测与分布学习，回答的是不同的问题}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.46\textwidth}
+\head{点预测：给我一个决定}
+\[
+a^*(c)=\arg\min_a\E[\ell(a,X)\mid c].
+\]
+最优答案取决于损失。平方损失给条件均值，绝对值损失给条件中位数。
 
-\begin{frame}{Diffusion models: Forward and Reverse Processes}
-\centering
-\begin{adjustbox}{max size={\linewidth}{.50\textheight}}
-  \begin{tikzpicture}[node distance=0.9cm]
-    \tikzstyle{round}=[draw, circle, minimum size=7mm]
-    \node[round, fill=mygreen!15] (x0) {$\mathbf{x}_0$};
-    \node[round, right=0.9cm of x0] (x1) {$\mathbf{x}_1$};
-    \node[round, right=0.9cm of x1] (x2) {$\mathbf{x}_2$};
-    \node[round, right=0.9cm of x2] (xT) {$\mathbf{x}_T$};
-    \draw[-{Latex}] (x0) -- (x1) node[midway, above] {noise};
-    \draw[-{Latex}] (x1) -- (x2);
-    \draw[-{Latex}] (x2) -- (xT);
-    \draw[-{Latex}, thick, mygreen] (xT.south) .. controls +(0,-1.4) and +(0,-1.4) .. (x0.south)
-      node[midway, below] {learn reverse};
-  \end{tikzpicture}
-\end{adjustbox}
+\vspace{0.10cm}
+这很适合需要做单一决策的任务。
+\end{column}
+\begin{column}{0.46\textwidth}
+\head{生成建模：给我可能性的结构}
+\[
+p_\theta(x\mid c)\approx\pdata(x\mid c).
+\]
+我们关心哪些结果可能出现、概率如何分配，以及怎样从中抽样。
 
-\vspace{0.4em}
+\vspace{0.10cm}
+同一个条件，可以对应多个合理答案。
+\end{column}
+\end{columns}
+\vspace{0.28cm}
+\takeaway{生成模型不排斥预测。\textbf{学到分布之后，可以采样，也可以根据具体损失做决策。}}
+\note{c 可以是上下文、提示词、观测或设计目标。点预测与分布学习各有用途；科学反演等任务需要表达不确定性，并进一步检验校准程度与结果正确性。}
+\end{frame}
+
+% 08
+\begin{frame}{先把四件事分开：数据、模型、目标与采样}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.47\textwidth}
+\head{1\quad 数据：我们观测到了什么？}
+\[
+\mathcal D=\{x^{(1)},\ldots,x^{(n)}\},\qquad x^{(i)}\sim\pdata.
+\]
+\small $\pdata$ 未知；有限数据、测量方式和数据筛选都会限制我们能学到什么。
+
+\vspace{0.16cm}
+\head{2\quad 模型：我们允许什么分布？}
+\[
+\{p_\theta:\theta\in\Theta\}.
+\]
+\small 分布可以通过密度、条件概率或随机生成过程来定义。
+\end{column}
+\begin{column}{0.47\textwidth}
+\head{3\quad 目标：怎样从数据学参数？}
+\[
+\theta^*\approx\arg\min_\theta\widehat{\mathcal L}(\theta).
+\]
+\small 训练目标通常是可以估计、可以优化的代理目标。
+
+\vspace{0.16cm}
+\head{4\quad 采样：怎样生成样本？}
+\[
+\xi\sim p_{\mathrm{base}},\qquad \widehat X=S_\theta(\xi).
+\]
+\small 实际采样器可能只是理想模型的近似，额外误差由此出现。
+\end{column}
+\end{columns}
+\note{可在黑板上画四个框，将后面的模型逐一填入。有限数据是总体分布的样本；隐式模型通过生成过程定义分布。条件生成时，将 c 作为附加输入。}
+\end{frame}
+
+% 09
+\begin{frame}{最大似然：让数据在模型中“不那么意外”}
+\[
+\widehat{\mathcal L}_{\mathrm{NLL}}(\theta)
+=-\frac1n\sum_{i=1}^n\log p_\theta\big(x^{(i)}\big).
+\]
+\vspace{0.10cm}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.47\textwidth}
+\head{训练时：使用有限样本}
+提高观测样本的对数概率，同时依靠归一化、模型结构和优化过程约束概率怎样分配。
+
+\small 泛化性能需要在未见数据上评估。
+\end{column}
+\begin{column}{0.47\textwidth}
+\head{总体上：匹配真实分布}
+在密度、支持集与可积性条件满足时，
+\[
+\E_{\pdata}[-\log p_\theta(X)]
+\]
+\end{column}
+\end{columns}
+\takeaway{不同模型采用不同的训练方法来拟合数据分布。}
+\note{KL 恒等式用于总体密度。有限经验测度与连续密度的 KL 需要另行检查绝对连续条件。连续密度可大于 1，负对数密度也可以为负。首课可从离散情形讲起，严格说明见附录 A1。}
+\end{frame}
+
+% 10
+\begin{frame}{训练与生成：同一个模型，两种不同的计算过程}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.47\textwidth}
+\head{训练：已有数据，更新参数}
+\[
+\theta_{k+1}=\theta_k-\eta_k\widehat\nabla_\theta\mathcal L.
+\]
+输入包括真实样本与训练时构造的随机量。通过反向传播改变网络参数。
+
+\vspace{0.16cm}
+\mutedtext{问题：目标是什么？梯度怎样估计？能否稳定优化？}
+\end{column}
+\begin{column}{0.47\textwidth}
+\head{生成：参数固定，构造新样本}
+\[
+\xi\sim p_{\mathrm{base}},\qquad X=S_\theta(\xi).
+\]
+使用已训练网络，通过逐步预测、解码或求解动力学获得输出。
+
+\vspace{0.16cm}
+\mutedtext{问题：随机性从哪里来？采样误差多大？需要调用几次网络？}
+\end{column}
+\end{columns}
+\vspace{0.20cm}
+\takeaway{\textbf{训练更新参数，采样使用固定参数。}一次损失计算与完整的生成过程各有不同的计算成本。}
+\vspace{0.12cm}
+\begin{center}
+不同的方法，训练和生成（推理）效率不同。
+\end{center}
+\note{这是本课特别值得反复澄清的区别。流匹配训练可通过采样 t 直接监督某一时刻的速度，但生成要积分 ODE；扩散亦有相似区分。自回归模型训练可并行处理已知序列位置，而通常的祖先采样存在前缀依赖。}
+\end{frame}
+
+% 11
+\begin{frame}{Transformer：网络结构，本质是复杂的解析函数}
+\begin{tikzpicture}
+\node[box,text width=3.6cm,minimum height=1.35cm] (a) {\textbf{网络结构}\par\small Transformer / MLP / 其他架构};
+\node[box,text width=3.6cm,minimum height=1.35cm,right=0.46cm of a] (b) {\textbf{训练目标}\par\small 预测条件概率、噪声或速度};
+\node[box,text width=3.6cm,minimum height=1.35cm,right=0.46cm of b] (c) {\textbf{生成过程}\par\small 逐步采样、迭代去噪或积分};
+\draw[arr] (a)--(b);\draw[arr] (b)--(c);
+\end{tikzpicture}\par
+\vspace{0.30cm}
+同一种网络架构，可以参数化不同的数学对象。一个网络输出的向量，只有放进\textbf{损失函数和采样过程}后，才获得明确的概率意义。
+\[
+f_\theta(\text{输入})\quad\longrightarrow\quad
+\begin{cases}
+\text{分类 logits},\\
+\text{后验均值 / 噪声预测},\\
+\text{速度场 / 转移率参数}.
+\end{cases}
+\]
+\source{架构背景：Vaswani et al., \href{https://arxiv.org/abs/1706.03762}{Attention Is All You Need}, 2017。不同输出的具体意义取决于各模型定义。}
+\note{Transformer 可用于不同的概率模型。采用相同骨干的模型，其能力和效率仍取决于训练与采样方式。注意力的公式、维度和掩码见附录。}
+\end{frame}
+
+% =============================================================
+\section{七类生成模型：先建立地图}
+% 12
+\begin{frame}{七条路线：怎样把复杂分布变得可学习？}
 \small
-\textbf{Parameterizations \& losses}
-\begin{itemize}
-  \item \textbf{Noise ($\varepsilon$)-prediction}:
-  \[
-    \mathcal{L}_\varepsilon
-     = \mathbb{E}_{\mathbf{x}_0,t,\varepsilon}\!\left[
-       w_t\,\|\varepsilon-\varepsilon_\theta(\mathbf{x}_t,t)\|^2\right],\quad
-     \mathbf{x}_t=\sqrt{\bar\alpha_t}\,\mathbf{x}_0+\sqrt{1-\bar\alpha_t}\,\varepsilon.
-  \]
-  \item \textbf{$x_0$-prediction}:
-  \[
-    \mathcal{L}_{x_0}
-     = \mathbb{E}_{\mathbf{x}_0,t,\varepsilon}\!\left[
-       w_t\,\|\mathbf{x}_0-\hat{\mathbf{x}}_{0,\theta}(\mathbf{x}_t,t)\|^2\right],\quad
-     \varepsilon_\theta=\frac{\mathbf{x}_t-\sqrt{\bar\alpha_t}\,\hat{\mathbf{x}}_{0,\theta}}{\sqrt{1-\bar\alpha_t}}.
-  \]
-  \item \textbf{Score model (DSM)}:
-  \[
-    \mathcal{L}_\text{DSM}
-      = \mathbb{E}_{t,\mathbf{x}_0}\,
-        \mathbb{E}_{\mathbf{x}_t\sim q(\cdot\mid\mathbf{x}_0)}
-        \!\left[\lambda(t)\,\|s_\theta(\mathbf{x}_t,t)-\nabla_{\mathbf{x}_t}\log q(\mathbf{x}_t\mid\mathbf{x}_0)\|^2\right].
-  \]
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Flow Matching}
-  \small
-  Train a velocity field $\mathbf{v}_\theta(\mathbf{x},t)$ moving $p_0\to p_1$ by the ODE
-  \[
-    \frac{d\mathbf{x}}{dt}=\mathbf{v}_\theta(\mathbf{x},t),\quad
-    \mathbf{x}(0)\sim p_0,\ \mathbf{x}(1)\sim p_1\approx p_{\text{data}}.
-  \]
-  
-  \textbf{Loss (conditional flow matching)}
-  \[
-    \mathcal{L}_{\mathrm{CFM}}
-    = \mathbb{E}_{t\sim\mathcal{U}(0,1)}
-      \ \mathbb{E}_{\mathbf{x}_0\sim p_0,\ \mathbf{x}_1\sim p_1}
-      \ \mathbb{E}_{\mathbf{x}_t=(1-t)\mathbf{x}_0+t\mathbf{x}_1}
-      \Big[\ \|\mathbf{v}_\theta(\mathbf{x}_t,t)-(\mathbf{x}_1-\mathbf{x}_0)\|^2\ \Big].
-  \]
-  \textit{General path form} (with path density $\pi_t$ and target drift $\mathbf{u}_t$):
-  \[
-    \mathcal{L}
-    = \mathbb{E}_{t,\mathbf{x}_0,\mathbf{x}_1,\mathbf{x}_t\sim \pi_t(\cdot|\mathbf{x}_0,\mathbf{x}_1)}
-      \Big[\ \|\mathbf{v}_\theta(\mathbf{x}_t,t)-\mathbf{u}_t(\mathbf{x}_0,\mathbf{x}_1,t)\|^2\ \Big].
-  \]
-  
-  \textbf{Perks:} simple targets; few-step sampling; latent-friendly.
-  \end{frame}
-
-% ================= Section ==================
-\section{Modern Hybrids and Trends}
-
-\begin{frame}{Converging Lines}
-\begin{itemize}
-  \item \textbf{Tokenizer + AR + Diffusion:} VQ-VAE/LDM token spaces with AR planning/control.
-  \item \textbf{Flow Matching \/ Rectified Flow:} train a velocity field $\mathbf{v}_\theta(\mathbf{x},t)$ to move noise$\to$data with 1st-order ODE sampling.
-  \item \textbf{Consistency Models:} distilled one-step or few-step samplers by self-consistency constraints.
-  \item \textbf{Mean Flow:} train an averaged velocity for one step generation.
-  \item \textbf{Multimodal, Video, 3D/4D:} text-image-audio-video-geometry; world-model style conditional generation.
-\end{itemize}
-\vspace{0.3em}
-\textbf{Takeaway:} boundaries blur; choose representations (continuous vs. discrete tokens), objectives, and samplers to fit task/latency.
-\end{frame}
-
-% ================= Section ==================
-\section{Evaluation: Metrics and Pitfalls}
-
-\begin{frame}{How We Measure}
-\begin{itemize}
-  \item \textbf{Likelihood / BPD}: exact (AR/flows) or bounds (VAE); diffusion often uses NLL surrogates.
-  \item \textbf{Sample Quality}: FID, KID, IS; CLIP-score for text-image alignment.
-  \item \textbf{Diversity/Coverage}: precision\&recall for distributions; recall of rare modes.
-  \item \textbf{Task Utility}: downstream performance, human eval.
-\end{itemize}
-\end{frame}
-
-% ================= Section ==================
-\section{Choosing the Right Family}
-
-% ---- Decision Guide inserted ----
-\begin{frame}{Decision Guide: Which Family Should I Choose?}
-\small
-\begin{itemize}
-  \item \textbf{Need exact likelihood / lossless compression?} $\,\Rightarrow\,$ Autoregressive or Flows.
-  \item \textbf{Top visual fidelity / editing?} $\,\Rightarrow\,$ Diffusion (latent), consider consistency/rectified/flow matching for speed.
-  \item \textbf{Discrete tokens (text/code) or controllable sequences?} $\,\Rightarrow\,$ Autoregressive (Transformer) \,+ tokenizers for images/audio.
-  \item \textbf{Low-latency sampling at inference?} $\,\Rightarrow\,$ GANs/consistency/flow-matched diffusion; Flows when feasible.
-  \item \textbf{Structured latent space / downstream control?} $\,\Rightarrow\,$ VAE/Hierarchical VAE (+ AR or diffusion decoders).
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Practical Trade-offs}
-\small
-\begin{table}
-\centering
-\begin{tabular}{@{}lccccc@{}}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabularx}{\linewidth}{@{}>{\bfseries}p{2.25cm}p{4.0cm}X@{}}
 \toprule
-\textbf{Family} & \textbf{Likelihood} & \textbf{Quality} & \textbf{Speed (sample)} & \textbf{Control} & \textbf{Stability}\\
+模型路线 & 核心构造 & 熟悉的数学连接\\
 \midrule
-Autoregressive & \cmark & \cmark (text/code) & \xmark & \cmark & \cmark\\
-VAE & bound & mixed & \cmark & \cmark & \cmark \\
-GAN & \xmark & \cmark & \cmark & mixed & mixed \\
-NFlows & \cmark & mixed & mixed & \cmark & \cmark\\
-Diffusion & bound & \cmark & mixed$\to$\cmark & \cmark & \cmark\\
+自回归 & 把联合概率拆成条件概率 & 概率链式法则、交叉熵\\
+变分自编码器 & 引入隐变量与近似后验 & 条件概率、变分推断\\
+生成对抗网络 & 通过生成器与判别器的博弈学习 & 极小极大优化、分布匹配\\
+归一化流 & 用可逆变换搬运概率 & 变量代换、Jacobian\\
+扩散模型 & 加噪后学习反向生成 & 随机过程、score、SDE\\
+流匹配 & 学习随时间变化的速度场 & ODE、连续性方程\\
+离散扩散 & 在离散状态间构造跳转 & 马尔可夫链、转移矩阵\\
 \bottomrule
-\end{tabular}
-\end{table}
-\vspace{2em}
-\textbf{Takeaway:} Disrete, latent space, mode collapse, inverse design with exact log likelihood, high quality samples with few-steps.
+\end{tabularx}
+\vspace{0.10cm}
+\takeaway{这些模型类有交集，同一生成过程也可以采用不同的训练方式。}
+\source{路线对应的原始论文与导读见本讲参考文献页；本表按课程内容组织，模型类别之间可以重叠。}
+\note{每条路线介绍一个主要构造。流匹配可用于训练连续归一化流，因此模型类别有交集。本表覆盖本课程选取的主线。}
 \end{frame}
 
-% ================= Section ==================
-\section{Case Studies / Applications}
-
-\begin{frame}{Applications (Examples)}
-\begin{itemize}
-  \item \textbf{Images/Design}: product ideation, content creation, inpainting/outpainting.
-  \item \textbf{Text/Code}: LLMs for writing, agents, program synthesis.
-  \item \textbf{Audio/Speech/Music}: TTS, music generation, audio restoration.
-  \item \textbf{Video/World Models}: controllable video, simulation for planning.
-  \item \textbf{3D/Geometry}: NeRF/mesh diffusion, 3D asset pipelines.
-  \item \textbf{Science}: molecules/proteins/materials; weather/climate surrogates.
-\end{itemize}
-\end{frame}
-
-\begin{frame}
-\begin{figure}
-\centering
-\includegraphics[width=0.5\textwidth]{../figures/generative_ai.jpg}
-\end{figure}
-\end{frame}
-
-% ================= Section ==================
-\section{World Models}
-
-% ---- Positioning slide ----
-\begin{frame}{Positioning: From Generative Models to World Models}
+% 13
+\begin{frame}{自回归：一个联合分布，分成很多条件分布}
 \small
-\begin{itemize}
-  \item \textbf{Observation model:} generative $p(\mathbf{o}_t \mid \mathbf{z}_t)$ often shares tech with diffusion/AR/VAEs.
-  \item \textbf{Dynamics:} latent transition $f_\theta(\mathbf{z}_{t+1}\mid\mathbf{z}_t, \mathbf{a}_t)$ (Dreamer/JEPA-style) or direct video simulators.
-  \item \textbf{Control:} plan over imagined rollouts (MPC) or learn policy $\pi(\mathbf{a}_t\mid\mathbf{z}_t)$.
-  \item \textbf{Bridges:} AR for tokens (language/code); diffusion for frames; flows/consistency/flow-matching for speed.
-\end{itemize}
+\[
+p_\theta(x_1,\ldots,x_L)=\prod_{i=1}^{L}p_\theta(x_i\mid x_{<i}).
+\]
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.47\textwidth}
+\head{训练：观察完整序列}
+\[
+\mathcal L_{\mathrm{AR}}=-\E\sum_i\log p_\theta(X_i\mid X_{<i}).
+\]
+各位置的正确前缀已知；因果掩码控制每个位置可以使用哪些信息。
+\end{column}
+\begin{column}{0.47\textwidth}
+\head{生成：逐步展开前缀}
+\[
+X_1\sim p_\theta(\cdot),\qquad
+X_i\sim p_\theta(\cdot\mid X_{<i}).
+\]
+祖先采样按条件概率依次抽取；贪心解码则在每一步选择概率最大的项。两者产生的输出分布通常不同。
+\end{column}
+\end{columns}
+\takeaway{\textbf{链式分解是恒等式；}实际能力与计算代价，还取决于条件模型、顺序和实现。}
+\source{数学基础：概率链式法则。因果 Transformer 参考 Vaswani et al., 2017。}
+\note{x_{<1} 为空前缀。可用一个短文本序列解释条件概率。自回归也适用于连续变量和其他生成顺序，本页介绍常见的祖先采样。}
 \end{frame}
 
-\begin{frame}{World Models: A Compact Overview (2025)}
-\vspace{0.5em}
-\begin{itemize}
-  \item \textbf{Goal:} learn $p(\mathbf{o}_{t+1}\mid\mathbf{o}_t,\mathbf{a}_t)$ or latent dynamics $f_\theta$; plan via MPC or policy over imagined trajectories.
-  \item \textbf{Two flavors:} (i) action-conditioned \emph{video/world simulators}; (ii) representation-first models (e.g., latent JEPA/Dreamer-style) for control/planning.
-  \item \textbf{Training signals:} next-frame/latent prediction, contrastive/self-supervision, auxiliary reward/value heads.
-  \item \textbf{Eval:} physical plausibility, action-consistency, controllability, and task success; long-horizon memory.
-  \item \textbf{Open issues:} causality/counterfactuals, persistent memory/state, sim-to-real, safety.
-\end{itemize}
+% 14
+\begin{frame}{变分自编码器：用隐变量解释数据的变化}
+\begin{columns}[c,onlytextwidth]
+\begin{column}{0.38\textwidth}
+\begin{tikzpicture}[node distance=1.4cm]
+\node[box,minimum width=3cm] (z) {$Z\sim p(z)$};
+\node[box,minimum width=3cm,below=of z] (x) {$X\sim p_\theta(x\mid Z)$};
+\draw[arr] (z)--node[right,lab]{生成模型} (x);
+\draw[arr,dashed] (x.west) to[bend left=55] node[left,lab]{$q_\phi(z\mid x)$\\近似推断} (z.west);
+\end{tikzpicture}\par
+\end{column}
+\begin{column}{0.58\textwidth}
+\head{核心困难：对隐变量积分}
+\[
+p_\theta(x)=\int p_\theta(x\mid z)p(z)\,\mathrm dz.
+\]
+引入近似后验 $q_\phi(z\mid x)$，得到可优化的证据下界：
+\begin{align*}
+\log p_\theta(x)\geq{}&\E_{q_\phi(z\mid x)}[\log p_\theta(x\mid z)]\\
+&-\KL\big(q_\phi(z\mid x)\|p(z)\big).
+\end{align*}
+\small 第一项让隐变量能解释数据，第二项约束近似后验与先验的偏离。
+\end{column}
+\end{columns}
+\takeaway{把“难算的边缘概率”，转化为\textbf{可采样估计的变分优化问题}。}
+\source{Kingma \& Welling, \href{https://arxiv.org/abs/1312.6114}{Auto-Encoding Variational Bayes}, 2013 / ICLR 2014。}
+\note{编码器用于训练与推断；生成时先从先验抽取 z，再从解码条件分布抽取 x。ELBO 可写成 log p 减去近似后验到真实后验的 KL。重参数化和完整推导留到后续课程。}
 \end{frame}
 
-\begin{frame}
-  \centering
-\begin{adjustbox}{max size={\linewidth}{.50\textheight}}
-  \begin{tikzpicture}[node distance=1.4cm]
-    \tikzstyle{box}=[draw, rounded corners, minimum width=2.1cm, minimum height=0.9cm, align=center]
-    % Observations and actions
-    \node[box, fill=myblue!10] (ot) {$\mathbf{o}_t$};
-    \node[box, right=1.8cm of ot, fill=myviolet!10] (enc) {Encoder $E$\\$\mathbf{z}_t=E(\mathbf{o}_t)$};
-    \node[box, right=1.8cm of enc, fill=mygreen!10] (dyn) {Dynamics $f_\theta$\\$\mathbf{z}_{t+1}=f_\theta(\mathbf{z}_t,\mathbf{a}_t)$};
-    \node[box, right=1.8cm of dyn, fill=myblue!10] (dec) {Decoder $D$\\$\hat{\mathbf{o}}_{t+1}=D(\mathbf{z}_{t+1})$};
-    \draw[-{Latex}] (ot) -- (enc);
-    \draw[-{Latex}] (enc) -- (dyn);
-    \draw[-{Latex}] (dyn) -- (dec);
-    % Planner / action
-    \node[box, below=1.1cm of enc, fill=myorange!10] (pi) {Planner / Policy $\pi$\\MPC or imagined rollouts};
-    \node[box, below=1.1cm of dyn, fill=gray!15] (a) {$\mathbf{a}_t$};
-    \draw[-{Latex}] (pi) -- (a);
-    \draw[-{Latex}] (a) -- (dyn);
-    % Value / reward heads
-    \node[box, above=1.1cm of dyn, fill=gray!15] (val) {Reward / Value Heads\\$r_\theta,\ v_\theta$};
-    \draw[-{Latex}] (dyn) -- (val);
-    % Feedback
-    \draw[-{Latex}, dashed] (dec.east) .. controls +(1.0,0.8) and +(1.0,-0.8) .. (ot.east);
-  \end{tikzpicture}
-\end{adjustbox}
-\\
-\vspace{2em}
-\textbf{Takeaway:} World Models are systems that learn the dynamics of an environment to plan and control actions by imagining future outcomes, but still face key challenges in causality, memory, and real-world application. 
-\end{frame}
-
-% ================= Section ==================
-\section{Summary}
-
-\begin{frame}{Key Messages}
-\begin{enumerate}
-  \item \textbf{Five pillars:} AR, VAE, GAN, Flows, Diffusion. Each optimizes a different compromise.
-  \item \textbf{Autoregression} remains the gold standard for discrete sequences; for continuous media, tokenization + AR is powerful.
-  \item \textbf{Diffusion/Score-based} dominates visual fidelity; distillation and flow-matching narrow the latency gap.
-  \item \textbf{Hybrids} are the 2025 norm: choose representation + objective + sampler for your latency/quality/control budget.
-\end{enumerate}
-\end{frame}
-
-% ================= Section ==================
-\section*{Further Reading}
-
-\begin{frame}{Pointers (non-exhaustive)}
+\begin{frame}{生成对抗网络：通过判别任务学习生成分布}
 \small
+从简单噪声出发，生成器给出 $\widehat X=G_\theta(Z)$；判别器 $D_\phi$ 尝试区分真实样本与生成样本。
+\[
+\min_\theta\max_\phi\quad
+\E_{X\sim\pdata}[\log D_\phi(X)]
++\E_{Z\sim p_Z}[\log(1-D_\phi(G_\theta(Z)))].
+\]
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.47\textwidth}
+\head{通过样本训练生成器}
+判别任务提供训练信号；训练结束后，可以通过生成器一次前向计算生成样本。
+\end{column}
+\begin{column}{0.47\textwidth}
+\head{难点转向博弈与覆盖}
+训练中需要检查稳定性、模式坍塌和多样性，并分别评估样本质量与分布覆盖。
+\end{column}
+\end{columns}
+\takeaway{GAN 通过判别器提供的训练信号学习生成分布，无需显式计算生成密度。}
+\source{经典 GAN 的极小极大目标；后续 GAN 课程将讨论目标变体与训练方法。}
+\end{frame}
+
+% 15
+\begin{frame}{归一化流：通过可逆变换，直接搬运概率}
+\[
+Z\sim p_Z,\qquad X=g_\theta(Z),\qquad z=g_\theta^{-1}(x).
+\]
+\begin{tcolorbox}[colback=paper,colframe=paper,boxrule=0pt,arc=2mm]
+\[
+\log p_\theta(x)=\log p_Z(z)-\log\left|\det Dg_\theta(z)\right|.
+\]
+\end{tcolorbox}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.47\textwidth}
+\head{熟悉的数学：变量代换}
+局部体积被放大，概率密度就相应降低。Jacobian 行列式记录这个体积变化。
+\end{column}
+\begin{column}{0.47\textwidth}
+\head{新的计算问题：结构要能算}
+如何同时得到足够灵活的映射、可用的逆映射，以及可承担的行列式计算？
+\end{column}
+\end{columns}
+\takeaway{这里讨论同维、可微、可逆的连续变换；\textbf{公式的条件也是模型设计的约束}。}
+\source{Rezende \& Mohamed, \href{https://arxiv.org/abs/1505.05770}{Variational Inference with Normalizing Flows}, ICML 2015。}
+\note{可在黑板上先画一维 x=2z，说明密度减半。避免将可逆变换直接用于任意不同维度或严格断开的支持而不加解释。连续归一化流对应 ODE 下的瞬时变量代换，后续会与流匹配建立连接。}
+\end{frame}
+
+% 16
+\begin{frame}{扩散：先把数据变简单，再学习怎样回来}
+\begin{tikzpicture}
+\node[box,minimum width=3.1cm,minimum height=1.0cm] (x) {数据 $X_0$};
+\node[box,minimum width=3.1cm,minimum height=1.0cm,right=1.0cm of x] (xt) {带噪状态 $X_t$};
+\node[box,minimum width=3.1cm,minimum height=1.0cm,right=1.0cm of xt] (noise) {近似简单噪声};
+\draw[arr] (x.north east) to[bend left=15] node[above,lab]{已知的加噪过程} (xt.north west);
+\draw[arr] (xt.north east) to[bend left=15] (noise.north west);
+\draw[arr] (noise.south west) to[bend left=15] node[below,lab]{学习反向生成} (xt.south east);
+\draw[arr] (xt.south west) to[bend left=15] (x.south east);
+\end{tikzpicture}\par
+\vspace{0.22cm}
+\[
+X_t=a_tX_0+\sigma_t\varepsilon,\qquad \varepsilon\sim\N(0,I).
+\]
+\[
+\mathcal L_{\mathrm{denoise}}
+=\E_{t,X_0,\varepsilon}\big\|\varepsilon_\theta(X_t,t)-\varepsilon\big\|^2.
+\]
+\small 这里展示一种常见的高斯扰动边缘分布和简化噪声预测损失。生成时还需要指定反向动力学、终端分布与数值采样器。
+\takeaway{模型从数据中学习反向生成所需的统计信息，例如给定带噪状态的条件噪声均值。}
+\source{Ho et al., \href{https://arxiv.org/abs/2006.11239}{Denoising Diffusion Probabilistic Models}, NeurIPS 2020；Song et al., \href{https://arxiv.org/abs/2011.13456}{Score-Based Generative Modeling through SDEs}, ICLR 2021。}
+\note{本页时间约定：t=0 为数据端，加噪沿 t 增大。具体噪声调度要确保终端分布接近可采样先验。无权重 MSE 是简化目标，不笼统称其等于精确最大似然；后续需要区分变分界权重、score matching 权重及具体参数化。}
+\end{frame}
+
+% 17
+\begin{frame}{流匹配：学习一个把噪声搬到数据的速度场}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.48\textwidth}
+\head{训练：先构造一条易采样的路径}
+取独立的 $Z\sim\N(0,I)$、$X\sim\pdata$，
+\[
+X_t=(1-t)Z+tX,\qquad t\sim U[0,1].
+\]
+\[
+\mathcal L_{\mathrm{FM}}
+=\E\big\|v_\theta(X_t,t)-(X-Z)\big\|^2.
+\]
+\small 训练只需采样端点和时刻，无需先求解整条 ODE。
+\end{column}
+\begin{column}{0.46\textwidth}
+\head{生成：积分学到的速度场}
+\[
+\frac{\mathrm d\widehat X_t}{\mathrm dt}=v_\theta(\widehat X_t,t),
+\qquad \widehat X_0\sim\N(0,I).
+\]
+\[
+\widehat X_1\ \text{作为生成样本。}
+\]
+\small 此页时间从\textbf{噪声端 $0$} 走向\textbf{数据端 $1$}，与上一页加噪方向不同。
+\end{column}
+\end{columns}
+\takeaway{确定性的 ODE 也能生成随机样本：\textbf{随机性来自初始条件。}理论成立还需要边缘速度场与适当的正则性。}
+\source{Lipman et al., \href{https://arxiv.org/abs/2210.02747}{Flow Matching for Generative Modeling}, 2022 / ICLR 2023。这里采用独立耦合的线性插值示例。}
+\note{MSE 的最优速度是 E[X-Z|X_t=x]。在适当条件下，它生成插值路径的边缘分布；具体 ODE 轨迹可以不同于端点连线。附录 A3 给出弱形式推导。本例采用独立端点耦合，区别于最优传输耦合。}
+\end{frame}
+
+% 18
+\begin{frame}{离散扩散：没有连续位移，也可以有随机演化}
+\begin{columns}[c,onlytextwidth]
+\begin{column}{0.37\textwidth}
+\begin{tikzpicture}[every node/.style={font=\small}]
+\node[box,minimum size=0.9cm] (a) at (0,1.4) {$A$};
+\node[box,minimum size=0.9cm] (b) at (2.9,1.4) {$B$};
+\node[box,minimum size=0.9cm] (c) at (1.45,-0.8) {$C$};
+\draw[arr] (a) to[bend left=18] (b);\draw[arr] (b) to[bend left=18] (a);
+\draw[arr] (a) to[bend left=18] (c);\draw[arr] (c) to[bend left=18] (a);
+\draw[arr] (b) to[bend left=18] (c);\draw[arr] (c) to[bend left=18] (b);
+\node[lab] at (1.45,-1.7) {离散状态之间的跳转};
+\end{tikzpicture}\par
+\end{column}
+\begin{column}{0.59\textwidth}
+\head{分类状态没有自然的大小顺序}
+对于 $K$ 个类别，可以用随机替换定义加噪：
+\[
+P_\beta=(1-\beta)I+\beta\,\bm 1\pi^\top,
+\quad 0\leq\beta\leq1.
+\]
+\small $\pi$ 是目标噪声分布。此处 $P_\beta(i,j)$ 表示从 $i$ 到 $j$ 的概率，行和为 $1$。
+
+\normalsize\vspace{0.12cm}
+反向过程要学习：\textbf{如何去噪。}
+\end{column}
+\end{columns}
+\takeaway{离散扩散包括随机替换、mask 吸收态等转移结构；不同结构对应不同的建模与采样方式。}
+\source{Austin et al., \href{https://arxiv.org/abs/2107.03006}{Structured Denoising Diffusion Models in Discrete State-Spaces}, NeurIPS 2021。连续时间版本见附录。}
+\note{均匀随机替换对应均匀的 pi，mask 对应吸收态构造。类别 ID 缺乏天然度量，但可以学习类别间的语义或结构；序列模型还需建模位置依赖。}
+\end{frame}
+
+% =============================================================
+\section{从数学联系到算法与数值误差}
+% 19
+\begin{frame}{不同的损失，常常在学习不同的条件统计量}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.47\textwidth}
+\head{交叉熵：学习条件分布}
+若 $X$ 是类别、$Y$ 是已知信息，则
+\[
+\arg\min_{r(\cdot\mid Y)}\E[-\log r(X\mid Y)]
+=p(X\mid Y).
+\]
+\small 在无限表达能力的总体最优下，输出的是整个类别后验分布。
+\end{column}
+\begin{column}{0.47\textwidth}
+\head{平方损失：学习条件均值}
+若 $X$ 为数值向量，且二阶矩有限，则
+\[
+\arg\min_f\E\|X-f(Y)\|^2=\E[X\mid Y].
+\]
+\small 最优输出是条件均值，与条件分布采样通常有不同的结果。
+\end{column}
+\end{columns}
+\vspace{0.18cm}
+\takeaway{损失函数的含义取决于条件信息与预测对象。有限网络和有限训练还会带来逼近误差。}
+\note{这里的 argmin 是函数空间中的总体最优等式，在几乎处处意义下成立。可以把 Y 代成前缀、带噪状态与时间，或科学观测。离散 one-hot 向量的条件均值本身就是类别概率向量；这也提醒学生“均值”取决于表示空间。推导见附录。}
+\end{frame}
+
+% 20
+\begin{frame}{为什么一个“均值预测器”，还能用于生成？}
+\head{条件均值与 score 的关系}
+设 $Y=X+\sigma\varepsilon$，$\varepsilon\sim\N(0,I)$，$\sigma>0$。
+\[
+m(y)=\E[X\mid Y=y],\qquad
+\boxed{\nabla_y\log p_Y(y)=\frac{m(y)-y}{\sigma^2}}.
+\]
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.47\textwidth}
+\head{左边：score}
+带噪分布的对数密度梯度，告诉我们概率密度在局部怎样变化。
+\end{column}
+\begin{column}{0.47\textwidth}
+\head{右边：去噪残差}
+平方损失学习的后验均值，在高斯扰动下可以转化为同一个局部信息。
+\end{column}
+\end{columns}
+\takeaway{随噪声尺度变化的条件均值函数提供反向生成所需的信息，生成样本还需相应的动力学与采样器。}
+\source{高斯扰动下由密度求导与 Bayes 公式直接得到；生成建模背景参见 Ho et al., 2020；Song et al., 2021。}
+\note{联系开头的双峰例子，说明状态和噪声尺度上的条件均值函数如何提供生成信息。公式假设独立同方差高斯加性噪声；若 Y=aX+sigma epsilon，分子改为 a m(y)-y。完整反向 SDE 还需要前向漂移与扩散系数。}
+\end{frame}
+
+% 21
+\begin{frame}[fragile]{把刚才的双峰分布，变成一个可训练的生成器}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.54\textwidth}
+\head{训练：拟合条件速度}
+\begin{lstlisting}
+# x: target samples; z: Gaussian noise
+z = torch.randn_like(x)
+t = torch.rand_like(x)
+xt = (1 - t) * z + t * x
+loss = ((v_theta(xt, t) - (x - z))**2).mean()
+optimizer.zero_grad()
+loss.backward()
+optimizer.step()
+\end{lstlisting}
+\end{column}
+\begin{column}{0.42\textwidth}
+\head{生成：用 Euler 法走到数据端}
+\begin{lstlisting}
+x = torch.randn(n, 1)
+for k in range(K):
+    t = torch.full_like(x, k / K)
+    x = x + v_theta(x, t) / K
+\end{lstlisting}
+\vspace{0.10cm}
+\small 网络输入是 $(x,t)$，输出一个速度。参数固定后，从新的初始噪声生成新样本。
+\end{column}
+\end{columns}
+\takeaway{训练时拟合条件速度，生成时用 Euler 法积分。\textbf{课后可补齐网络定义、数据生成与训练循环，比较不同采样步数的结果。}}
+\source{实现时应固定随机种子，记录配置，并在采样阶段使用 \texttt{eval()} 与 \texttt{no\_grad()}。}
+\note{逐段说明代码对应的公式。训练时随机采样 t，生成时使用数值时间网格；速度目标 X-Z 可直接计算。课后可补齐训练循环，比较不同采样设置。}
+\end{frame}
+
+% Analytical example replaces unverified experiment tables from the reference.
+\begin{frame}{正确的速度场，也可能被过粗的数值步长破坏}
+\head{回到均值为零的双峰分布}
+取独立的 $Z\sim\N(0,1)$、$X\sim\pdata$，令 $X_t=(1-t)Z+tX$。
+平方损失的总体最优速度为
+\[
+v^*(x,t)=\E[X-Z\mid X_t=x].
+\]
+在初始时刻，$X_0=Z$，所以
+\[
+v^*(z,0)=\E[X]-z=-z.
+\]
+若只做一步步长为 $1$ 的 Euler 积分，
+\[
+\widehat X_1=Z+v^*(Z,0)=0.
+\]
+\takeaway{\textbf{所有样本都落到均值。}即使初始速度完全正确，过粗的积分仍会破坏生成分布。}
+\source{独立耦合、对称双峰目标下的解析计算。}
+\end{frame}
+
+\begin{frame}{怎样设计一个能解释误差的对照实验？}
+\small
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.47\textwidth}
+\head{固定模型，改变采样}
+固定网络参数和同一批初始噪声，比较不同 Euler 步数；记录网络调用次数、耗时以及生成分布。
+\vspace{0.16cm}
+一维等样本量时，可计算经验距离：
+\[
+\widehat W_1=\frac1n\sum_{i=1}^n|x_{(i)}-y_{(i)}|.
+\]
+\small 排序下标表示经验分位数配对；目标参考样本应独立生成。
+\end{column}
+\begin{column}{0.47\textwidth}
+\head{误差来自不同环节}
+数据与模型假设、有限网络表达、优化过程、数值积分，以及有限样本评估都会影响结果。
+\vspace{0.16cm}
+\head{加步数能解决什么？}
+可以减少一部分积分误差，但不会自动修复学错的速度场，也不保证测得的误差严格单调下降。
+\end{column}
+\end{columns}
+\takeaway{Euler 与 Heun 的一步通常对应不同的网络调用次数，比较时应同时报告 NFE 与实际耗时。}
+\end{frame}
+
+% =============================================================
+\section{计算、多模态与科学智能}
+% 24
+\begin{frame}{为什么理解大模型，也必须理解计算？}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.31\textwidth}
+\head{计算量}
+一次网络调用做多少运算？训练需要多少次更新？生成需要多少次调用？
+
+\vspace{0.10cm}
+\mutedtext{关注矩阵运算、批处理与采样步数。}
+\end{column}
+\begin{column}{0.31\textwidth}
+\head{存储与数据移动}
+参数、梯度、优化器状态和激活占多少空间？数据能否及时送到计算设备？
+
+\vspace{0.10cm}
+\mutedtext{关注显存、精度与实际吞吐。}
+\end{column}
+\begin{column}{0.31\textwidth}
+\head{依赖与并行}
+哪些计算可以一起做？哪些步骤必须等待前面的结果？并行本身有什么开销？
+
+\vspace{0.10cm}
+\mutedtext{分析算法依赖与并行开销。}
+\end{column}
+\end{columns}
+\vspace{0.24cm}
+\[
+\text{生成耗时}\ \approx\ \underbrace{\text{网络调用次数}}_{\text{算法选择}}
+\times\underbrace{\text{每次调用耗时}}_{\text{模型、批量与实现}}
++\text{其他开销}.
+\]
+\takeaway{我们关心的是：\textbf{一个数学上的好想法，怎样变成计算上可实现、可测量的算法。}}
+\note{课程不需要把集群运维或复杂分布式框架作为主线。可以从同一个 toy model 的网络宽度、batch size、采样器开始测量。上式是顺序调用下的粗略成本分解，真实系统可有重叠、异步与非均匀步骤，不应当成精确性能模型。}
+\end{frame}
+
+% 25
+\begin{frame}{实验比较：指标、预算与复现}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.46\textwidth}
+\head{先决定要比较什么}
+相同生成质量下，谁更快？相同训练预算下，谁更准？相同硬件与批量下，谁的吞吐更高？
+
+\vspace{0.12cm}
+这些是不同问题，不能用一个没有条件的“更强”代替。
+\end{column}
+\begin{column}{0.48\textwidth}
+\head{再说明结论怎样得到}
+固定数据划分与评估协议，记录参数量、训练量、采样设置、设备和随机种子；对关键结论重复实验并做对照。
+
+\vspace{0.12cm}
+记录 loss 的变化，并通过重复实验检查结果是否稳定。
+\end{column}
+\end{columns}
+\takeaway{分别报告网络调用次数、耗时、参数量、计算量和任务指标，并说明测量方法与比较范围。}
+\note{课堂可讨论：同为 20 次网络调用，如果网络大小不同，应怎样比较？训练数据量不同又应怎样解释结果？实践从单变量对照开始。}
+\end{frame}
+
+% 26
+\begin{frame}{多模态：联合分布与条件生成}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.46\textwidth}
+\head{在建模层面，看两类常见状态}
+\textbf{离散变量 $D$：}文字、元素类别、符号序列。
+
+\textbf{连续变量 $C$：}图像强度、坐标、波形、测量数值。
+
+\small 实际系统还需要处理各模态的表示、结构与量化。
+\end{column}
+\begin{column}{0.48\textwidth}
+\head{从联合分布到不同任务}
+\[
+p_\theta(D,C),\qquad p_\theta(C\mid D),\qquad p_\theta(D\mid C).
+\]
+同一对象的符号描述与连续观测，能否互相约束？模型能否在不同条件下生成、补全和理解？
+\end{column}
+\end{columns}
+\takeaway{联合概率分解给出建模起点；共享表示的质量取决于训练目标、生成过程及两类变量之间的信息利用。}
+\source{混合离散与连续数据的实例：Hoogeboom et al., Equivariant Diffusion for Molecule Generation in 3D, 2022。}
+\note{可结合离散与连续生成的研究动机讲述。联合概率分解、条件采样和共享表示质量分别涉及不同问题。类别可以嵌入连续空间，数值也可以量化为离散表示。}
+\end{frame}
+
+% 27
+\begin{frame}{科学智能：从“生成一个样本”到“满足一个问题”}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.31\textwidth}
+\head{分子与材料设计}
+\[
+p_\theta(D,R\mid c).
+\]
+\small $D$ 表示组分类别，$R$ 表示坐标，$c$ 可以是设计条件。
+
+\small 要检查结构合理性、对称性，以及性质验证是否支持设计目标。
+\end{column}
+\begin{column}{0.31\textwidth}
+\head{逆问题与科学计算}
+\[
+y=\mathcal A(x)+\eta.
+\]
+\small 给定不完整、有噪声的观测，恢复可能的状态或参数。
+
+\small 结果需要与观测和误差模型一致。
+\end{column}
+\begin{column}{0.31\textwidth}
+\head{物理系统建模}
+\[
+p_\theta(x_{0:T}\mid c).
+\]
+\small 建模轨迹、边界条件或控制条件下的状态变化。
+
+\small 评估单步预测、长期行为、稳定性与适用范围。
+\end{column}
+\end{columns}
+\vspace{0.24cm}
+\takeaway{模型给出候选解释，再通过观测、计算检验或真实实验验证。}
+\source{代表性实例：Hoogeboom et al., \href{https://arxiv.org/abs/2203.17003}{Equivariant Diffusion for Molecule Generation in 3D}, ICML 2022；Song et al., 2021 的逆问题示例。}
+\note{分子候选的有效性需要额外实验验证；统计轨迹模型的因果解释也需额外假设。材料问题还涉及周期边界、晶格与不变性，后续课程展开。}
+\end{frame}
+
+% 28
+
+
+% =============================================================
+\section{从生成到决策与行动}
+\begin{frame}{世界模型：预测行动的后果}
+\[
+Z_t=E_\theta(O_{\leq t},A_{<t}),\qquad
+Z_{t+1}\sim p_\theta(\cdot\mid Z_t,A_t),\qquad
+O_{t+1}\sim p_\theta(\cdot\mid Z_{t+1}).
+\]
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.47\textwidth}
+\head{表示与生成}
+编码观测，学习状态转移，再预测或生成未来观测；生成模型提供其中的分布建模工具。
+\end{column}
+\begin{column}{0.47\textwidth}
+\head{规划与验证}
+比较不同动作序列的预测后果，再选择行动；还要验证行动一致性、长期误差与真实任务表现。
+\end{column}
+\end{columns}
+\takeaway{规划能力需要通过行动响应和长期预测来评估，同时检查误差随时间的累积。}
+\note{公式为概念性分解，并不要求所有世界模型都显式重建观测。部分方法在潜在空间中进行预测或规划。}
+\end{frame}
+
+\begin{frame}{强化学习、推理与智能体：把学习和搜索接起来}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.31\textwidth}
+\head{强化学习}
+学习策略与价值，通过交互反馈优化长期回报：
+\[
+\max_\pi\E_\pi\!\left[\sum_{t=0}^{T}\gamma^tR_t\right].
+\]
+\small 生成得像数据，与行动后获得高回报，是不同目标。
+\end{column}
+\begin{column}{0.31\textwidth}
+\head{推理与搜索}
+生成候选步骤，评估中间结果，必要时搜索、回溯或修正。
+\vspace{0.16cm}
+\small 更多计算能否带来更好答案，取决于搜索空间、反馈与验证机制。
+\end{column}
+\begin{column}{0.31\textwidth}
+\head{智能体系统}
+把模型与工具、记忆、环境和反馈连接成闭环。
+\vspace{0.16cm}
+\small 除输出质量，还要衡量任务成功率、调用成本和失败后的恢复能力。
+\end{column}
+\end{columns}
+\takeaway{呼应《苦涩的教训》：\textbf{学习改变模型，搜索利用模型探索可能性。}怎样有效使用计算，是二者共同的问题。}
+\end{frame}
+
+\section{我们怎样一起学习}
+% 29
+\begin{frame}{一个学期的主线：原理、算法、实践与应用}
+\small
+\begin{tabularx}{\linewidth}{@{}p{2.0cm}p{6.0cm}X@{}}
+\toprule
+阶段 & 核心内容 & 希望获得的能力\\
+\midrule
+\textbf{建立语言} & 概率建模、神经网络与优化；训练与采样；基本计算概念 & 读懂模型定义与目标\\
+\textbf{理解构造} & 自回归、VAE、GAN、归一化流、扩散、流匹配、离散扩散 & 推导关键关系、比较方法\\
+\textbf{亲手训练} & 小规模模型、数值采样、误差诊断、效率测量与复现 & 从头实现并解释结果\\
+\textbf{走向问题} & 多模态、世界模型、强化学习、推理、智能体与科学应用 & 提出问题、设计验证\\
+\bottomrule
+\end{tabularx}
+\vspace{0.15cm}
+\takeaway{模块之间会相互穿插：\textbf{看到数学，就尽量找到算法；看到实验，就继续追问它的数学含义。}}
+\source{课程内容会结合实践进展穿插展开；世界模型、强化学习、推理、智能体与科学应用贯穿后续课程。}
+\note{本表概括课程模块，具体进度结合学生基础和实践情况安排。实践从小模型开始，结论的适用范围限定在实际实验规模内。}
+\end{frame}
+
+% 30
+\begin{frame}{进入这门课，需要哪些准备？}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.31\textwidth}
+\head{数学基础}
+微积分、线性代数与基本概率；熟悉条件概率、期望、梯度与矩阵运算，会更容易进入课程。
+\end{column}
+\begin{column}{0.31\textwidth}
+\head{计算基础}
+能够阅读和修改 Python；逐步熟悉张量、自动微分、训练循环和最基本的调试。
+\end{column}
+\begin{column}{0.31\textwidth}
+\head{更重要的习惯}
+遇到概念先问定义，遇到结论先看条件，遇到结果先想如何验证。
+\end{column}
+\end{columns}
+\vspace{0.32cm}
+\takeaway{GPT 时代的学习，已经从金字塔形变成了柱形学习。}
+\note{可做不计分的举手调查：是否学过条件期望、用过自动微分或训练过模型。据此选择附录内容，鼓励不同基础的学生提问。}
+\end{frame}
+
+% 31
+\begin{frame}{鼓励使用 AI，但把验证能力留在自己手里}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.47\textwidth}
+\head{让 AI 帮你推进工作}
+解释陌生概念，提供不同推导思路；搭建代码、设计测试、寻找可能的反例，并帮助整理实验记录。
+
+\vspace{0.15cm}
+\head{核对推导和假设}
+检查所用假设、容易出错的步骤，并用简单例子检验结论。
+\end{column}
+\begin{column}{0.47\textwidth}
+\head{你需要能够说明与复核}
+符号和条件是否一致，引用能否找到，代码是否真的运行，结果是否来自所报告的设置。
+
+\vspace{0.15cm}
+\head{让协作过程可说明}
+记录 AI 提供的关键帮助、你修改的地方，以及你怎样验证最后的结论。
+\end{column}
+\end{columns}
+\takeaway{\textbf{两次课堂小作业不能使用大模型。}日常学习中可以借助 AI，提交的推导与代码需要自己理解并核验。}
+\note{区分日常学习中的 AI 辅助与两次课堂小作业的独立完成要求。课堂小作业是一些简单题目，主要考查理解。对于代码与数学都应强调运行、检验与解释。}
+\end{frame}
+
+% 32
+\begin{frame}{课程希望培养的能力}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.31\textwidth}
+\head{能解释}
+说清模型学习的对象、目标函数的含义，以及关键推导成立的条件。
+\end{column}
+\begin{column}{0.31\textwidth}
+\head{能实现}
+把公式转为代码，记录设置，复现结果，并定位实验与预期不一致的原因。
+\end{column}
+\begin{column}{0.31\textwidth}
+\head{能判断}
+提出有意义的比较，寻找反例，区分已证实、暂时支持与仍然未知的结论。
+\end{column}
+\end{columns}
+\vspace{0.30cm}
+分析失败实验、复核已有结论，都能帮助我们加深理解。
+\takeaway{大模型时代，理解和验证能力是一种强能力。}
+
+\note{下一页介绍考核方式。欢迎不同意见，同时要求概念准确、实验设置清楚、结论有依据。}
+\end{frame}
+
+\begin{frame}{考核方式：平时成绩与课程大作业各占一半}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.47\textwidth}
+\head{50\%\quad 平时成绩}
 \begin{itemize}
-  \item \textbf{AR:} PixelRNN/CNN; GPT-style Transformers for text/code; VQ-VAE + Transformer for images/audio.
-  \item \textbf{VAE:} Kingma and Welling (2014); Hierarchical/$\beta$-VAE; VQ-VAE.
-  \item \textbf{GAN:} Goodfellow et al. (2014); WGAN, StyleGAN series.
-  \item \textbf{Flows:} RealNVP, Glow; Neural ODEs; spline flows.
-  \item \textbf{Diffusion/Score:} Sohl-Dickstein (2015), DDPM, DDIM, LDM; consistency/rectified/flow-matching; DPM-Solver.
+  \item 几次课后作业。
+  \item 两次课堂小作业。
 \end{itemize}
+\vspace{0.18cm}
+\textbf{课堂小作业不能使用大模型。}\par
+题目比较简单，主要考查对课程概念与基本原理的理解。
+\end{column}
+\begin{column}{0.47\textwidth}
+\head{50\%\quad 课程大作业}
+课程大作业占总评成绩的一半。
+\end{column}
+\end{columns}
+\vspace{0.32cm}
+\takeaway{\textbf{总评成绩 = 50\% 平时成绩 + 50\% 课程大作业。}}
+\note{平时成绩包含几次课后作业与两次课堂小作业。大模型禁用要求针对两次课堂小作业；这些题目以理解为主。此处不额外设定各次作业的分值、课程大作业形式或提交日期。}
+\end{frame}
+
+% 33
+
+
+% 34
+\begin{frame}{阅读建议：扩散与流匹配}
+\head{看懂一次“从噪声到数据”的完整过程}
+\small Ho, Jain \& Abbeel. \textit{Denoising Diffusion Probabilistic Models} (2020).\par
+\normalsize 先找：前向怎样加噪？网络预测什么？训练算法与生成算法有什么不同？
+
+\vspace{0.17cm}
+\head{把回归损失与微分方程连起来}
+\small Lipman et al. \textit{Flow Matching for Generative Modeling} (2022/2023).\par
+\normalsize 先找：为什么能构造速度标签？训练用的条件路径与生成轨迹是什么关系？
+
+\vspace{0.17cm}
+\head{数学背景暂时不够时：用讲义搭桥}
+\small Peter Holderrieth \& Ezra Erives. \textit{An Introduction to Flow Matching and Diffusion Models}.\par
+\normalsize 先补概率路径、向量场与采样之间的联系，再回到原始论文核对。
+\source{\href{https://arxiv.org/abs/2006.11239}{DDPM 原文}\quad|\quad\href{https://arxiv.org/abs/2210.02747}{Flow Matching 原文}\quad|\quad\href{https://diffusion.csail.mit.edu/}{MIT 课程讲义与代码}。扩展文献见附录。}
+\note{建议分次阅读：画出训练与采样流程，追踪核心等式，再实现一个小例子。引用具体结论时核对原文的符号、假设和实验条件。}
+\end{frame}
+
+% 35
+\begin{frame}{下课前，留下三个问题}
+\vspace{0.16cm}
+\head{为什么最优的均方误差预测，不一定是好的生成样本？}
+它给出了条件均值，而生成任务关心整个分布及其采样。
+
+\vspace{0.15cm}
+\head{确定性的 ODE，为什么仍然可以生成随机样本？}
+随机初始条件经确定性流映射，形成新的概率分布。
+
+\vspace{0.15cm}
+\head{一个模型表现不好，我们应该先怀疑哪里？}
+先区分数据与假设、模型表达与训练目标、优化与数值采样，再设计能区分原因的实验。
+
+\vspace{0.20cm}
+\begin{tcolorbox}[colback=paper,colframe=paper,boxrule=0pt,arc=2mm,top=3mm,bottom=3mm]
+\centering\large\bfseries 知其然，知其所以然；\quad 再亲手让它发生。\par
+\vspace{0.10cm}\normalfont\small 期待和大家一起，在问题、推导与实验中前进。
+\end{tcolorbox}
+\note{可先口头提问，再展示提示。请学生写下一项希望继续讨论的问题。后面的推导与参考文献供选讲或课后阅读。}
+\end{frame}
+
+% =============================================================
+% Appendices: optional; not part of the suggested 90-minute core.
+% =============================================================
+\appendix
+\section{附录：推导与参考文献}
+% 36
+\begin{frame}{附录 A1\quad 最大似然与 KL：在哪个层面等价？}
+\head{先在总体分布上推导}
+令 $p$ 与 $q$ 是同一参考测度下的密度，并满足所需支持与可积性条件。
+\begin{align*}
+\E_p[-\log q(X)]
+&=-\int p(x)\log q(x)\,\mathrm d\mu(x)\\
+&=-\int p(x)\log p(x)\,\mathrm d\mu(x)
++\int p(x)\log\frac{p(x)}{q(x)}\,\mathrm d\mu(x)\\
+&=H(p)+\KL(p\|q).
+\end{align*}
+\small 离散情形用计数测度，连续情形可用 Lebesgue 测度。对 $q=p_\theta$，熵项不依赖 $\theta$。
+\takeaway{\textbf{经验 NLL 是总体期望的样本估计。}有限经验点质量与连续密度未必满足绝对连续条件，因而上述密度 KL 恒等式可能不适用。}
+\note{进一步说明若 q 在 p 有质量的地方为零，KL 和交叉熵可为无穷大；若熵本身发散，不能进行无条件的无穷量相减。用离散有限状态空间可以避开这些技术条件，适合先讲直觉。经验 NLL 可直接定义为对数密度的样本平均，不需要硬套经验测度 KL。}
+\end{frame}
+
+% 37
+\begin{frame}{附录 A2\quad 平方损失为什么给出条件均值？}
+设 $m(Y)=\E[X\mid Y]$，$X\in L^2$。对任意平方可积的 $f(Y)$，
+\begin{align*}
+\E\|X-f(Y)\|^2
+={}&\E\|X-m(Y)\|^2+\E\|m(Y)-f(Y)\|^2\\
+&+2\E\langle X-m(Y),m(Y)-f(Y)\rangle.
+\end{align*}
+交叉项为零，因为
+\[
+\E[X-m(Y)\mid Y]=0.
+\]
+于是得到正交分解：
+\[
+\boxed{\E\|X-f(Y)\|^2
+=\E\|X-m(Y)\|^2+\E\|m(Y)-f(Y)\|^2}.
+\]
+\takeaway{\textbf{不可约的条件方差，加上预测器偏离条件均值的误差。}这既解释了点预测，也解释了去噪与流匹配的总体最优目标。}
+\note{不可约误差相对于给定信息 Y 和平方损失定义。对离散 one-hot 表示，条件均值就是类别概率向量；连续变量的单个均值通常不足以刻画完整条件分布。}
+\end{frame}
+
+% 38
+\begin{frame}{附录 A3\quad 训练的直线，为什么对应一个生成流？}
+定义 $X_t=(1-t)Z+tX$，以及边缘速度场
+\[
+v^*(x,t)=\E[X-Z\mid X_t=x].
+\]
+对光滑紧支撑测试函数 $\varphi$，在可交换求导与期望的条件下，
+\begin{align*}
+\frac{\mathrm d}{\mathrm dt}\E[\varphi(X_t)]
+&=\E[\nabla\varphi(X_t)\cdot(X-Z)]\\
+&=\E[\nabla\varphi(X_t)\cdot v^*(X_t,t)].
+\end{align*}
+这正是连续性方程的弱形式：
+\[
+\partial_t p_t+\nabla\cdot(p_t v^*)=0.
+\]
+\takeaway{在适当的存在唯一性条件下，ODE 流具有这组边缘分布。训练端点的直线与生成轨迹可以不同，但具有相同的边缘概率演化。}
+\source{条件流匹配背景：Lipman et al., ICLR 2023；本页给出线性插值情形的直接推导。}
+\note{先由平方损失的条件期望最优性得到 v*，再由测试函数导出连续性方程。存在一个弱解，不自动保证指定 ODE 的流唯一；因此明确写出正则性与存在唯一性条件。有限网络拟合和数值积分还会引入额外误差。}
+\end{frame}
+
+% 39
+\begin{frame}{附录 A4\quad 反向生成：连续与离散的并排观察}
+\footnotesize 令 $s$ 为反向时钟，$t=T-s$、$Y_s=X_t$；$p_t$ 为前向分布。
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.47\textwidth}
+\head{连续：反向漂移包含 score}
+前向 SDE（$g$ 只依赖时间）：
+\[
+\mathrm dX_t=f(X_t,t)\,\mathrm dt+g(t)\,\mathrm dW_t.
+\]
+在适当正则性条件下，反向过程为
+\[
+\mathrm dY_s=b_s(Y_s)\,\mathrm ds+g(t)\,\mathrm d\overline W_s,
+\]
+其中
+\[
+b_s(y)=-f(y,t)+g(t)^2\nabla\log p_t(y).
+\]
+\end{column}
+\begin{column}{0.47\textwidth}
+\head{离散：反向速率包含概率比}
+前向行生成矩阵 $Q_t$ 满足
+\[
+q_t(i,j)\geq0\ (i\ne j),\qquad\sum_jq_t(i,j)=0.
+\]
+若 $p_t(i)>0$，反向非对角速率为
+\[
+\overline q_s(i,j)=q_t(j,i)\frac{p_t(j)}{p_t(i)}.
+\]
+对角项由行和为零确定。使用列概率向量时，前向方程为 $\partial_t p_t=Q_t^\top p_t$。
+\end{column}
+\end{columns}
+\vspace{-0.10cm}
+\takeaway{共同结构：\textbf{已知的前向机制，加上当前分布的信息，决定反向演化。}}
+\source{连续反向 SDE 参见 Song et al., 2021；离散反向速率由 Bayes 公式与短时转移概率展开得到。}
+\note{采用递增的反向时钟 s，并在 t=T-s 处评估系数。扩散系数假设为仅依赖时间的标量；状态依赖矩阵扩散还需要散度修正。离散反向率在当前状态概率为正时定义，并需要非爆炸等过程条件。}
+\end{frame}
+
+% 40
+\begin{frame}{附录 A5\quad 注意力机制：一次带数据依赖权重的混合}
+给定表示矩阵 $H\in\R^{L\times d}$，令
+\[
+Q=HW_Q,\qquad K=HW_K,\qquad V=HW_V,
+\]
+其中 $Q,K\in\R^{L\times d_k}$、$V\in\R^{L\times d_v}$。单头注意力为
+\[
+\operatorname{Attention}(Q,K,V)
+=\operatorname{softmax}_{\mathrm{row}}\!\left(\frac{QK^\top}{\sqrt{d_k}}+M\right)V.
+\]
+\begin{columns}[T,onlytextwidth]
+\begin{column}{0.47\textwidth}
+\head{表示的相互作用}
+\small $QK^\top$ 产生位置之间的匹配分数；按行 softmax 后，对 $V$ 做数据依赖的加权混合。
+\end{column}
+\begin{column}{0.47\textwidth}
+\head{信息边界由掩码控制}
+\small 因果掩码对未来位置置 $-\infty$；其他任务可用其他掩码。掩码约束可见信息，不独自定义整个生成模型。
+\end{column}
+\end{columns}
+\source{Vaswani et al., \href{https://arxiv.org/abs/1706.03762}{Attention Is All You Need}, 2017。完整 Transformer 还包含多头结构、位置表示、前馈层与残差等组件。}
+\note{本页 Q 表示 query 矩阵，上一页 Q 表示马尔可夫生成矩阵，需按语境区分。标准稠密注意力的分数矩阵有 L×L 项，实际显存与时间还取决于实现。}
+\end{frame}
+
+% 41
+\begin{frame}{参考文献 I\quad 概率构造与模型基础}
+\fontsize{9}{12}\selectfont
+\textbf{[1]} OpenAI. \href{https://openai.com/index/chatgpt/}{\textit{Introducing ChatGPT}}. November 30, 2022.\par
+\mutedtext{用于开课历史背景；不作为模型全部能力的证明。}
+
+\vspace{0.10cm}
+\textbf{[2]} Vaswani, A., et al. \href{https://arxiv.org/abs/1706.03762}{\textit{Attention Is All You Need}}. NeurIPS, 2017.\par
+\mutedtext{Transformer 与注意力架构。}
+
+\vspace{0.10cm}
+\textbf{[3]} Kingma, D. P., and Welling, M. \href{https://arxiv.org/abs/1312.6114}{\textit{Auto-Encoding Variational Bayes}}. arXiv 2013; ICLR, 2014.\par
+\mutedtext{隐变量模型、变分下界与重参数化。}
+
+\vspace{0.10cm}
+\textbf{[4]} Rezende, D. J., and Mohamed, S. \href{https://arxiv.org/abs/1505.05770}{\textit{Variational Inference with Normalizing Flows}}. ICML, 2015.\par
+\mutedtext{以可逆变换构造更灵活的分布。}
+
+\vspace{0.10cm}
+\textbf{[5]} Ho, J., Jain, A., and Abbeel, P. \href{https://arxiv.org/abs/2006.11239}{\textit{Denoising Diffusion Probabilistic Models}}. NeurIPS, 2020.\par
+\mutedtext{扩散模型的代表性训练与采样框架。}
+\note{链接指向原始论文或发布机构。标题年份区分预印本首次发布与会议年份，避免把首次提出时间写成最后一个 arXiv 修订版本的年份。学生不必第一周读完所有文献。}
+\end{frame}
+
+% 42
+\begin{frame}{参考文献 II\quad 动力学、离散状态与科学应用}
+\fontsize{8.6}{11.5}\selectfont
+\textbf{[6]} Song, Y., et al. \href{https://arxiv.org/abs/2011.13456}{\textit{Score-Based Generative Modeling through Stochastic Differential Equations}}. ICLR, 2021.\par
+\vspace{0.11cm}
+\textbf{[7]} Lipman, Y., et al. \href{https://arxiv.org/abs/2210.02747}{\textit{Flow Matching for Generative Modeling}}. arXiv 2022; ICLR, 2023.\par
+\vspace{0.11cm}
+\textbf{[8]} Austin, J., et al. \href{https://arxiv.org/abs/2107.03006}{\textit{Structured Denoising Diffusion Models in Discrete State-Spaces}}. NeurIPS, 2021.\par
+\vspace{0.11cm}
+\textbf{[9]} Hoogeboom, E., Satorras, V. G., Vignac, C., and Welling, M. \href{https://arxiv.org/abs/2203.17003}{\textit{Equivariant Diffusion for Molecule Generation in 3D}}. ICML, 2022.\par
+\vspace{0.11cm}
+\textbf{[10]} Holderrieth, P., and Erives, E. \href{https://arxiv.org/abs/2506.02070}{\textit{An Introduction to Flow Matching and Diffusion Models}}. MIT course notes, 2025.\par
+\vspace{0.25cm}
+\takeaway{阅读时核对公式的定义、结论的条件和实验设置，并查阅所引用的原始来源。}
+\note{补充说明本讲没有用最新榜单或未经核验的能力数字组织课程。前沿内容会在后续授课中按原始论文与实验条件更新。读取文献时特别注意状态空间、时间方向、网络参数化、损失权重与采样器定义。}
 \end{frame}
 
 \end{document}

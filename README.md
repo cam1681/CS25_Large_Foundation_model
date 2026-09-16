@@ -2,7 +2,7 @@
 
 <div align="center">
 
-**CS25 Course - Autumn 2025**  
+**CS25 Course - Autumn 2026**  
 *清华大学求真书院*
 
 [![Course Status](https://img.shields.io/badge/Status-Course_Info-brightgreen)](https://bimsa.net/activity/LarFouModMatAlgandApp/)
@@ -85,7 +85,7 @@ The course covers 13 comprehensive lectures on Large Foundation Models:
 - **Online Access**: [Course Website](https://bimsa.net/activity/LarFouModMatAlgandApp/)
 - **Schedule**: 第1-16周星期四第2节
 - **In-Person**: 清华大学六教6B404
-- **Semester**: Autumn 2025
+- **Semester**: Autumn 2026
 - **Institution**: 清华大学求真书院
 
 ### Instructor
