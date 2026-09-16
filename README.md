@@ -1,278 +1,137 @@
-# Large Foundation Models: Mathematics, Algorithms, and Applications
+# 高性能计算与人工智能应用
 
-<div align="center">
+**Math on AI · 2026 年秋季 · 清华大学求真书院**
 
-**CS25 Course - Autumn 2026**  
-*清华大学求真书院*
+从数学走近生成式人工智能。本课程围绕大基础模型，介绍概率建模、训练算法、生成过程及其计算实现，并讨论世界模型、强化学习、推理、智能体和科学应用。
 
-[![Course Status](https://img.shields.io/badge/Status-Course_Info-brightgreen)](https://bimsa.net/activity/LarFouModMatAlgandApp/)
-[![Instructor](https://img.shields.io/badge/Instructor-Pipi%20Hu-blue)](https://bimsa.net/people/pipihu/)
-[![Format](https://img.shields.io/badge/Format-Online%20%7C%20In--Person-orange)](#location--schedule)
+[课程导论 PDF](lectures/source/compiled_pdfs/lecture0_introduction.pdf) · [全部课件](lectures/source/compiled_pdfs/) · [课程讲义](book/compiled_pdfs/book.pdf)
 
-</div>
+## 课程信息
 
----
+| 项目 | 内容 |
+| --- | --- |
+| 课程名称 | 高性能计算与人工智能应用 |
+| 授课教师 | 胡丕丕 |
+| 开课单位 | 清华大学求真书院 |
+| 学期 | 2026 年秋季 |
+| 上课时间 | 第1–16周，星期四第2节 |
+| 上课地点 | 清华大学六教6B404 |
 
-## Course Overview
+## 学习目标
 
-This comprehensive course explores the mathematical foundations, algorithmic implementations, and practical applications of **Large Foundation Models**. Students will gain deep understanding of modern generative AI through rigorous mathematical treatment and hands-on implementations.
+课程以概率、动力学与计算为主线，结合推导、代码和实验，帮助同学们：
 
-### Learning Objectives
+- 理解生成模型学习的分布、目标函数和采样过程。
+- 比较自回归、VAE、GAN、归一化流、扩散、流匹配和离散扩散的数学构造。
+- 从头实现小模型，分析模型表达、训练优化与数值采样带来的误差。
+- 评估训练和生成的效率，关注网络调用次数、耗时、显存与并行计算。
+- 理解生成建模与世界模型、强化学习、推理、智能体和科学问题的联系。
 
-By the end of this course, you will be able to:
+导论从双峰分布出发，介绍点预测与分布学习的区别，再通过流匹配说明训练目标、生成动力学与数值误差的关系。课件还收录了 Rich Sutton 的《苦涩的教训》，用于讨论搜索、学习和计算规模之间的关系。
 
-- **Explain** what it means to learn a data distribution $p_\theta(\mathbf{x})$ or conditional $p_\theta(\mathbf{x}\mid\mathbf{c})$
-- **Compare** the five major families: Autoregressive, VAE, GAN, Normalizing Flows, Diffusion/Flow Matching
-- **Relate** training objectives to a unifying divergence/likelihood view
-- **Distinguish** training vs. sampling costs and typical latency/quality trade-offs
-- **Choose** appropriate model families for specific tasks
-- **Understand** how reinforcement learning works in the context of foundation models
-- **Construct** your own models from scratch
+## 考核方式
 
----
+| 考核部分 | 占比 | 内容 |
+| --- | --- | --- |
+| 平时成绩 | 50% | 几次课后作业、两次课堂小作业 |
+| 课程大作业 | 50% | 课程大作业 |
 
-## Course Materials
+**两次课堂小作业不能使用大模型。** 题目比较简单，主要考查对课程概念与基本原理的理解。
 
-### Lecture Slides
+日常学习中鼓励使用 AI 辅助解释概念、编写代码和设计测试。提交的推导与代码需要自己理解并核验，同时记录关键帮助、修改过程和验证方法。
 
-All lecture slides are available in the [`lectures/`](lectures/) directory:
+## 课程内容与课件
 
-- **Source Files**: LaTeX source files in [`lectures/source/`](lectures/source/)
-- **Figures**: All course figures in [`lectures/figures/`](lectures/figures/)
-- **Compiled PDFs**: Ready-to-use PDF slides in [`lectures/source/compiled_pdfs/`](lectures/source/compiled_pdfs/)
-- **Individual Lectures**: Each lecture has its own slide deck
-- **Introduction**: [`lecture0_introduction.pdf`](lectures/source/compiled_pdfs/lecture0_introduction.pdf) - Course overview and objectives
+以下按资料编号列出课程主题，具体教学进度结合课堂与实践安排。
 
-### Course Book
+| 编号 | 主题 | 主要内容 |
+| --- | --- | --- |
+| [第0讲](lectures/source/compiled_pdfs/lecture0_introduction.pdf) | 课程导论 | 学习目标、生成模型概览、计算与实验、考核方式 |
+| [第1讲](lectures/source/compiled_pdfs/lecture1_diffusion_model.pdf) | 扩散模型 | 加噪、去噪、score 与反向生成 |
+| [第2讲](lectures/source/compiled_pdfs/lecture2_Flow_matching.pdf) | 流匹配 | 概率路径、速度场、ODE 与采样 |
+| [第3讲](lectures/source/compiled_pdfs/lecture3_vae.pdf) | 变分自编码器 | 隐变量、变分推断与训练方法 |
+| [第4讲](lectures/source/compiled_pdfs/lecture4_normalizing_flow.pdf) | 归一化流 | 可逆变换、变量代换与条件生成 |
+| [第5讲](lectures/source/compiled_pdfs/lecture5_GANs.pdf) | 生成对抗网络 | 对抗训练、生成质量与分布覆盖 |
+| [第6讲](lectures/source/compiled_pdfs/lecture6_autoregressive.pdf) | 自回归模型 | 条件概率分解、Transformer 与序列生成 |
+| [第7讲](lectures/source/compiled_pdfs/lecture7_discrete_diffusion.pdf) | 离散扩散 | 离散状态转移与生成建模 |
+| [第8讲](lectures/source/compiled_pdfs/lecture8_world_model.pdf) | 世界模型 | 状态表示、动力学预测与规划 |
+| [第9讲](lectures/source/compiled_pdfs/lecture9_reinforcementlearning.pdf) | 强化学习 | 策略、价值、交互反馈与长期回报 |
+| [第10讲](lectures/source/compiled_pdfs/lecture10_reasoning.pdf) | 推理 | 大模型的推理方法与能力 |
+| [第11讲](lectures/source/compiled_pdfs/lecture11_agent.pdf) | 智能体 | 模型、工具、记忆与环境交互 |
+| [第12讲](lectures/source/compiled_pdfs/lecture12_ai4science.pdf) | 科学智能 | 生成模型在科学计算与研究中的应用 |
 
-Comprehensive course materials are available in the [`book/`](book/) directory:
+## 学习准备
 
-- **Main Book**: [`book.pdf`](book/compiled_pdfs/book.pdf) - course textbook under construction
-- **Individual Chapters**: Source files in [`book/chapters/`](book/chapters/)
+- **数学基础**：微积分、线性代数与基本概率，熟悉条件概率、期望、梯度和矩阵运算。
+- **编程基础**：能够阅读和修改 Python，逐步熟悉 PyTorch 张量、自动微分、训练循环与调试。
+- **学习方法**：核对定义与假设，将公式转为代码，通过反例和对照实验检查结论。
 
-### Homework
+学习过程中可以结合具体问题补充背景知识。课堂欢迎有依据的不同意见，鼓励同学们独立解释、实现和判断。
 
-Homework assignments are available in the [`lectures/source/`](lectures/source/) directory:
+## 资料与使用方式
 
-- **Homework 1**: [`homework1_generative_models.pdf`](lectures/source/compiled_pdfs/homework1_generative_models.pdf) - Generative Models (Diffusion, Flow Matching, VAE, Normalizing Flows, GANs)
+- **课件源码**：[lectures/source/](lectures/source/)，包含各讲 LaTeX 文件。
+- **课件 PDF**：[lectures/source/compiled_pdfs/](lectures/source/compiled_pdfs/)。
+- **课程图片**：[lectures/figures/](lectures/figures/)。
+- **课程讲义**：[book.pdf](book/compiled_pdfs/book.pdf)，持续整理中；章节源码见 [book/chapters/](book/chapters/)。
+- **作业资料**：[生成模型作业](lectures/source/compiled_pdfs/homework1_generative_models.pdf)，涉及扩散、流匹配、VAE、归一化流与 GAN。
+- **代码示例**：[examples/](examples/)，包含扩散模型 Notebook 和训练脚本，持续完善中。
 
-### Course Content
+### 下载仓库
 
-The course covers 13 comprehensive lectures on Large Foundation Models:
-
-| Lecture | Topic | Description |
-|---------|-------|-------------|
-| **Lecture 0** | Introduction | Course overview and objectives |
-| **Lecture 1** | Diffusion Models | Mathematical foundations of diffusion models and the algorithms |
-| **Lecture 2** | Flow Matching | flow matching and its relation with Diffusion|
-| **Lecture 3** | Variational Autoencoders | VAE theory and implementation |
-| **Lecture 4** | Normalizing Flows | Normalizing flow architectures and conditional normalizing flow |
-| **Lecture 5** | Generative Adversarial Networks | GAN theory and training |
-| **Lecture 6** | Autoregressive Models | Transformer architectures and autoregressive generation |
-| **Lecture 7** | Discrete Diffusion | Discrete diffusion models and language generation by diffusion |
-| **Lecture 8** | World Models | World models in machine learning and AGI |
-| **Lecture 9** | Reinforcement Learning | RL in the context of foundation models |
-| **Lecture 10** | Reasoning | Large foundation models and reasoning capabilities |
-| **Lecture 11** | Agent Technologies | LLM agents and intelligent systems |
-| **Lecture 12** | AI for Science | Modern machine learning algorithms for the important scientific problems |
-
----
-
-## Course Information
-
-### Location & Schedule
-
-- **Online Access**: [Course Website](https://bimsa.net/activity/LarFouModMatAlgandApp/)
-- **Schedule**: 第1-16周星期四第2节
-- **In-Person**: 清华大学六教6B404
-- **Semester**: Autumn 2026
-- **Institution**: 清华大学求真书院
-
-### Instructor
-
-**[Pipi Hu](https://bimsa.net/people/pipihu/)**  
-*清华大学求真书院*
-
----
-
-## Technical Prerequisites
-
-### Mathematical Background
-- Linear Algebra
-- Probability Theory I with basic concepts of conditional probability
-- Calculus I/II with basic understanding of multivariable calculus
-- Basic Machine Learning concepts such as MLP, nonlinear activations, and backpropagation
-
-### Programming Skills
-- Basic Python and PyTorch programming skills
-- Basic understanding of neural networks
-
----
-
-## Repository Structure
-
+```bash
+git clone https://github.com/cam1681/CS25_Large_Foundation_model.git
+cd CS25_Large_Foundation_model
 ```
+
+### 编译课程导论
+
+导论使用 XeLaTeX，需安装包含中文支持的 TeX Live 或同类 LaTeX 环境，以及 `latexmk`。
+
+```bash
+cd lectures/source
+latexmk -xelatex -interaction=nonstopmode -halt-on-error \
+  -outdir=compiled_pdfs lecture0_introduction.tex
+```
+
+## 目录结构
+
+```text
 CS25_Large_Foundation_model/
-├── lectures/                      # Lecture materials and slides
-│   ├── source/                    # Source LaTeX files
-│   │   ├── lecture0_introduction.tex
-│   │   ├── lecture1_diffusion_model.tex
-│   │   ├── lecture2_Flow_matching.tex
-│   │   ├── lecture3_vae.tex
-│   │   ├── lecture4_normalizing_flow.tex
-│   │   ├── lecture5_GANs.tex
-│   │   ├── lecture6_autoregressive.tex
-│   │   ├── lecture7_discrete_diffusion.tex
-│   │   ├── lecture8_world_model.tex
-│   │   ├── lecture9_reinforcementlearning.tex
-│   │   ├── lecture10_reasoning.tex
-│   │   ├── lecture11_agent.tex
-│   │   ├── lecture12_ai4science.tex
-│   │   ├── homework1_generative_models.tex  # Homework assignment
-│   │   ├── compiled_pdfs/         # Generated PDF slides and homework
-│   │   └── README.md             # Lecture documentation
-│   ├── figures/                   # Course figures and diagrams
-│   └── README.md                  # Lecture documentation
-├── book/                          # Course book and comprehensive materials
-│   ├── book.tex                   # Main book source
-│   ├── compiled_pdfs/            # Compiled book PDF
-│   ├── chapters/                  # Individual book chapters
-│   ├── figures/                   # Book figures and diagrams
-│   └── README.md                  # Book documentation
-└── examples/                      # Code examples and implementations
-    ├── notebooks/                 # Jupyter notebooks
-    ├── scripts/                   # Python scripts
-    ├── datasets/                  # Sample datasets
-    ├── requirements.txt           # Python dependencies
-    └── README.md                  # Examples documentation
+├── lectures/
+│   ├── source/             # 课件与作业的 LaTeX 源码
+│   │   └── compiled_pdfs/  # 编译后的 PDF
+│   └── figures/            # 课件图片
+├── book/
+│   ├── book.tex            # 讲义主文件
+│   ├── chapters/           # 章节源码
+│   └── compiled_pdfs/      # 讲义 PDF
+└── examples/
+    ├── notebooks/          # 交互式示例
+    ├── scripts/            # 训练脚本
+    ├── datasets/           # 数据说明
+    └── requirements.txt    # Python 依赖
 ```
 
----
+## 参与完善与致谢
 
-## Getting Started
+欢迎通过 Issue 或 Pull Request 反馈公式与代码问题、改进讲解、补充示例。
 
-### Accessing Materials
+课程资料制作过程中使用了 Cursor 和大模型辅助整理文献、生成插图、搭建讲义与代码框架、调整排版和校对文字。内容与结果仍需人工检查和验证。
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/cam1681/CS25_Large_Foundation_model.git
-   cd CS25_Large_Foundation_model
-   ```
+## 引用与使用
 
-2. **View course materials**:
-   - **Lectures**: Navigate to the [`lectures/`](lectures/) directory for lecture materials and slides
-   - **Book**: Check the [`book/`](book/) directory for comprehensive course materials
-   - **Examples**: Explore the [`examples/`](examples/) directory for code implementations
+课程资料用于教学与学习。使用其中内容时，请注明来源，并尊重引用文献和第三方图片的权利。
 
-
-### Current Status
-
-- **13 Complete Lectures**: All lecture materials are ready
-- **Figure Integration**: All figures are properly linked and accessible
-- **PDF Generation**: All lectures compile to high-quality PDFs
-- **Homework Assignments**: First homework on generative models is available
-- **Course Book**: Comprehensive textbook is under construction
-- **Code Examples**: Implementation examples and datasets are under construction
-
-### Key Features
-
-- **Mathematical Foundation**: Deep mathematical understanding of all topics
-- **Practical Implementation**: Hands-on code examples and implementations
-- **Comprehensive Coverage**: From basic concepts to advanced applications
-- **Multiple Formats**: Both lecture slides and comprehensive book (under construction)
-- **Real-world Applications**: Focus on practical applications and use cases
-
----
-
-## Course Philosophy
-
-> **"The Bitter Lesson"** - *Rich Sutton*
-> 
-> Hand-crafted domain knowledge scales poorly; progress comes from **general-purpose** methods that learn directly from data with lots of compute. Design **mathematical learning algorithms** so models **acquire** the distribution, rather than hard-coding it.
-
-### Key Principles
-
-- **Scalable Objectives**: Maximize $\log p_\theta(\mathbf{x})$ or minimize divergence $D(p_{\text{data}} \Vert p_\theta)$
-- **Generic Representations**: Use data-driven architectures (Transformers, CNNs, U-Nets)
-- **Scale Data/Compute**: Reduce bespoke heuristics and narrow domain rules
-- **Self-Supervision**: Leverage generic, data-driven representations
-
----
-
-## Contributing
-
-This course material is actively maintained. Contributions are welcome for:
-
-- Content improvements
-- Bug fixes
-- Visual enhancements
-- Additional examples
-
----
-## Acknowledgement
-
-This course material is built with the help of Large Foundation Models through Cursor Editor, including:
-
-- Summarizing the initial several slides from published papers
-- Generating illustrations of the figures
-- Converting the lecture slides to the initial backbone of the book
-- Reorganizing the structure of the repo and helping to modify the README.md file
-- Providing the initial structure of the example codes
-- Correcting grammer errors.
-
-This course on Large Foundation Models and the construction of the course materials also benefits from Large Foundation Models. In my experience, they really accelerate the process of spreading knowledge and summarizing ideas without redundant dirty work. One can focus more on high-level abstract ideas and have the repeated dirty work done by LLMs with human guidance and monitoring.  
-
----
-
-## Citation
-
-If you use this course material in your research or teaching, please cite it as follows:
+引用当前课程资料可使用：
 
 ```bibtex
-@misc{cs25_large_foundation_models_2025,
-  title={Large Foundation Models: Mathematics, Algorithms, and Applications},
-  author={Pipi Hu},
-  year={2025},
+@misc{hu2026_math_on_ai,
+  title={高性能计算与人工智能应用},
+  author={胡丕丕},
+  year={2026},
   institution={清华大学求真书院},
   url={https://github.com/cam1681/CS25_Large_Foundation_model},
-  note={CS25 Course - Autumn 2025}
+  note={Math on AI，2026年秋季课程资料}
 }
 ```
-
-**BibTeX Entry:**
-```bibtex
-@misc{cs25_large_foundation_models_2025,
-  title={Large Foundation Models: Mathematics, Algorithms, and Applications},
-  author={Pipi Hu},
-  year={2025},
-  institution={清华大学求真书院},
-  url={https://github.com/cam1681/CS25_Large_Foundation_model},
-  note={CS25 Course - Autumn 2025}
-}
-```
-
----
-
-## License
-
-This course material is provided for educational purposes. Please respect the intellectual property rights and cite appropriately when using these materials.
-
----
-
-## Contact
-
-For questions about the course content or materials:
-
-- **Course Website**: [BIMSA Course Page](https://bimsa.net/activity/LarFouModMatAlgandApp/)
-- **Instructor**: [Pipi Hu](https://bimsa.net/people/pipihu/)
-- **Institution**: 清华大学求真书院
-
----
-
-<div align="center">
-
-**Happy Learning!**
-
-*Man is born to a better life with the AI Copilot*
-
-</div>
