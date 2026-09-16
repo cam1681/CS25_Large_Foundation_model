@@ -3,7 +3,7 @@
 <div align="center">
 
 **CS25 Course - Autumn 2025**  
-*Beijing Institute of Mathematical Sciences and Applications (BIMSA)*
+*清华大学求真书院*
 
 [![Course Status](https://img.shields.io/badge/Status-Course_Info-brightgreen)](https://bimsa.net/activity/LarFouModMatAlgandApp/)
 [![Instructor](https://img.shields.io/badge/Instructor-Pipi%20Hu-blue)](https://bimsa.net/people/pipihu/)
@@ -83,14 +83,15 @@ The course covers 13 comprehensive lectures on Large Foundation Models:
 ### Location & Schedule
 
 - **Online Access**: [Course Website](https://bimsa.net/activity/LarFouModMatAlgandApp/)
-- **In-Person**: Room C546, Shuangqing Complex Building A, Tsinghua University （校外，清华大学双清综合楼A座C546）
+- **Schedule**: 第1-16周星期四第2节
+- **In-Person**: 清华大学六教6B404
 - **Semester**: Autumn 2025
-- **Institution**: [Beijing Institute of Mathematical Sciences and Applications (BIMSA)](https://www.bimsa.cn/)
+- **Institution**: 清华大学求真书院
 
 ### Instructor
 
 **[Pipi Hu](https://bimsa.net/people/pipihu/)**  
-*Beijing Institute of Mathematical Sciences and Applications*
+*清华大学求真书院*
 
 ---
 
@@ -232,7 +233,7 @@ If you use this course material in your research or teaching, please cite it as 
   title={Large Foundation Models: Mathematics, Algorithms, and Applications},
   author={Pipi Hu},
   year={2025},
-  institution={Beijing Institute of Mathematical Sciences and Applications (BIMSA)},
+  institution={清华大学求真书院},
   url={https://github.com/cam1681/CS25_Large_Foundation_model},
   note={CS25 Course - Autumn 2025}
 }
@@ -244,7 +245,7 @@ If you use this course material in your research or teaching, please cite it as 
   title={Large Foundation Models: Mathematics, Algorithms, and Applications},
   author={Pipi Hu},
   year={2025},
-  institution={Beijing Institute of Mathematical Sciences and Applications (BIMSA)},
+  institution={清华大学求真书院},
   url={https://github.com/cam1681/CS25_Large_Foundation_model},
   note={CS25 Course - Autumn 2025}
 }
@@ -264,7 +265,7 @@ For questions about the course content or materials:
 
 - **Course Website**: [BIMSA Course Page](https://bimsa.net/activity/LarFouModMatAlgandApp/)
 - **Instructor**: [Pipi Hu](https://bimsa.net/people/pipihu/)
-- **Institution**: [Beijing Institute of Mathematical Sciences and Applications](https://www.bimsa.cn/)
+- **Institution**: 清华大学求真书院
 
 ---
 
